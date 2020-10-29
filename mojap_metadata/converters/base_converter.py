@@ -14,13 +14,13 @@ class BaseConverter(object):
         """
         Should be overwritten to transform item into the Metadata object
         """
-        raise ValueError("This function has not been overwritten")
+        raise NotImplementedError("This function has not been overwritten")
 
 
     def generate_from_meta(self, metadata: Metadata, **kwargs) -> object:
         """
         Should be overwritten to transform metadata into the MetaData object
         """
-        raise ValueError("This function has not been overwritten")
+        raise NotImplementedError("This function has not been overwritten")
 
 
