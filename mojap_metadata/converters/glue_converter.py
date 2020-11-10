@@ -4,7 +4,7 @@ from converters.base_converter import BaseConverter
 
 import boto3
 
-class PandasConverter(BaseConverter):
+class GlueConverter(BaseConverter):
     """
     Will either convert a glue table DDL to our metadata
     Or will generate glue table DDL from our metadata
@@ -88,6 +88,3 @@ class PandasConverter(BaseConverter):
                 glue_columns.append(new_c)
 
         return glue_columns
-        
-
-    

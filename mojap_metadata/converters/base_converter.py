@@ -1,4 +1,5 @@
 from metadata.base_meta import Metadata
+from typing import IO, Union
 
 class BaseConverter(object):
     """
@@ -14,13 +15,36 @@ class BaseConverter(object):
         """
         Should be overwritten to transform item into the Metadata object
         """
-        raise ValueError("This function has not been overwritten")
+        raise NotImplementedError("This function has not been overwritten")
 
 
     def generate_from_meta(self, metadata: Metadata, **kwargs) -> object:
         """
         Should be overwritten to transform metadata into the MetaData object
         """
-        raise ValueError("This function has not been overwritten")
+        raise NotImplementedError("This function has not been overwritten")
 
 
+    def to_json(self, filepath: Union[IO, str]):
+        """
+        Should be overwritten to write Converter parameters to a json config
+        """
+        raise NotImplementedError("This function has not been overwritten")
+
+
+    def to_yaml(self, filepath: Union[IO, str]):
+        """
+        Should be overwritten to write Converter parameters to a yaml config
+        """
+        raise NotImplementedError("This function has not been overwritten")
+
+
+    def read_config(self, file: IO):
+        """
+        Should be overwritten to read a config and parameterise itself.
+        Configs should be json or yaml. Can just use yaml to read both:
+
+        with open(file) as f:
+            converter.read_config(f)
+        """
+        raise NotImplementedError("This function has not been overwritten")
