@@ -35,7 +35,11 @@ Name of the column
 
 ### type
 
-The column type, this is very loose so kept minimal. It is up for the converters to change these types. The allowable types are: `integer`, `double`, `string`, `date`, `datetime`, `boolean`, `array`, `object`
+The allowable datatypes should allow names from this list of datatypes from [Arrows agnostic datatypes](https://arrow.apache.org/docs/python/api/datatypes.html).
+
+### type_desc
+
+This should be an overaching superclass of the types values and a smaller group of types: `integer`, `double`, `string`, `date`, `datetime`, `boolean`, `array`, `object`. For example from the Arrow list we would class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. This type_desc would also allow us to map older metadata from `etl-manager` to this `metadata`. Users should be allowed to infer the `type` from the `type_desc` (e.g. if user just says integer will might want to class the `type` as `int64` by default. 
 
 ### description
 
