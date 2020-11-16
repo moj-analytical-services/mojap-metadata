@@ -26,9 +26,9 @@ An example of the metadata:
         {
             "name": "employee_id",
             "type": "int64",
-            "type_desc": "integer"
+            "type_desc": "integer",
             "description": "an ID for each employee",
-            "minimum": 1000
+            "minimum": 1000,
             "maximum": 9999
         },
         {
@@ -40,7 +40,7 @@ An example of the metadata:
         {
             "name": "employee_dob",
             "type": "date64",
-            "type_desc: "date"
+            "type_desc: "date",
             "description": "date of birth for the employee"
         }
     ]
