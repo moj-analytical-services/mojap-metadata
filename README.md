@@ -14,6 +14,39 @@ The `Metadata` class deals with parsing, manipulating and validating metadata co
 
 When adding a parameter to the metadata config first thing is to look if it exists in [json-schema](https://json-schema.org/understanding-json-schema/index.html). For example `enum`, `pattern` and `type` are parameters in our column types but come from json schema naming definitions.
 
+An example of the metadata:
+
+```json
+{
+    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/table/v2.0.0.json",
+    "name": "employees",
+    "description": "table containing employee information",
+    "data_format": "parquet",
+    "columns": [
+        {
+            "name": "employee_id",
+            "type": "int64",
+            "type_desc": "integer"
+            "description": "an ID for each employee",
+            "minimum": 1000
+            "maximum": 9999
+        },
+        {
+            "name": "employee_name",
+            "type": "string",
+            "type_string": "string",
+            "description": "name of the employee"
+        },
+        {
+            "name": "employee_dob",
+            "type": "date64",
+            "type_desc: "date"
+            "description": "date of birth for the employee"
+        }
+    ]
+}
+```
+
 ## Table parameters
 
 ### name
@@ -60,6 +93,10 @@ The minimum and maximum length of the string (strings only)
 ### format
 
 [A] Format of the data (string only). Needs thought can basically use as a wild card but worth considering how we use for dates/datetimes/times as most likely what this would be used for. For example if you wanted to specify an ISO date format would you use `%Y-%m-%d` or `YYYY-MM-DD`.
+
+### partitions
+
+[A] Think we should keep this as a lot of our data is partitioned and it would be useful for our metadata to describe said partitions.
 
 ### minimum / maximum
 
