@@ -40,7 +40,7 @@ An example of the metadata:
         {
             "name": "employee_dob",
             "type": "date64",
-            "type_desc: "date",
+            "type_desc": "date",
             "description": "date of birth for the employee"
         }
     ]
