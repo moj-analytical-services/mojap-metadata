@@ -19,7 +19,7 @@ class MetadataProperty:
 class Metadata:
     name = MetadataProperty()
     description = MetadataProperty()
-    format = MetadataProperty()
+    file_format = MetadataProperty()
     sensitive = MetadataProperty()
     columns = MetadataProperty()
     primary_key = MetadataProperty()
@@ -29,7 +29,7 @@ class Metadata:
         self,
         name: str = "",
         description: str = "",
-        format: str = "",
+        file_format: str = "",
         sensitive: bool = False,
         columns: list = [],
         primary_key: set = [],
@@ -37,7 +37,7 @@ class Metadata:
     ) -> None:
         self._name = name
         self._description = description
-        self._format = format
+        self._file_format = file_format
         self._sensitive = sensitive
         self._columns = columns
         self._primary_key = primary_key
@@ -70,7 +70,7 @@ class Metadata:
     def from_dict(self, d: dict) -> None:
         self.name = d.get("name", "")
         self.description = d.get("description", "")
-        self.format = d.get("format", "")
+        self.file_format = d.get("file_format", "")
         self.sensitive = d.get("sensitive", False)
         self.columns = d.get("columns", [])
         self.primary_key = d.get("primary_key", [])
@@ -79,7 +79,7 @@ class Metadata:
             {
                 "name",
                 "description",
-                "format",
+                "file_format",
                 "sensitive",
                 "columns",
                 "primary_key",
@@ -95,7 +95,7 @@ class Metadata:
         output = {
             "name": self.name,
             "description": self.description,
-            "format": self.format,
+            "file_format": self.file_format,
             "sensitive": self.sensitive,
             "primary_key": self.primary_key,
             "partitions": self.partitions,
