@@ -16,7 +16,7 @@
             "type": "string",
             "title": "A description of what this table contains"
         },
-        "format": {
+        "file_format": {
             "type": "string",
             "title": "The format the data is stored in"
         },
@@ -51,16 +51,251 @@
                 "required": [
                     "name"
                 ],
-                "anyOf": [
+                "oneOf": [
                     {
-                        "required": [
-                            "type"
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "type"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "type_category"
+                                ]
+                            }
                         ]
                     },
                     {
                         "required": [
+                            "type",
                             "type_category"
-                        ]
+                        ],
+                        "oneOf": [
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^null$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^u?int(8|16|32|64)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^string$|^large_string$|^utf8$|^large_utf8$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^(time|date)(32|64)$|^timestamp(\\((m|u|n)?s\\))?$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^binary(\\([0-9]+\\))?$|^large_binary$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^bool_$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^list_\\(\\w+(,[0-9]+)?\\)$|^large_list\\(\\w+\\)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^map_$|^struct$|^field$|^schema$"
+                                    }
+                                }
+                            }
+                        ],
+                        "if": {
+                            "properties": {
+                                "type": {
+                                    "pattern": "^null$"
+                                }
+                            }
+                        },
+                        "then": {
+                            "properties": {
+                                "type_category": {
+                                    "enum": [
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "else": {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^u?int(8|16|32|64)$"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "type_category": {
+                                        "enum": [
+                                            "integer"
+                                        ]
+                                    }
+                                }
+                            },
+                            "else": {
+                                "if": {
+                                    "properties": {
+                                        "type": {
+                                            "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "type_category": {
+                                            "enum": [
+                                                "float"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "else": {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "pattern": "^string$|^large_string$|^utf8$|^large_utf8$"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "properties": {
+                                            "type_category": {
+                                                "enum": [
+                                                    "string"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "else": {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "pattern": "^(time|date)(32|64)(\\(m?s\\))?$|^timestamp(\\((m|u|n)?s\\))?$"
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "properties": {
+                                                "type_category": {
+                                                    "enum": [
+                                                        "datetime"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "else": {
+                                            "if": {
+                                                "properties": {
+                                                    "type": {
+                                                        "pattern": "^binary(\\([0-9]+\\))?$|^large_binary$"
+                                                    }
+                                                }
+                                            },
+                                            "then": {
+                                                "properties": {
+                                                    "type_category": {
+                                                        "enum": [
+                                                            "binary"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "else": {
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "pattern": "^bool_$"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "properties": {
+                                                        "type_category": {
+                                                            "enum": [
+                                                                "boolean"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "else": {
+                                                    "if": {
+                                                        "properties": {
+                                                            "type": {
+                                                                "pattern": "^list_\\(\\w+(,[0-9]+)?\\)$|^large_list\\(\\w+\\)$"
+                                                            }
+                                                        }
+                                                    },
+                                                    "then": {
+                                                        "properties": {
+                                                            "type_category": {
+                                                                "enum": [
+                                                                    "array"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "pattern": "^map_$|^struct$|^field$|^schema$"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "properties": {
+                                                                "type_category": {
+                                                                    "enum": [
+                                                                        "object"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 ],
                 "properties": {
@@ -76,40 +311,7 @@
                     "type": {
                         "type": "string",
                         "title": "The data type. Should be one of the Arrow types",
-                        "enum": [
-                            "null",
-                            "bool_",
-                            "int8",
-                            "int16",
-                            "int32",
-                            "int64",
-                            "uint8",
-                            "uint16",
-                            "uint32",
-                            "uint64",
-                            "float16",
-                            "float32",
-                            "float64",
-                            "time32",
-                            "time64",
-                            "timestamp",
-                            "date32",
-                            "date64",
-                            "binary",
-                            "string",
-                            "utf8",
-                            "large_binary",
-                            "large_string",
-                            "large_utf8",
-                            "decimal128",
-                            "list_",
-                            "large_list",
-                            "map_",
-                            "struct",
-                            "dictionary",
-                            "field",
-                            "schema"
-                        ]
+                        "pattern": "^null$|^u?int(8|16|32|64)$|^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$|^string$|^large_string$|^utf8$|^large_utf8$|^(time|date)(32|64)(\\(m?s\\))?$|^timestamp(\\((m|u|n)?s\\))?$|^binary(\\([0-9]+\\))?$|^large_binary$|^bool_$"
                     },
                     "type_category": {
                         "type": "string",
@@ -122,7 +324,9 @@
                             "datetime",
                             "boolean",
                             "array",
-                            "object"
+                            "object",
+                            "null",
+                            "binary"
                         ]
                     },
                     "nullable": {
