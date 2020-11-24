@@ -103,7 +103,7 @@
                             {
                                 "properties": {
                                     "type": {
-                                        "pattern": "^(time|date)(32|64)$|^timestamp(\\((m|u|n)?s\\))?$"
+                                        "pattern": "^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$"
                                     }
                                 }
                             },
@@ -207,7 +207,7 @@
                                         "if": {
                                             "properties": {
                                                 "type": {
-                                                    "pattern": "^(time|date)(32|64)(\\(m?s\\))?$|^timestamp(\\((m|u|n)?s\\))?$"
+                                                    "pattern": "^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$"
                                                 }
                                             }
                                         },
@@ -311,7 +311,7 @@
                     "type": {
                         "type": "string",
                         "title": "The data type. Should be one of the Arrow types",
-                        "pattern": "^null$|^u?int(8|16|32|64)$|^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$|^string$|^large_string$|^utf8$|^large_utf8$|^(time|date)(32|64)(\\(m?s\\))?$|^timestamp(\\((m|u|n)?s\\))?$|^binary(\\([0-9]+\\))?$|^large_binary$|^bool_$"
+                        "pattern": "^null$|^u?int(8|16|32|64)$|^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$|^string$|^large_string$|^utf8$|^large_utf8$|^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$|^binary(\\([0-9]+\\))?$|^large_binary$|^bool_$"
                     },
                     "type_category": {
                         "type": "string",
