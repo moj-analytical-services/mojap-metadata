@@ -75,7 +75,7 @@ class Metadata:
         self.columns = d.get("columns", [])
         self.primary_key = d.get("primary_key", [])
         self.partitions = d.get("parititions", [])
-        if diff := set(d).difference(
+        diff = set(d).difference(
             {
                 "name",
                 "description",
@@ -85,7 +85,8 @@ class Metadata:
                 "primary_key",
                 "partitions",
             }
-        ):
+        )
+        if diff:
             warn(
                 f"Some properties will be ignored: {', '.join(sorted(diff))}",
                 UserWarning,
