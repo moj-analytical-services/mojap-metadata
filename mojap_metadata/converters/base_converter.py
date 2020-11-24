@@ -1,11 +1,11 @@
-from metadata.base_meta import Metadata
+from mojap_metadata.metadata.metadata import Metadata
 from typing import IO, Union
 
 
 class BaseConverter(object):
     """
     Base class to be used as standard for parsing in an object, say DDL
-    or oracle db connection and then outputting a Metadata class. Not sure 
+    or oracle db connection and then outputting a Metadata class. Not sure
     if needed or will be too strict for generalisation.
     """
 
