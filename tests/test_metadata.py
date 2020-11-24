@@ -135,10 +135,7 @@ class TestMetadata:
             UserWarning, match="Some properties will be ignored: prop_1, prop_2"
         ):
             Metadata().from_dict(
-                {
-                    "prop_1": None,
-                    "prop_2": None,
-                }
+                {"prop_1": None, "prop_2": None,}
             )
 
     def test_to_dict(self):
