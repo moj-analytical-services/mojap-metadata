@@ -37,7 +37,7 @@ class Metadata:
     def from_yaml(cls, filename, **kwargs) -> object:
         with open(filename, "r") as f:
             obj = yaml.safe_load(f, **kwargs)
-            cls.from_dict(obj)
+            return cls.from_dict(obj)
 
     name = MetadataProperty()
     description = MetadataProperty()
@@ -98,3 +98,7 @@ class Metadata:
     def to_json(self, filepath: str, mode: str = "w", **kwargs) -> None:
         with open(filepath, mode) as f:
             json.dump(self.to_dict(), f, **kwargs)
+
+    def to_yaml(self, filepath: str, mode: str = "w", **kwargs) -> None:
+        with open(filepath, mode) as f:
+            yaml.safe_dump(self.to_dict(), f)
