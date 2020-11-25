@@ -1,6 +1,5 @@
 import json
 import yaml
-from warnings import warn
 from copy import deepcopy
 
 import jsonschema

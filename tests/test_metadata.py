@@ -1,5 +1,4 @@
 from typing import Any
-from io import StringIO
 
 from jsonschema.exceptions import ValidationError
 
