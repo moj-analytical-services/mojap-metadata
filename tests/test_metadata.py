@@ -84,11 +84,10 @@ class TestMetadata:
             [{"name": "test", "type": "float32"}],
             [{"name": "test", "type": "float64"}],
             [{"name": "test", "type": "decimal128(0,38)"}],
-            [{"name": "test", "type": "time32"}],
-            [{"name": "test", "type": "time64"}],
-            [{"name": "test", "type": "time64(s)"}],
-            [{"name": "test", "type": "time64(ms)"}],
-            [{"name": "test", "type": "timestamp"}],
+            [{"name": "test", "type": "time32(s)"}],
+            [{"name": "test", "type": "time32(ms)"}],
+            [{"name": "test", "type": "time64(us)"}],
+            [{"name": "test", "type": "time64(ns)"}],
             [{"name": "test", "type": "timestamp(s)"}],
             [{"name": "test", "type": "timestamp(ms)"}],
             [{"name": "test", "type": "timestamp(us)"}],
@@ -106,7 +105,7 @@ class TestMetadata:
             [{"name": "test", "type_category": "integer", "type": "int8"}],
             [{"name": "test", "type_category": "float", "type": "float32"}],
             [{"name": "test", "type_category": "string", "type": "string"}],
-            [{"name": "test", "type_category": "datetime", "type": "timestamp"}],
+            [{"name": "test", "type_category": "datetime", "type": "timestamp(ms)"}],
             [{"name": "test", "type_category": "binary", "type": "binary(128)"}],
             [{"name": "test", "type_category": "binary", "type": "binary"}],
             [{"name": "test", "type_category": "boolean", "type": "bool_"}],
@@ -114,6 +113,19 @@ class TestMetadata:
     )
     def test_columns_pass(self, input: Any):
         Metadata(columns=input)
+
+    @pytest.mark.parametrize(
+        argnames="input",
+        argvalues=[
+            [{"name": "test", "type": "time32"}],
+            [{"name": "test", "type": "time64"}],
+            [{"name": "test", "type": "timestamp"}],
+            [{"name": "test", "type_category": "datetime", "type": "timestamp"}],
+        ],
+    )
+    def test_columns_fail(self, input: Any):
+        with pytest.raises(ValidationError):
+            Metadata(columns=input)
 
     def test_primary_key_and_partitions_attributes(self):
         pass
