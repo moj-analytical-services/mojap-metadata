@@ -320,7 +320,6 @@
                             "integer",
                             "float",
                             "string",
-                            "date",
                             "datetime",
                             "boolean",
                             "array",
