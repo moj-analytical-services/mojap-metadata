@@ -1,6 +1,22 @@
 from mojap_metadata.metadata.metadata import Metadata
 from typing import IO, Union
 
+# https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
+def _dict_merge(dct, merge_dct):
+    """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
+    updating only top-level keys, dict_merge recurses down into dicts nested
+    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
+    ``dct``.
+    :param dct: dict onto which the merge is executed
+    :param merge_dct: dct merged into dct
+    :return: None
+    """
+    for k, v in merge_dct.items():
+        if k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], Mapping):
+            _dict_merge(dct[k], merge_dct[k])
+        else:
+            dct[k] = merge_dct[k]
+
 
 class BaseConverter(object):
     """
@@ -9,8 +25,24 @@ class BaseConverter(object):
     if needed or will be too strict for generalisation.
     """
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, metadata=None, options={}):
+        self.metadata = metadata
+        self._options = options
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, m):
+        if isinstance(m, Metadata) or m is None:
+            self._metadata = m
+        else:
+            raise TypeError("metadata must be a Metadata object or None")
+
+    def _check_meta_set(self):
+        if self.metadata is None:
+            raise ValueError("metadata not yet set.")
 
     def generate_to_meta(self, item, **kwargs) -> Metadata:
         """
