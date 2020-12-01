@@ -18,16 +18,19 @@ def _dict_merge(dct, merge_dct):
             dct[k] = merge_dct[k]
 
 
-class BaseConverter(object):
+class BaseConverter:
+    def __init__(self, metadata=None, options:ConverterOptions):
     """
     Base class to be used as standard for parsing in an object, say DDL
     or oracle db connection and then outputting a Metadata class. Not sure
     if needed or will be too strict for generalisation.
-    """
 
-    def __init__(self, metadata=None, options={}):
+    options (ConverterOptions): A simple class that lets users set or get
+    particular paramters. Each one will specific to the converter but each
+    converter uses this standard class to access and set parameters.
+    """
         self.metadata = metadata
-        self._options = options
+        self.options = options
 
     @property
     def metadata(self):

@@ -1,102 +1,109 @@
 from mojap_metadata.metadata.metadata import Metadata
 from typing import IO, Union, Tuple
-from mojap_metadata.converters import BaseConverter, _dict_merge
+from mojap_metadata.converters import BaseConverter
+import warnings
 
 from copy import deepcopy
 
 from configs import (
     default_type_converter,
-    base_glue_template,
-    glue_templates,
 )
 
-default_templates
+from dataclasses import dataclass
 
+@data_class
 class GlueConverterOptions:
     """
+    Options Class for the GlueConverter
+
+    csv_ddl (function):
+        Function to create the ddl for metadata data_format = csv. Defaults to _create_lazy_csv_ddl.
+        But can also set to _create_open_csv_ddl to use the OpenCSV Serde. Otherwise can specify your
+        own ddl creation function.
     
+    json_ddl (function):
+        Function to create the ddl for metadata data_format = json. Defaults to _create_json_ddl.
+        Can specify your own ddl creation function.
+        
+    json_ddl (function):
+        Function to create the ddl for metadata data_format = parquet. Defaults to _create_parquet_ddl.
+        Can specify your own ddl creation function.
+
+    default_db_name (dict):
+      Default database name to default to when defining which database
+      the table belongs to. Used when calling `GlueConverter.generate_from_meta`
+      method and no database_name is specified.
+
+    default_db_base_path (str):
+      Default s3 base path default to when defining the the table exists in S3.
+      Used when calling `GlueConverter.generate_from_meta` method and no
+      table_location is  specified. When no table_location is specified, the
+      output DDL wil define the table location as <default_db_base_path>/<table_name>/.
+
+    ignore_warnings (bool, default=False):
+      If converter should not warning users of imperfect type conversions.
+
     """
+    default_db_name: str = None
+    default_db_base_path: str = None
+    csv_ddl = _create_lazy_csv_ddl
+    json_ddl = _create_json_ddl
+    parquet_ddl = _create_parquet_ddl
+    ignore_warnings = False
 
-    def __init__(self):
-        self._options = {
-            "data_format": deepcopy(default_serde),
-            "type_lookup": deepcopy(type_lookup),
-            
-        }
 
-    def convert_col_type(self, coltype):
-        if coltype.startswith("decimal128"):
-            t, is_supported = self._default_type_converter.get("decimal128")
-            brackets = coltype.split("(")[1].split(")")[0]
-            t = f"{t}({brackets})"
-        else:
-            t, is_supported = self._default_type_converter.get(coltype, (None, None))
+class GlueConverter(BaseConverter):
+    def __init__(self, options: GlueConverterOptions = None):
+    """
+    Converts metadata objects to a Hive DDL.
 
-        self.warn_conversion(coltype, t, is_supported)
+    options (GlueConverterOptions, optional): See ?GlueConverterOptions
+    for more details. If not set a default GlueConverterOptions is set to 
+    the options parameter.
 
-    def genereate_serde():
+    Example:
+      from mojap_metadata.converters.glue_converter import (
+          GlueConverter,
+          GlueConverterOptions,
+          _create_open_csv_ddl,
+      )
+      options = GlueConverterOptions(csv_ddl = _create_open_csv_ddl)
+      gc = GlueConverter(options)
+      metadata = Metadata.from_json("my-table-metadata.json")
+      ddl = gc.generate_from_meta(metadata) # get Hive DDL
+      
+    """
+        super().__init__()
+
+        if options is None:
+        self.options = GlueConverterOptions()
 
     def warn_conversion(
         self,
         coltype,
         converted_type,
-        is_supported
+        is_fully_supported
     ):
     if converted_type is None:
-        pass # Raise Error that this type is not supported
+        raise ValueError(f"{coltype} has equivalent in Athena/Glue cannot convert")
 
-    if not self.ignore_warnings and not is_supported:
-        pass # Raise warning that type is not fully supported by glue so using best estimate
-
-    @property
-    def options(self):
-        return deepcopy(self._options)
-    
-    @property
-    def default_serde(self):
-        return self._options["default_serde"]
-
-    @property
-    def default_type_converter(type)    
-    def update_default_serde(self, update_dict: dict):
-        for k, v in update_dict:
-            self._options[k] = "v"
+    if not self.options.ignore_warnings and not is_fully_supported:
+        w = (
+            f"{coltype} is not fully supported by Athena using best representation. "
+            "To supress these warnings set this converters options.ignore_warnings = True"
+        )
+        warning.warn(w)
 
 
-class GlueConverter(BaseConverter):
-    """
-    Base class to be used as standard for parsing in an object, say DDL
-    or oracle db connection and then outputting a Metadata class. Not sure
-    if needed or will be too strict for generalisation.
-    """
+    def convert_col_type(self, coltype: str):
+        """Converts our metadata types to Athena/Glue versions
 
-    def __init__(self, options={}):
-        super().__init__()
+        Args:
+            coltype ([str]): str representation of our metadata column types
 
-        self._options["default_ddl_templates"] = {
-            "csv": _create_lazy_csv_ddl,
-            "json": _create_json_ddl,
-            "parquet": _create_parquet_ddl,
-        }
-        for k, v in options.get("default_ddl_templates", {}).items():
-            self._options["default_ddl_templates"][k] = v
-
-        if "db_name" not in options:
-            self._options["db_name"]: = ""
-
-        if "table_location" not in options:
-            self._options["table_location"] = ""
-
-
-    @property
-    def options(self):
-        return deepcopy(self._options)
-
-    @property
-    def list_options(self):
-        return list[self._options.keys()]
-
-    def convert_col_type(self, coltype):
+        Returns:
+            [type]: str representation of athena column type version of `coltype`
+        """
         if coltype.startswith("decimal128"):
             t, is_supported = self._default_type_converter.get("decimal128")
             brackets = coltype.split("(")[1].split(")")[0]
@@ -158,16 +165,31 @@ class GlueConverter(BaseConverter):
     ):
 
     mdf = metadata.data_format
-    ddl_template = self._options["default_ddl_templates"].get(mdf)
-    if ddl_template is None:
-        available_types = self._options["default_ddl_templates"].keys()
-        raise ValueError(f"No ddl template for type: {mdf}. Only supports {available_types}.")
+    try: 
+        ddl_template = getattr(self.options, f"{mdf}_ddl")
+    except AttributeError:
+        raise ValueError(f"No ddl template for type: {mdf} in options (only supports csv, json or parquet)")
+
     if not database_name:
-        database_name = self.database_name
+        if self.options.default_db_name:
+            database_name = self.options.default_db_name
+        else:
+            error_msg = (
+                "Either set database_name in the function "
+                "or set a default_db_name in the GlueConverter.options"
+            )
+            raise ValueError(error_msg)
     
     if not table_location:
-        table_location = os.path.join(self.database_base_path, metadata.name)
-    
+        if self.options.database_base_path:
+            table_location = os.path.join(self.database_base_path, metadata.name)
+        else:
+            error_msg = (
+                "Either set table_location in the function "
+                "or set a database_base_path in the GlueConverter.options.database_base_path"
+            )
+            raise ValueError(error_msg)
+
     columns = self.convert_columns(metadata)
 
     ddl = ddl_template(
@@ -178,14 +200,18 @@ class GlueConverter(BaseConverter):
         **kwargs
     )
     return ddl
-    
+# End of Class
+
+
 
 def _create_start_of_ddl(:
     database: str,
     table: str,
     columns: list,
 ):
-
+"""
+Inits the start of the DDL same for all other ddls (cols and partition defintions)
+"""
     cols, part = _create_column_definition(columns)
     if part:
         partition_section = (
@@ -217,6 +243,9 @@ def _create_lazy_csv_ddl(
     line_term_char = "\n",
     **kwargs
 ):
+    """
+    Creates a DDL for CSV data using the Lazy serde
+    """
     ddl_start = _create_start_of_ddl(database, table, columns)
 
     table_properties = ""
@@ -254,6 +283,9 @@ def _create_open_csv_ddl(
     escape_char = "\\",
     **kwargs
 ):
+    """
+    Creates a DDL for CSV data using the OpenCSV serde
+    """
     ddl_start = _create_start_of_ddl(database, table, columns)
 
     table_properties = ""
@@ -290,6 +322,9 @@ def _create_json_ddl(
     location: str,
     **kwargs
 ):
+    """
+    Creates a DDL for a JSON data
+    """
     ddl_start = _create_start_of_ddl(database, table, columns)
     
     json_col_paths = ",".join(
@@ -322,6 +357,9 @@ def _create_parquet_ddl(
     compression="SNAPPY",
     **kwargs
 ):
+    """
+    Creates a DDL for a PARQUET data
+    """
     ddl_start = _create_start_of_ddl(database, table, columns)
     
     table_properties = "'classification'='parquet'"
