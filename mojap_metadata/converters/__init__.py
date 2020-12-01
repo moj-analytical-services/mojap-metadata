@@ -1,5 +1,8 @@
 from mojap_metadata.metadata.metadata import Metadata
-from typing import IO, Union
+from typing import IO, Union, Any
+from collections.abc import Mapping
+from dataclasses import dataclass
+
 
 # https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
 def _dict_merge(dct, merge_dct):
@@ -18,34 +21,23 @@ def _dict_merge(dct, merge_dct):
             dct[k] = merge_dct[k]
 
 
+@dataclass
+class ConverterOptions:
+    ignore_warnings = False
+
+
 class BaseConverter:
-    def __init__(self, metadata=None, options:ConverterOptions):
-    """
-    Base class to be used as standard for parsing in an object, say DDL
-    or oracle db connection and then outputting a Metadata class. Not sure
-    if needed or will be too strict for generalisation.
+    def __init__(self, options: Union[ConverterOptions, Any] = None):
+        """
+        Base class to be used as standard for parsing in an object, say DDL
+        or oracle db connection and then outputting a Metadata class. Not sure
+        if needed or will be too strict for generalisation.
 
-    options (ConverterOptions): A simple class that lets users set or get
-    particular paramters. Each one will specific to the converter but each
-    converter uses this standard class to access and set parameters.
-    """
-        self.metadata = metadata
+        options (ConverterOptions): A simple class that lets users set or get
+        particular paramters. Each one will specific to the converter but each
+        converter uses this standard class to access and set parameters.
+        """
         self.options = options
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @metadata.setter
-    def metadata(self, m):
-        if isinstance(m, Metadata) or m is None:
-            self._metadata = m
-        else:
-            raise TypeError("metadata must be a Metadata object or None")
-
-    def _check_meta_set(self):
-        if self.metadata is None:
-            raise ValueError("metadata not yet set.")
 
     def generate_to_meta(self, item, **kwargs) -> Metadata:
         """

@@ -18,7 +18,6 @@ class MetadataProperty:
 
 
 class Metadata:
-
     @classmethod
     def from_dict(cls, d: dict) -> object:
         m = cls()
@@ -54,7 +53,7 @@ class Metadata:
         sensitive: bool = False,
         columns: list = [],
         primary_key: set = [],
-        partitions: set = []
+        partitions: set = [],
     ) -> None:
         with open("mojap_metadata/metadata/specs/table_schema.json") as f:
             self._schema = json.load(f)
@@ -73,9 +72,7 @@ class Metadata:
         self.validate()
 
     def validate(self):
-        jsonschema.validate(
-            instance=self._data, schema=self._schema
-        )
+        jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
 
