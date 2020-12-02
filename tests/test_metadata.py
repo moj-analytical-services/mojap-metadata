@@ -158,7 +158,9 @@ def test_preservation_of_underlying_metadata():
         "additional-attr": "test",
     }
     meta = Metadata.from_dict(test_dict)
-    assert test_dict == meta.to_dict()
+    out_dict = meta.to_dict()
+    for k, v in test_dict.items():
+        assert out_dict[k] == v
 
     # make sure data is copied and not just a pointer
     assert id(test_dict) != id(meta._data)
@@ -193,10 +195,7 @@ def test_create_file(tmpdir):
     assert p.read() == "content"
 
 
-@pytest.mark.parametrize(
-    argnames="writer",
-    argvalues=["json", "yaml"]
-)
+@pytest.mark.parametrize(argnames="writer", argvalues=["json", "yaml"])
 def test_to_from_json_yaml(tmpdir, writer):
     path_file = tmpdir.mkdir("test_outputs").join("meta.{writer}")
 
@@ -214,4 +213,6 @@ def test_to_from_json_yaml(tmpdir, writer):
     # test in/out reader
     getattr(meta, f"to_{writer}")(str(path_file))
     read_meta = getattr(Metadata, f"from_{writer}")(str(path_file))
-    assert read_meta.to_dict() == test_dict
+    out_dict = read_meta.to_dict()
+    for k, v in test_dict.items():
+        assert out_dict[k] == v

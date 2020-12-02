@@ -6,8 +6,6 @@ from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 import warnings
 
-from typing import Tuple
-
 from dataclasses import dataclass
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -61,7 +59,7 @@ def generate_ddl_from_template(
     columns: list,
     partitions: list,
     location: str,
-    **kwargs
+    **kwargs,
 ) -> str:
     """generates a HIVE/Glue DDL from a template.
 
@@ -92,171 +90,6 @@ def generate_ddl_from_template(
         **kwargs,
     )
     return ddl
-
-
-def create_lazy_csv_ddl(
-    database: str,
-    table: str,
-    columns: list,
-    location: str,
-    skip_header=False,
-    sep=",",
-    quote_char='"',
-    escape_char="\\\\",
-    line_term_char="\n",
-    **kwargs
-):
-    """
-    Creates a DDL for CSV data using the Lazy serde
-    """
-    ddl_start = _create_start_of_ddl(database, table, columns)
-
-    ddl_end = (
-        "ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'\n"
-        "ROW FORMAT DELIMITED\n"
-        f"FIELDS TERMINATED BY '{sep}'\n"
-        "STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'\n"
-        "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'\n"
-        f"LOCATION '{location}'\n"
-    )
-
-    if skip_header:
-        ddl_end += "TBLPROPERTIES (\n"
-        ddl_end += "'skip.header.line.count'='1'\n"
-        ddl_end += ")\n"
-
-    ddl_end += ";"
-
-    ddl = ddl_start + ddl_end
-    return ddl
-
-
-def create_open_csv_ddl(
-    database: str,
-    table: str,
-    columns: list,
-    location: str,
-    skip_header=False,
-    sep=",",
-    quote_char='"',
-    escape_char="\\",
-    **kwargs,
-):
-    """
-    Creates a DDL for CSV data using the OpenCSV serde
-    """
-    ddl_start = _create_start_of_ddl(database, table, columns)
-
-    table_properties = ""
-    if skip_header:
-        table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
-
-    ddl_end = f"""
-    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
-    WITH SERDEPROPERTIES (
-    'separatorChar' = '{sep}',
-    'quoteChar' = '{quote_char}',
-    'escapeChar' = '{escape_char}'
-    )
-    STORED AS INPUTFORMAT
-        'org.apache.hadoop.mapred.TextInputFormat'
-    OUTPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION
-    '{location}'
-#     {table_properties};
-#     """
-#     ddl = ddl_start + ddl_end
-#     return ddl
-
-
-# def create_json_ddl(database: str, table: str, columns: list, location: str, **kwargs):
-#     """
-#     Creates a DDL for a JSON data
-#     """
-#     ddl_start = _create_start_of_ddl(database, table, columns)
-
-#     json_col_paths = ",".join([c["name"] for c in columns if not c["partition"]])
-#     ddl_end = f"""
-#     ROW FORMAT SERDE
-#         'org.apache.hive.hcatalog.data.JsonSerDe'
-#     WITH SERDEPROPERTIES (
-#         'paths'='{json_col_paths}')
-#     STORED AS INPUTFORMAT
-#         'org.apache.hadoop.mapred.TextInputFormat'
-#     OUTPUTFORMAT
-#         'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-#     LOCATION
-#         '{location}'
-#     TBLPROPERTIES (
-#         'classification'='json'
-#     )
-#     """
-#     ddl = ddl_start + ddl_end
-#     return ddl
-
-
-# def create_parquet_ddl(
-#     database: str,
-#     table: str,
-#     columns: list,
-#     location: str,
-#     compression="SNAPPY",
-#     **kwargs,
-# ):
-#     """
-#     Creates a DDL for a PARQUET data
-#     """
-
-#     ddl_start = _create_start_of_ddl(database, table, columns)
-
-#     table_properties = "'classification'='parquet'"
-#     if compression:
-#         table_properties += ",\n"
-#         table_properties += f"'parquet.compression'='{compression}'"
-
-#     ddl_end = f"""
-#     ROW FORMAT SERDE
-#         'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
-#     STORED AS INPUTFORMAT
-#         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
-#     OUTPUTFORMAT
-#         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-#     LOCATION
-#         '{location}'
-#     TBLPROPERTIES (
-#         {table_properties}
-#     );
-#     """
-#     ddl = ddl_start + ddl_end
-#     return ddl
-
-
-
-
-
-# def get_ddl_template(name):
-#     if file_format.startswith("csv"):
-#         if csv_option == "lazy":
-#             return create_lazy_csv_ddl
-#         elif csv_option == "open":
-#             return create_open_csv_ddl
-#         else:
-#             raise ValueError(
-#                 f"csv_option must be 'lazy' or 'open' not {csv_option}"
-#             )
-
-#     elif file_format.startswith("json"):
-#         return create_json_ddl
-
-#     elif file_format.startswith("parquet"):
-#         return create_parquet_ddl
-
-#     else:
-#         raise ValueError(
-#             f"No ddl template for type: {file_format} in options "
-#             "(only supports formats starting with csv, json or parquet)"
-#         )
 
 
 @dataclass
@@ -311,6 +144,7 @@ class GlueConverterOptions:
     parquet_compression (str):
       parameter to parquet ddl function
     """
+
     csv_template = get_default_ddl_template("lazy_csv_ddl")
     json_template = get_default_ddl_template("json_ddl")
     parquet_template = get_default_ddl_template("parquet_ddl")
@@ -365,8 +199,7 @@ class GlueConverter(BaseConverter):
     def warn_conversion(self, coltype, converted_type, is_fully_supported):
         if converted_type is None:
             raise ValueError(
-                f"{coltype} has no equivalent in Athena/Glue "
-                "so cannot be converted"
+                f"{coltype} has no equivalent in Athena/Glue " "so cannot be converted"
             )
 
         if not self.options.ignore_warnings and not is_fully_supported:
@@ -441,18 +274,19 @@ class GlueConverter(BaseConverter):
               store.
         """
 
-        if metadata.file_format.startswith("csv"):
+        ff = metadata.file_format
+        if ff.startswith("csv"):
             template = self.options.csv_template
 
-        elif metadata.file_format.startswith("json"):
+        elif ff.startswith("json"):
             template = self.options.json_template
 
-        elif metadata.file_format.startswith("parquet"):
+        elif ff.startswith("parquet"):
             template = self.options.parquet_template
 
         else:
             raise ValueError(
-                f"No ddl template for type: {file_format} in options "
+                f"No ddl template for type: {ff} in options "
                 "(only supports formats starting with csv, json or parquet)"
             )
 
@@ -469,8 +303,7 @@ class GlueConverter(BaseConverter):
         if not table_location:
             if self.options.default_db_base_path:
                 table_location = os.path.join(
-                    self.options.default_db_base_path,
-                    f"{metadata.name}/"
+                    self.options.default_db_base_path, f"{metadata.name}/"
                 )
             else:
                 error_msg = (
@@ -504,10 +337,9 @@ class GlueConverter(BaseConverter):
             escape_char=kwargs.get("escape_char", self.options.escape_char),
             line_term_char=kwargs.get("line_term_char", self.options.line_term_char),
             parquet_compression=kwargs.get(
-                "parquet_compression",
-                self.options.parquet_compression
+                "parquet_compression", self.options.parquet_compression
             ),
             json_col_paths=json_col_paths,
-            csv_skip_header_properties=csv_skip_header_properties
+            csv_skip_header_properties=csv_skip_header_properties,
         )
         return ddl

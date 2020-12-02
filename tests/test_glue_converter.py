@@ -44,9 +44,7 @@ from mojap_metadata.converters.glue_converter import (
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
     gc = GlueConverter()
-    gc_yolo = GlueConverter(
-        GlueConverterOptions(ignore_warnings=True)
-    )
+    gc_yolo = GlueConverter(GlueConverterOptions(ignore_warnings=True))
     if expect_raises == "error":
         with pytest.raises(ValueError):
             gc.convert_col_type(meta_type)
@@ -59,14 +57,13 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
         with pytest.warns(None) as record:
             assert gc_yolo.convert_col_type(meta_type) == glue_type
         if len(record) != 0:
-            fail_info = (
-                "Explected no warning as options.ignore_warnings = True."
-            )
+            fail_info = "Explected no warning as options.ignore_warnings = True."
             pytest.fail(fail_info)
 
     else:
         assert gc.convert_col_type(meta_type) == glue_type
         assert gc_yolo.convert_col_type(meta_type) == glue_type
+
 
 @pytest.mark.parametrize(
     argnames="file_format,csv_type,expected_file_name",
@@ -83,13 +80,21 @@ def test_generate_from_meta(file_format, csv_type, expected_file_name):
             "name": "test_table",
             "file_format": file_format,
             "columns": [
-                {"name": "my_int", "type": "int64", "description": "This is an integer"},
+                {
+                    "name": "my_int",
+                    "type": "int64",
+                    "description": "This is an integer",
+                },
                 {"name": "my_double", "type": "float64"},
                 {"name": "my_date", "type": "date64"},
                 {"name": "my_decimal", "type": "decimal128(10,2)"},
-                {"name": "my_timestamp", "type": "timestamp(s)", "description": "Partition column"}
+                {
+                    "name": "my_timestamp",
+                    "type": "timestamp(s)",
+                    "description": "Partition column",
+                },
             ],
-            "partitions": ["my_timestamp"]
+            "partitions": ["my_timestamp"],
         }
     )
 
@@ -98,8 +103,7 @@ def test_generate_from_meta(file_format, csv_type, expected_file_name):
         gc.options.set_csv_serde("open")
 
     opts = GlueConverterOptions(
-        default_db_base_path="s3://bucket/",
-        default_db_name="test_db"
+        default_db_base_path="s3://bucket/", default_db_name="test_db"
     )
     if csv_type == "open":
         opts.set_csv_serde("open")
@@ -107,11 +111,7 @@ def test_generate_from_meta(file_format, csv_type, expected_file_name):
     gc_default_opts = GlueConverter(opts)
 
     table_path = "s3://bucket/test_table/"
-    ddl = gc.generate_from_meta(
-        md,
-        database_name="test_db",
-        table_location=table_path
-    )
+    ddl = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
     ddl_default_opts = gc_default_opts.generate_from_meta(md)
 
     assert ddl == ddl_default_opts

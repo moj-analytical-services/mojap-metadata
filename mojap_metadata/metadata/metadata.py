@@ -71,11 +71,7 @@ class Metadata:
 
         self.validate()
 
-    def _init_data_with_default_key_values(
-            self,
-            data: dict,
-            copy_data: bool = True
-    ):
+    def _init_data_with_default_key_values(self, data: dict, copy_data: bool = True):
         """
         Used to create the class from a dictionary
 
