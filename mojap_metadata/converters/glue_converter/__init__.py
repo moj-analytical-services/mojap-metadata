@@ -48,31 +48,42 @@ _default_type_converter = {
 }
 
 
+def get_default_ddl_template(filename):
+    with open(f"mojap_metadata/converters/glue_converter/specs/{filename}.txt") as f:
+        template = "".join(f.readlines())
+    return template
+
+
 def generate_ddl_from_template(
-    template: str,
+    template: Template,
     database: str,
     table: str,
     columns: list,
     partitions: list,
     location: str,
     **kwargs
-):
+) -> str:
     """generates a HIVE/Glue DDL from a template.
 
     Args:
-        template (str): Jinja template as a string
+        template (str): A jinja template which at a minimum excepts
+          the parameters of this function.
+
         database (str): database name
+
         table (str): table name
+
         columns (list): List of dictionaries must have name, type
           and description key value bindings
+
         partitions (list): List of dictionaries must have name, type
           and description key value bindings
+
         location (str): path to table in S3
-        
+
         **kwargs additional arguments passed to template via Jinja
     """
-    t = Template(template)
-    ddl = t.render(
+    ddl = template.render(
         database=database,
         table=table,
         columns=columns,
@@ -120,43 +131,43 @@ def create_lazy_csv_ddl(
     return ddl
 
 
-# def create_open_csv_ddl(
-#     database: str,
-#     table: str,
-#     columns: list,
-#     location: str,
-#     skip_header=False,
-#     sep=",",
-#     quote_char='"',
-#     escape_char="\\",
-#     **kwargs,
-# ):
-#     """
-#     Creates a DDL for CSV data using the OpenCSV serde
-#     """
-#     ddl_start = _create_start_of_ddl(database, table, columns)
+def create_open_csv_ddl(
+    database: str,
+    table: str,
+    columns: list,
+    location: str,
+    skip_header=False,
+    sep=",",
+    quote_char='"',
+    escape_char="\\",
+    **kwargs,
+):
+    """
+    Creates a DDL for CSV data using the OpenCSV serde
+    """
+    ddl_start = _create_start_of_ddl(database, table, columns)
 
-#     table_properties = ""
-#     if skip_header:
-#         table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
+    table_properties = ""
+    if skip_header:
+        table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
 
-#     ddl_end = f"""
-#     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
-#     WITH SERDEPROPERTIES (
-#     'separatorChar' = '{sep}',
-#     'quoteChar' = '{quote_char}',
-#     'escapeChar' = '{escape_char}'
-#     )
-#     STORED AS INPUTFORMAT
-#         'org.apache.hadoop.mapred.TextInputFormat'
-#     OUTPUTFORMAT
-#         'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-#     LOCATION
-#     '{location}'
-# #     {table_properties};
-# #     """
-# #     ddl = ddl_start + ddl_end
-# #     return ddl
+    ddl_end = f"""
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+    WITH SERDEPROPERTIES (
+    'separatorChar' = '{sep}',
+    'quoteChar' = '{quote_char}',
+    'escapeChar' = '{escape_char}'
+    )
+    STORED AS INPUTFORMAT
+        'org.apache.hadoop.mapred.TextInputFormat'
+    OUTPUTFORMAT
+        'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+    LOCATION
+    '{location}'
+#     {table_properties};
+#     """
+#     ddl = ddl_start + ddl_end
+#     return ddl
 
 
 # def create_json_ddl(database: str, table: str, columns: list, location: str, **kwargs):
@@ -219,8 +230,11 @@ def create_lazy_csv_ddl(
 #     """
 #     ddl = ddl_start + ddl_end
 #     return ddl
-# 
-# 
+
+
+
+
+
 # def get_ddl_template(name):
 #     if file_format.startswith("csv"):
 #         if csv_option == "lazy":
@@ -294,7 +308,7 @@ class GlueConverterOptions:
     line_term_char (str):
       parameter to csv ddl function
 
-    compression (str):
+    parquet_compression (str):
       parameter to parquet ddl function
     """
     csv_template = get_default_ddl_template("lazy_csv_ddl")
@@ -308,7 +322,7 @@ class GlueConverterOptions:
     quote_char: str = '"'
     escape_char: str = r"\\"
     line_term_char: str = r"\n"
-    compression: str = "SNAPPY"
+    parquet_compression: str = "SNAPPY"
 
     def set_csv_serde(self, serde_name: str):
         allowed_serde_name = ["open", "lazy"]
@@ -427,6 +441,21 @@ class GlueConverter(BaseConverter):
               store.
         """
 
+        if metadata.file_format.startswith("csv"):
+            template = self.options.csv_template
+
+        elif metadata.file_format.startswith("json"):
+            template = self.options.json_template
+
+        elif metadata.file_format.startswith("parquet"):
+            template = self.options.parquet_template
+
+        else:
+            raise ValueError(
+                f"No ddl template for type: {file_format} in options "
+                "(only supports formats starting with csv, json or parquet)"
+            )
+
         if not database_name:
             if self.options.default_db_name:
                 database_name = self.options.default_db_name
@@ -438,8 +467,11 @@ class GlueConverter(BaseConverter):
                 raise ValueError(error_msg)
 
         if not table_location:
-            if self.options.database_base_path:
-                table_location = os.path.join(self.database_base_path, metadata.name)
+            if self.options.default_db_base_path:
+                table_location = os.path.join(
+                    self.options.default_db_base_path,
+                    f"{metadata.name}/"
+                )
             else:
                 error_msg = (
                     "Either set table_location in the function "
@@ -449,17 +481,33 @@ class GlueConverter(BaseConverter):
                 raise ValueError(error_msg)
 
         columns = self.convert_columns(metadata)
+        table_cols = [c for c in columns if not c["is_partition"]]
+        json_col_paths = ",".join([c["name"] for c in table_cols])
+        partition_cols = [c for c in columns if c["is_partition"]]
 
-        ddl = ddl_template(
+        if kwargs.get("skip_header", self.options.skip_header):
+            csv_skip_header_properties = "'skip.header.line.count'='1'"
+        else:
+            csv_skip_header_properties = ""
+        t = Template(template)
+
+        ddl = generate_ddl_from_template(
+            template=t,
             database=database_name,
             table=metadata.name,
-            columns=columns,
+            columns=table_cols,
+            partitions=partition_cols,
             location=table_location,
             skip_header=kwargs.get("skip_header", self.options.skip_header),
             sep=kwargs.get("sep", self.options.sep),
             quote_char=kwargs.get("quote_char", self.options.quote_char),
             escape_char=kwargs.get("escape_char", self.options.escape_char),
             line_term_char=kwargs.get("line_term_char", self.options.line_term_char),
-            compression=kwargs.get("compression", self.options.compression),
+            parquet_compression=kwargs.get(
+                "parquet_compression",
+                self.options.parquet_compression
+            ),
+            json_col_paths=json_col_paths,
+            csv_skip_header_properties=csv_skip_header_properties
         )
         return ddl

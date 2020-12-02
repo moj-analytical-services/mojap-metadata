@@ -1,0 +1,26 @@
+CREATE EXTERNAL TABLE {{database}}.{{table}} (
+{% for c in columns -%} 
+    `{{c.name}}` {{c.type}} COMMENT `{{c.description}}`
+{% endfor -%}
+)
+{% if partitions -%}
+PARTITION BY (
+{% for p in partitions -%}
+    `{{p.name}}` {{p.type}} COMMENT `{{p.description}}`
+{% endfor -%}
+)
+{% endif -%}
+ROW FORMAT SERDE
+    'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+STORED AS INPUTFORMAT
+    'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
+OUTPUTFORMAT
+    'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+LOCATION
+    '{{location}}'
+TBLPROPERTIES (
+    'classification'='json',
+    {% if parquet_compression -%}
+    'parquet.compression'='{{parquet_compression}}'
+    {%- endif %}
+);

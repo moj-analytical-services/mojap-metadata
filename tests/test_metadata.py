@@ -3,7 +3,7 @@ from typing import Any
 from jsonschema.exceptions import ValidationError
 
 import pytest
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.metadata import Metadata
 
 
 @pytest.mark.parametrize(
