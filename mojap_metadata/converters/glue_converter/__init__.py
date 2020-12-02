@@ -1,5 +1,7 @@
 import os
 
+from jinja2 import Template
+
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 import warnings
@@ -46,52 +48,38 @@ _default_type_converter = {
 }
 
 
-def _create_column_definition(columns) -> Tuple[str, str]:
-    """
-    Converts the columns (with Hive/Athena types and partition flag)
-    And converts it a string for the HIVE DDL
+def generate_ddl_from_template(
+    template: str,
+    database: str,
+    table: str,
+    columns: list,
+    partitions: list,
+    location: str,
+    **kwargs
+):
+    """generates a HIVE/Glue DDL from a template.
 
     Args:
-        columns ([type]): A list of dictionaries with name, type (Athena type),
-        description and partition (bool) flags.
-
-    Returns:
-        Tuple[str, str]: The column and partition definitions for a HIVE DDL
-        as strings
+        template (str): Jinja template as a string
+        database (str): database name
+        table (str): table name
+        columns (list): List of dictionaries must have name, type
+          and description key value bindings
+        partitions (list): List of dictionaries must have name, type
+          and description key value bindings
+        location (str): path to table in S3
+        
+        **kwargs additional arguments passed to template via Jinja
     """
-    cols_ddl = []
-    part_ddl = []
-    for c in columns:
-        if c["partition"]:
-            part_ddl.append(f"`{c['name']}` {c['type']} COMMENT `{c['description']}`")
-        else:
-            cols_ddl.append(f"`{c['name']}` {c['type']} COMMENT `{c['description']}`")
-
-    cols_ddl = ",\n".join(cols_ddl)
-    part_ddl = ",\n".join(part_ddl)
-
-    return cols_ddl, part_ddl
-
-
-def _create_start_of_ddl(
-    database: str, table: str, columns: list,
-):
-    """
-    Inits the start of the DDL same for all other ddls
-    (cols and partition defintions)
-    """
-    cols, part = _create_column_definition(columns)
-    if part:
-        partition_section = "PARTITIONED BY (\n {part} \n)"
-    else:
-        partition_section = ""
-
-    ddl = f"""
-    CREATE EXTERNAL TABLE {database}.{table} (
-    {cols}
+    t = Template(template)
+    ddl = t.render(
+        database=database,
+        table=table,
+        columns=columns,
+        partitions=partitions,
+        location=location,
+        **kwargs,
     )
-    {partition_section}
-    """
     return ddl
 
 
@@ -103,136 +91,158 @@ def create_lazy_csv_ddl(
     skip_header=False,
     sep=",",
     quote_char='"',
-    escape_char="\\",
+    escape_char="\\\\",
     line_term_char="\n",
-    **kwargs,
+    **kwargs
 ):
     """
     Creates a DDL for CSV data using the Lazy serde
     """
     ddl_start = _create_start_of_ddl(database, table, columns)
 
-    table_properties = ""
-    if skip_header:
-        table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
-
-    ddl_end = f"""
-    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-    ROW FORMAT DELIMITED
-    FIELDS TERMINATED BY '{sep}'
-    ESCAPED BY '{escape_char}'
-    LINES TERMINATED BY '{line_term_char}'
-    STORED AS INPUTFORMAT
-        'org.apache.hadoop.mapred.TextInputFormat'
-    OUTPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION
-    '{location}'
-    {table_properties};
-    """
-
-    ddl = ddl_start + ddl_end
-    return ddl
-
-
-def create_open_csv_ddl(
-    database: str,
-    table: str,
-    columns: list,
-    location: str,
-    skip_header=False,
-    sep=",",
-    quote_char='"',
-    escape_char="\\",
-    **kwargs,
-):
-    """
-    Creates a DDL for CSV data using the OpenCSV serde
-    """
-    ddl_start = _create_start_of_ddl(database, table, columns)
-
-    table_properties = ""
-    if skip_header:
-        table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
-
-    ddl_end = f"""
-    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
-    WITH SERDEPROPERTIES (
-    'separatorChar' = '{sep}',
-    'quoteChar' = '{quote_char}',
-    'escapeChar' = '{escape_char}'
+    ddl_end = (
+        "ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'\n"
+        "ROW FORMAT DELIMITED\n"
+        f"FIELDS TERMINATED BY '{sep}'\n"
+        "STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'\n"
+        "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'\n"
+        f"LOCATION '{location}'\n"
     )
-    STORED AS INPUTFORMAT
-        'org.apache.hadoop.mapred.TextInputFormat'
-    OUTPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION
-    '{location}'
-    {table_properties};
-    """
+
+    if skip_header:
+        ddl_end += "TBLPROPERTIES (\n"
+        ddl_end += "'skip.header.line.count'='1'\n"
+        ddl_end += ")\n"
+
+    ddl_end += ";"
+
     ddl = ddl_start + ddl_end
     return ddl
 
 
-def create_json_ddl(database: str, table: str, columns: list, location: str, **kwargs):
-    """
-    Creates a DDL for a JSON data
-    """
-    ddl_start = _create_start_of_ddl(database, table, columns)
+# def create_open_csv_ddl(
+#     database: str,
+#     table: str,
+#     columns: list,
+#     location: str,
+#     skip_header=False,
+#     sep=",",
+#     quote_char='"',
+#     escape_char="\\",
+#     **kwargs,
+# ):
+#     """
+#     Creates a DDL for CSV data using the OpenCSV serde
+#     """
+#     ddl_start = _create_start_of_ddl(database, table, columns)
 
-    json_col_paths = ",".join([c["name"] for c in columns if not c["partition"]])
-    ddl_end = f"""
-    ROW FORMAT SERDE
-        'org.apache.hive.hcatalog.data.JsonSerDe'
-    WITH SERDEPROPERTIES (
-        'paths'='{json_col_paths}')
-    STORED AS INPUTFORMAT
-        'org.apache.hadoop.mapred.TextInputFormat'
-    OUTPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION
-        '{location}'
-    TBLPROPERTIES (
-        'classification'='json'
-    )
-    """
-    ddl = ddl_start + ddl_end
-    return ddl
+#     table_properties = ""
+#     if skip_header:
+#         table_properties += "TBLPROPERTIES (\n" '"skip.header.line.count"="1"\n' ")"
+
+#     ddl_end = f"""
+#     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+#     WITH SERDEPROPERTIES (
+#     'separatorChar' = '{sep}',
+#     'quoteChar' = '{quote_char}',
+#     'escapeChar' = '{escape_char}'
+#     )
+#     STORED AS INPUTFORMAT
+#         'org.apache.hadoop.mapred.TextInputFormat'
+#     OUTPUTFORMAT
+#         'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+#     LOCATION
+#     '{location}'
+# #     {table_properties};
+# #     """
+# #     ddl = ddl_start + ddl_end
+# #     return ddl
 
 
-def create_parquet_ddl(
-    database: str,
-    table: str,
-    columns: list,
-    location: str,
-    compression="SNAPPY",
-    **kwargs,
-):
-    """
-    Creates a DDL for a PARQUET data
-    """
-    ddl_start = _create_start_of_ddl(database, table, columns)
+# def create_json_ddl(database: str, table: str, columns: list, location: str, **kwargs):
+#     """
+#     Creates a DDL for a JSON data
+#     """
+#     ddl_start = _create_start_of_ddl(database, table, columns)
 
-    table_properties = "'classification'='parquet'"
-    if compression:
-        table_properties += ",\n"
-        table_properties += f"'parquet.compression'='{compression}'"
+#     json_col_paths = ",".join([c["name"] for c in columns if not c["partition"]])
+#     ddl_end = f"""
+#     ROW FORMAT SERDE
+#         'org.apache.hive.hcatalog.data.JsonSerDe'
+#     WITH SERDEPROPERTIES (
+#         'paths'='{json_col_paths}')
+#     STORED AS INPUTFORMAT
+#         'org.apache.hadoop.mapred.TextInputFormat'
+#     OUTPUTFORMAT
+#         'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+#     LOCATION
+#         '{location}'
+#     TBLPROPERTIES (
+#         'classification'='json'
+#     )
+#     """
+#     ddl = ddl_start + ddl_end
+#     return ddl
 
-    ddl_end = f"""
-    ROW FORMAT SERDE
-        'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
-    STORED AS INPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
-    OUTPUTFORMAT
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-    LOCATION
-        '{location}'
-    TBLPROPERTIES (
-        {table_properties}
-    );
-    """
-    ddl = ddl_start + ddl_end
-    return ddl
+
+# def create_parquet_ddl(
+#     database: str,
+#     table: str,
+#     columns: list,
+#     location: str,
+#     compression="SNAPPY",
+#     **kwargs,
+# ):
+#     """
+#     Creates a DDL for a PARQUET data
+#     """
+
+#     ddl_start = _create_start_of_ddl(database, table, columns)
+
+#     table_properties = "'classification'='parquet'"
+#     if compression:
+#         table_properties += ",\n"
+#         table_properties += f"'parquet.compression'='{compression}'"
+
+#     ddl_end = f"""
+#     ROW FORMAT SERDE
+#         'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+#     STORED AS INPUTFORMAT
+#         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
+#     OUTPUTFORMAT
+#         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+#     LOCATION
+#         '{location}'
+#     TBLPROPERTIES (
+#         {table_properties}
+#     );
+#     """
+#     ddl = ddl_start + ddl_end
+#     return ddl
+# 
+# 
+# def get_ddl_template(name):
+#     if file_format.startswith("csv"):
+#         if csv_option == "lazy":
+#             return create_lazy_csv_ddl
+#         elif csv_option == "open":
+#             return create_open_csv_ddl
+#         else:
+#             raise ValueError(
+#                 f"csv_option must be 'lazy' or 'open' not {csv_option}"
+#             )
+
+#     elif file_format.startswith("json"):
+#         return create_json_ddl
+
+#     elif file_format.startswith("parquet"):
+#         return create_parquet_ddl
+
+#     else:
+#         raise ValueError(
+#             f"No ddl template for type: {file_format} in options "
+#             "(only supports formats starting with csv, json or parquet)"
+#         )
 
 
 @dataclass
@@ -240,20 +250,22 @@ class GlueConverterOptions:
     """
     Options Class for the GlueConverter
 
-    csv_ddl (function):
-        Name of the to create the ddl for metadata data_format = csv. Defaults to
-        create_lazy_csv_ddl. But can also set to _create_open_csv_ddl to use the
-        OpenCSV Serde. Otherwise can specify your own ddl creation function.
+    csv_template (str):
+      Jinja template that is used to generate CSV ddl. Defaults to
+      lazy serde template. To use the open serde template you can use
+      options.set_csv_serde("open").
 
-    json_ddl (function):
-        Function to create the ddl for metadata data_format = json. Defaults to
-        create_json_ddl. Can specify your own ddl creation function.
+    json_template (str):
+      Jinja template that is used to generate JSON ddl. Can be set to
+      a custom json ddl template but defaults to our recommended one:
+      `specs/json_ddl.txt`.
 
-    parquet_ddl (function):
-        Function to create the ddl for metadata data_format = parquet. Defaults
-        to create_parquet_ddl. Can specify your own ddl creation function.
+    parquet_template (str):
+      Jinja template that is used to generate PARQUET ddl. Can be set to
+      a custom json ddl template but defaults to our recommended one:
+      `specs/parquet_ddl.txt`.
 
-    default_db_name (dict):
+    default_db_name (str):
       Default database name to default to when defining which database
       the table belongs to. Used when calling `GlueConverter.generate_from_meta`
       method and no database_name is specified.
@@ -285,18 +297,27 @@ class GlueConverterOptions:
     compression (str):
       parameter to parquet ddl function
     """
+    csv_template = get_default_ddl_template("lazy_csv_ddl")
+    json_template = get_default_ddl_template("json_ddl")
+    parquet_template = get_default_ddl_template("parquet_ddl")
     default_db_name: str = None
     default_db_base_path: str = None
-    csv_ddl = create_lazy_csv_ddl
-    json_ddl = create_json_ddl
-    parquet_ddl = create_parquet_ddl
     ignore_warnings: bool = False
     skip_header: bool = False
     sep: str = ","
     quote_char: str = '"'
-    escape_char: str = "\\"
-    line_term_char: str = "\n"
+    escape_char: str = r"\\"
+    line_term_char: str = r"\n"
     compression: str = "SNAPPY"
+
+    def set_csv_serde(self, serde_name: str):
+        allowed_serde_name = ["open", "lazy"]
+        if serde_name not in allowed_serde_name:
+            raise ValueError(
+                f"Input serde_name must be one of {allowed_serde_name}. "
+                f"Got {serde_name}"
+            )
+        self.csv_template = get_default_ddl_template(f"{serde_name}_csv_ddl")
 
 
 class GlueConverter(BaseConverter):
@@ -365,7 +386,6 @@ class GlueConverter(BaseConverter):
         return t
 
     def convert_columns(self, metadata: Metadata):
-        self._check_meta_set()
         cols = []
 
         for c in metadata.columns:
@@ -373,8 +393,8 @@ class GlueConverter(BaseConverter):
                 {
                     "name": c["name"],
                     "type": self.convert_col_type(c["type"]),
-                    "description": c["description"],
-                    "partition": c["name"] in metadata.partitons,
+                    "description": c.get("description", ""),
+                    "is_partition": c["name"] in metadata.partitions,
                 }
             )
         return cols
@@ -406,14 +426,6 @@ class GlueConverter(BaseConverter):
             str: An SQL string that can be used to create the table in Glue metadata
               store.
         """
-        mdf = metadata.data_format
-        try:
-            ddl_template = getattr(self.options, f"{mdf}_ddl")
-        except AttributeError:
-            raise ValueError(
-                f"No ddl template for type: {mdf} in options "
-                "(only supports csv, json or parquet)"
-            )
 
         if not database_name:
             if self.options.default_db_name:

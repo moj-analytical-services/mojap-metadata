@@ -21,7 +21,7 @@ class Metadata:
     @classmethod
     def from_dict(cls, d: dict) -> object:
         m = cls()
-        m._data = deepcopy(d)
+        m._init_data_with_default_key_values(d)
         m.validate()
         return m
 
@@ -52,8 +52,8 @@ class Metadata:
         file_format: str = "",
         sensitive: bool = False,
         columns: list = [],
-        primary_key: set = [],
-        partitions: set = [],
+        primary_key: list = [],
+        partitions: list = [],
     ) -> None:
         with open("mojap_metadata/metadata/specs/table_schema.json") as f:
             self._schema = json.load(f)
@@ -70,6 +70,37 @@ class Metadata:
         }
 
         self.validate()
+
+    def _init_data_with_default_key_values(
+            self,
+            data: dict,
+            copy_data: bool = True
+    ):
+        """
+        Used to create the class from a dictionary
+
+        Args:
+            data (dict): [description]
+            copy_data (bool, optional): [description]. Defaults to True.
+        """
+        if copy_data:
+            self._data = deepcopy(data)
+        else:
+            self._data = data
+
+        defaults = {
+            "$schema": "",
+            "name": "",
+            "description": "",
+            "file_format": "",
+            "sensitive": False,
+            "columns": [],
+            "primary_key": [],
+            "partitions": [],
+        }
+
+        for k, v in defaults.items():
+            self._data[k] = data.get(k, v)
 
     def validate(self):
         jsonschema.validate(instance=self._data, schema=self._schema)
