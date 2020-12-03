@@ -5,8 +5,9 @@ from jinja2 import Template
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 import warnings
-
+import importlib.resources as pkg_resources
 from dataclasses import dataclass
+from mojap_metadata.converters.glue_converter import specs
 
 # Format generictype: (glue_type, is_fully_supported)
 # If not fully supported we decide on best option
@@ -47,8 +48,8 @@ _default_type_converter = {
 
 
 def get_default_ddl_template(filename):
-    with open(f"mojap_metadata/converters/glue_converter/specs/{filename}.txt") as f:
-        template = "".join(f.readlines())
+
+    template = pkg_resources.read_text(specs, f"{filename}.txt")
     return template
 
 

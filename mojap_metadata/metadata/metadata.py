@@ -1,15 +1,12 @@
 import json
 import yaml
 from copy import deepcopy
-import pkg_resources
+import importlib.resources as pkg_resources
 import jsonschema
+from mojap_metadata.metadata import specs
 
-_table_schema = json.load(
-    pkg_resources.resource_stream(
-        __name__,
-        "specs/table_schema.json"
-    )
-)
+_table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
+
 
 class MetadataProperty:
     def __set_name__(self, owner, name) -> None:
@@ -61,7 +58,7 @@ class Metadata:
         primary_key: list = [],
         partitions: list = [],
     ) -> None:
-    
+
         self._schema = deepcopy(_table_schema)
 
         self._data = {
