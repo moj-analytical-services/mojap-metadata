@@ -1,6 +1,6 @@
 import pytest
 
-from mojap_metadata.metadata import Metadata
+from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueConverterOptions,
