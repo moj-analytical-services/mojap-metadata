@@ -1,6 +1,6 @@
 [tool]
 [tool.poetry]
-name = "mojap-metadta"
+name = "mojap-metadata"
 version = "0.0.1"
 description = "A python package to manage metadata"
 license = "MIT"
