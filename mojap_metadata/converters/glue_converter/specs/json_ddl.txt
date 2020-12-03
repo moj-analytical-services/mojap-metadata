@@ -1,26 +1,26 @@
-CREATE EXTERNAL TABLE {{database}}.{{table}} (
-{% for c in columns -%} 
+CREATE EXTERNAL TABLE {{database}}.{{Name}} (
+{% for c in StorageDescriptor.Columns -%} 
     `{{c.name}}` {{c.type}} COMMENT `{{c.description}}`
 {% endfor -%}
 )
-{% if partitions -%}
+{% if PartitionKeys -%}
 PARTITION BY (
-{% for p in partitions -%}
+{% for p in PartitionKeys -%}
     `{{p.name}}` {{p.type}} COMMENT `{{p.description}}`
 {% endfor -%}
 )
 {% endif -%}
 ROW FORMAT SERDE
-    'org.apache.hive.hcatalog.data.JsonSerDe'
+    '{{StorageDescriptor.SerdeInfo.SerializationLibrary}}'
 WITH SERDEPROPERTIES (
     'paths'='{{json_col_paths}}'
 )
 STORED AS INPUTFORMAT
-    'org.apache.hadoop.mapred.TextInputFormat'
+    '{{StorageDescriptor.InputFormat}}'
 OUTPUTFORMAT
-    'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+    '{{StorageDescriptor.OutputFormat}}'
 LOCATION
-    '{{location}}'
+    '{{StorageDescriptor.Location}}'
 TBLPROPERTIES (
     'classification'='json'
 );

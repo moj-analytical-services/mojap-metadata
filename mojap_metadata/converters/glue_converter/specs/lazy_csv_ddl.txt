@@ -23,7 +23,7 @@ LOCATION
     '{{location}}'
 TBLPROPERTIES (
     'classification'='csv',
-{% if csv_skip_header_properties -%}
-    {{csv_skip_header_properties}}
+{% if skip_header -%}
+    'skip.header.line.count'='1'
 {%- endif -%}
 );

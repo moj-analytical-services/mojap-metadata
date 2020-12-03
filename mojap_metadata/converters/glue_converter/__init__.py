@@ -1,5 +1,6 @@
 import os
-
+import json
+from typing import Tuple, List
 from jinja2 import Template
 
 from mojap_metadata.metadata.metadata import Metadata
@@ -47,10 +48,102 @@ _default_type_converter = {
 }
 
 
-def get_default_ddl_template(filename):
+def get_base_table_spec(spec_name):
+    table_spec = json.load(
+        pkg_resources.open_text(specs, f"{spec_name}_spec.json")
+    )
+    return table_spec
 
+
+def generate_spec_from_template(
+    spec_name,
+    database,
+    table_name,
+    location,
+    table_desc="",
+    columns=[],
+    partitions=[],
+    skip_header=None,
+    sep=None,
+    quote_char=None,
+    escape_char=None,
+    line_term_char=None,
+    parquet_compression=None,
+    json_col_paths=None,
+):
+    base_spec = get_base_table_spec(spec_name)
+    base_spec["Name"] = table_name
+    base_spec["Description"] = table_desc
+    base_spec["StorageDescriptor"]["Columns"] = columns
+    base_spec["PartitionKeys"] = partitions
+    base_spec["StorageDescriptor"]["Location"] = location
+    if "csv" in base_spec:
+        if skip_header:
+            base_spec["Parameters"]["skip.header.line.count"] = "1"
+            base_spec["StorageDescriptor"]["Parameters"]["skip.header.line.count"] = "1"
+
+        if sep:
+            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["separatorChar"] = sep
+
+        if quote_char:
+            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["quoteChar"] = quote_char
+
+        if escape_char:
+            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["escapeChar"] = escape_char
+
+    if "json" in base_spec:
+        base_spec["Parameters"]["paths"]: json_col_paths
+
+    if "parquet" in base_spec:
+        if parquet_compression:
+            base_spec["StorageDescriptor"]["Parameters"]["compressionType"] = parquet_compression
+
+    return base_spec
+
+
+def get_default_ddl_template(filename):
     template = pkg_resources.read_text(specs, f"{filename}.txt")
     return template
+
+
+def generate_glue_from_template(
+    template: Template,
+    database: str,
+    table: str,
+    columns: list,
+    partitions: list,
+    location: str,
+    **kwargs,
+) -> str:
+    """generates a HIVE/Glue DDL from a template.
+
+    Args:
+        template (str): A jinja template which at a minimum excepts
+          the parameters of this function.
+
+        database (str): database name
+
+        table (str): table name
+
+        columns (list): List of dictionaries must have name, type
+          and description key value bindings
+
+        partitions (list): List of dictionaries must have name, type
+          and description key value bindings
+
+        location (str): path to table in S3
+
+        **kwargs additional arguments passed to template via Jinja
+    """
+    ddl = template.render(
+        database=database,
+        table=table,
+        columns=columns,
+        partitions=partitions,
+        location=location,
+        **kwargs,
+    )
+    return ddl
 
 
 def generate_ddl_from_template(
@@ -233,19 +326,27 @@ class GlueConverter(BaseConverter):
         self.warn_conversion(coltype, t, is_supported)
         return t
 
-    def convert_columns(self, metadata: Metadata):
+    def convert_columns(self, metadata: Metadata) -> Tuple[List, List]:
         cols = []
-
+        partitions = []
         for c in metadata.columns:
-            cols.append(
-                {
-                    "name": c["name"],
-                    "type": self.convert_col_type(c["type"]),
-                    "description": c.get("description", ""),
-                    "is_partition": c["name"] in metadata.partitions,
-                }
-            )
-        return cols
+            if c["name"] in metadata.partitions:
+                cols.append(
+                    {
+                        "name": c["name"],
+                        "type": self.convert_col_type(c["type"]),
+                        "description": c.get("description", ""),
+                    }
+                )
+            else:
+                partitions.append(
+                    {
+                        "name": c["name"],
+                        "type": self.convert_col_type(c["type"]),
+                        "description": c.get("description", ""),
+                    }
+                )
+        return cols, partitions
 
     def generate_from_meta(
         self,
@@ -277,13 +378,13 @@ class GlueConverter(BaseConverter):
 
         ff = metadata.file_format
         if ff.startswith("csv"):
-            template = self.options.csv_template
+            spec_name = f"{self.options.csv_serde}_csv"
 
         elif ff.startswith("json"):
-            template = self.options.json_template
+            spec_name = "json"
 
         elif ff.startswith("parquet"):
-            template = self.options.parquet_template
+            spec_name = "json"
 
         else:
             raise ValueError(
@@ -314,33 +415,54 @@ class GlueConverter(BaseConverter):
                 )
                 raise ValueError(error_msg)
 
-        columns = self.convert_columns(metadata)
-        table_cols = [c for c in columns if not c["is_partition"]]
+        table_cols, partition_cols = self.convert_columns(metadata)
         json_col_paths = ",".join([c["name"] for c in table_cols])
-        partition_cols = [c for c in columns if c["is_partition"]]
 
-        if kwargs.get("skip_header", self.options.skip_header):
-            csv_skip_header_properties = "'skip.header.line.count'='1'"
-        else:
-            csv_skip_header_properties = ""
-        t = Template(template)
-
-        ddl = generate_ddl_from_template(
-            template=t,
-            database=database_name,
-            table=metadata.name,
-            columns=table_cols,
-            partitions=partition_cols,
-            location=table_location,
-            skip_header=kwargs.get("skip_header", self.options.skip_header),
-            sep=kwargs.get("sep", self.options.sep),
-            quote_char=kwargs.get("quote_char", self.options.quote_char),
-            escape_char=kwargs.get("escape_char", self.options.escape_char),
-            line_term_char=kwargs.get("line_term_char", self.options.line_term_char),
-            parquet_compression=kwargs.get(
-                "parquet_compression", self.options.parquet_compression
-            ),
-            json_col_paths=json_col_paths,
-            csv_skip_header_properties=csv_skip_header_properties,
+        skip_header = kwargs.get("skip_header", self.options.skip_header)
+        sep = kwargs.get("sep", self.options.sep)
+        quote_char = kwargs.get("quote_char", self.options.quote_char)
+        escape_char = kwargs.get("escape_char", self.options.escape_char),
+        line_term_char = kwargs.get("line_term_char", self.options.line_term_char),
+        parquet_compression = kwargs.get(
+            "parquet_compression", self.options.parquet_compression
         )
-        return ddl
+        json_col_paths = json_col_paths
+
+        if return_ddl:
+            template = Template(get_template()) # TODO
+            t = Template(template)
+
+            ddl = generate_ddl_from_template(
+                template=t # TODO change to spec_name
+                database=database_name,
+                table=metadata.name,
+                columns=table_cols,
+                partitions=partition_cols,
+                location=table_location,
+                skip_header=skip_header,
+                sep=sep,
+                quote_char=escape_char,
+                escape_char=escape_char,
+                line_term_char=line_term_char,
+                parquet_compression=parquet_compression,
+                json_col_paths=json_col_paths,
+            )
+            return ddl
+        else:
+            glue_spec = generate_spec_from_template(
+                spec_name=spec_name,
+                database=database_name,
+                table=metadata.name,
+                table_desc=metadata.description,
+                columns=table_cols,
+                partitions=partition_cols,
+                location=table_location,
+                skip_header=skip_header,
+                sep=sep,
+                quote_char=escape_char,
+                escape_char=escape_char,
+                line_term_char=line_term_char,
+                parquet_compression=parquet_compression,
+                json_col_paths=json_col_paths,
+            )
+            return glue_spec
