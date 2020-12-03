@@ -1,9 +1,15 @@
 import json
 import yaml
 from copy import deepcopy
-
+import pkg_resources
 import jsonschema
 
+_table_schema = json.load(
+    pkg_resources.resource_stream(
+        __name__,
+        "specs/table_schema.json"
+    )
+)
 
 class MetadataProperty:
     def __set_name__(self, owner, name) -> None:
@@ -55,8 +61,8 @@ class Metadata:
         primary_key: list = [],
         partitions: list = [],
     ) -> None:
-        with open("mojap_metadata/metadata/specs/table_schema.json") as f:
-            self._schema = json.load(f)
+    
+        self._schema = deepcopy(_table_schema)
 
         self._data = {
             "$schema": "",
