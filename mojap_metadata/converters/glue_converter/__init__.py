@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from jinja2 import Template
 
 from mojap_metadata.metadata.metadata import Metadata
@@ -48,142 +48,32 @@ _default_type_converter = {
 }
 
 
-def get_base_table_spec(spec_name):
-    table_spec = json.load(
-        pkg_resources.open_text(specs, f"{spec_name}_spec.json")
-    )
-    return table_spec
-
-
-def generate_spec_from_template(
-    spec_name,
-    database,
-    table_name,
-    location,
-    table_desc="",
-    columns=[],
-    partitions=[],
-    skip_header=None,
-    sep=None,
-    quote_char=None,
-    escape_char=None,
-    line_term_char=None,
-    parquet_compression=None,
-    json_col_paths=None,
-):
-    base_spec = get_base_table_spec(spec_name)
-    base_spec["Name"] = table_name
-    base_spec["Description"] = table_desc
-    base_spec["StorageDescriptor"]["Columns"] = columns
-    base_spec["PartitionKeys"] = partitions
-    base_spec["StorageDescriptor"]["Location"] = location
-    if "csv" in base_spec:
-        if skip_header:
-            base_spec["Parameters"]["skip.header.line.count"] = "1"
-            base_spec["StorageDescriptor"]["Parameters"]["skip.header.line.count"] = "1"
-
-        if sep:
-            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["separatorChar"] = sep
-
-        if quote_char:
-            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["quoteChar"] = quote_char
-
-        if escape_char:
-            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["escapeChar"] = escape_char
-
-    if "json" in base_spec:
-        base_spec["Parameters"]["paths"]: json_col_paths
-
-    if "parquet" in base_spec:
-        if parquet_compression:
-            base_spec["StorageDescriptor"]["Parameters"]["compressionType"] = parquet_compression
-
-    return base_spec
-
-
-def get_default_ddl_template(filename):
-    template = pkg_resources.read_text(specs, f"{filename}.txt")
-    return template
-
-
-def generate_glue_from_template(
-    template: Template,
-    database: str,
-    table: str,
-    columns: list,
-    partitions: list,
-    location: str,
-    **kwargs,
-) -> str:
-    """generates a HIVE/Glue DDL from a template.
-
-    Args:
-        template (str): A jinja template which at a minimum excepts
-          the parameters of this function.
-
-        database (str): database name
-
-        table (str): table name
-
-        columns (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        partitions (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        location (str): path to table in S3
-
-        **kwargs additional arguments passed to template via Jinja
+@dataclass
+class CsvOptions:
     """
-    ddl = template.render(
-        database=database,
-        table=table,
-        columns=columns,
-        partitions=partitions,
-        location=location,
-        **kwargs,
-    )
-    return ddl
-
-
-def generate_ddl_from_template(
-    template: Template,
-    database: str,
-    table: str,
-    columns: list,
-    partitions: list,
-    location: str,
-    **kwargs,
-) -> str:
-    """generates a HIVE/Glue DDL from a template.
-
-    Args:
-        template (str): A jinja template which at a minimum excepts
-          the parameters of this function.
-
-        database (str): database name
-
-        table (str): table name
-
-        columns (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        partitions (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        location (str): path to table in S3
-
-        **kwargs additional arguments passed to template via Jinja
+    Specific options for CSV spec
     """
-    ddl = template.render(
-        database=database,
-        table=table,
-        columns=columns,
-        partitions=partitions,
-        location=location,
-        **kwargs,
-    )
-    return ddl
+    serde: str = "lazy"
+    skip_header: bool = False
+    sep: str = ","
+    quote_char: str = '"'
+    escape_char: str = "\\"
+    compressed: bool = False
+
+
+@dataclass
+class JsonOptions:
+    serde: str = "hive"
+    compressed: bool = False
+
+
+@dataclass
+class ParquetOptions:
+    # compression:str = "SNAPPY"
+    compressed: bool = True
+
+
+SpecOptions = Union[CsvOptions, JsonOptions, ParquetOptions]
 
 
 @dataclass
@@ -191,12 +81,12 @@ class GlueConverterOptions:
     """
     Options Class for the GlueConverter
 
-    csv_template (str):
+    deafultcsv_serde (str):
       Jinja template that is used to generate CSV ddl. Defaults to
       lazy serde template. To use the open serde template you can use
       options.set_csv_serde("open").
 
-    json_template (str):
+    json_serde (str):
       Jinja template that is used to generate JSON ddl. Can be set to
       a custom json ddl template but defaults to our recommended one:
       `specs/json_ddl.txt`.
@@ -238,28 +128,28 @@ class GlueConverterOptions:
     parquet_compression (str):
       parameter to parquet ddl function
     """
-
-    csv_template = get_default_ddl_template("lazy_csv_ddl")
-    json_template = get_default_ddl_template("json_ddl")
-    parquet_template = get_default_ddl_template("parquet_ddl")
+    csv = CsvOptions()
+    json = JsonOptions()
+    parquet = ParquetOptions()
     default_db_name: str = None
     default_db_base_path: str = None
     ignore_warnings: bool = False
-    skip_header: bool = False
-    sep: str = ","
-    quote_char: str = '"'
-    escape_char: str = r"\\"
-    line_term_char: str = r"\n"
-    parquet_compression: str = "SNAPPY"
 
     def set_csv_serde(self, serde_name: str):
-        allowed_serde_name = ["open", "lazy"]
-        if serde_name not in allowed_serde_name:
-            raise ValueError(
-                f"Input serde_name must be one of {allowed_serde_name}. "
-                f"Got {serde_name}"
-            )
-        self.csv_template = get_default_ddl_template(f"{serde_name}_csv_ddl")
+        allowed_serdes = ["lazy", "open"]
+        if serde_name not in allowed_serdes:
+            err_msg = f"Input serde_name must be one of {allowed_serdes} but got {serde_name}."
+            raise ValueError(err_msg)
+        else:
+            self.csv.serde = serde_name
+
+    def set_json_serde(self, serde_name: str):
+        allowed_serdes = ["hive", "openx"]
+        if serde_name not in allowed_serdes:
+            err_msg = f"Input serde_name must be one of {allowed_serdes} but got {serde_name}."
+            raise ValueError(err_msg)
+        else:
+            self.json.serde = serde_name
 
 
 class GlueConverter(BaseConverter):
@@ -333,17 +223,17 @@ class GlueConverter(BaseConverter):
             if c["name"] in metadata.partitions:
                 cols.append(
                     {
-                        "name": c["name"],
-                        "type": self.convert_col_type(c["type"]),
-                        "description": c.get("description", ""),
+                        "Name": c["name"],
+                        "Type": self.convert_col_type(c["type"]),
+                        "Comment": c.get("description", ""),
                     }
                 )
             else:
                 partitions.append(
                     {
-                        "name": c["name"],
-                        "type": self.convert_col_type(c["type"]),
-                        "description": c.get("description", ""),
+                        "Name": c["name"],
+                        "Type": self.convert_col_type(c["type"]),
+                        "Comment": c.get("description", ""),
                     }
                 )
         return cols, partitions
@@ -353,7 +243,7 @@ class GlueConverter(BaseConverter):
         metadata: Metadata,
         database_name: str = None,
         table_location: str = None,
-        **kwargs,
+        return_as_str_ddl: bool = False
     ) -> str:
         """Generates the Hive DDL from our metadata
 
@@ -366,7 +256,9 @@ class GlueConverter(BaseConverter):
               needed for table DDL. If `None` this function will look to the
               options.default_database_name attribute to find a name. Defaults
               to None.
-
+            return_as_str_ddl (bool, option): States if the user wants the table spec as a dict
+            for things like boto3/pulumi or a DDL as a string for SQL engines like Athena.
+            Defaults to False.
         Raises:
             ValueError: If database_name and table_location are not set (and there
               are no default options set)
@@ -378,13 +270,13 @@ class GlueConverter(BaseConverter):
 
         ff = metadata.file_format
         if ff.startswith("csv"):
-            spec_name = f"{self.options.csv_serde}_csv"
+            opts = self.options.csv
 
         elif ff.startswith("json"):
-            spec_name = "json"
+            opts = self.options.json
 
         elif ff.startswith("parquet"):
-            spec_name = "json"
+            opts = self.options.parquet
 
         else:
             raise ValueError(
@@ -416,53 +308,244 @@ class GlueConverter(BaseConverter):
                 raise ValueError(error_msg)
 
         table_cols, partition_cols = self.convert_columns(metadata)
-        json_col_paths = ",".join([c["name"] for c in table_cols])
 
-        skip_header = kwargs.get("skip_header", self.options.skip_header)
-        sep = kwargs.get("sep", self.options.sep)
-        quote_char = kwargs.get("quote_char", self.options.quote_char)
-        escape_char = kwargs.get("escape_char", self.options.escape_char),
-        line_term_char = kwargs.get("line_term_char", self.options.line_term_char),
-        parquet_compression = kwargs.get(
-            "parquet_compression", self.options.parquet_compression
-        )
-        json_col_paths = json_col_paths
-
-        if return_ddl:
-            template = Template(get_template()) # TODO
-            t = Template(template)
-
-            ddl = generate_ddl_from_template(
-                template=t # TODO change to spec_name
-                database=database_name,
-                table=metadata.name,
-                columns=table_cols,
-                partitions=partition_cols,
-                location=table_location,
-                skip_header=skip_header,
-                sep=sep,
-                quote_char=escape_char,
-                escape_char=escape_char,
-                line_term_char=line_term_char,
-                parquet_compression=parquet_compression,
-                json_col_paths=json_col_paths,
-            )
-            return ddl
+        if return_as_str_ddl:
+            generator = generate_ddl_from_template
         else:
-            glue_spec = generate_spec_from_template(
-                spec_name=spec_name,
-                database=database_name,
-                table=metadata.name,
-                table_desc=metadata.description,
-                columns=table_cols,
-                partitions=partition_cols,
-                location=table_location,
-                skip_header=skip_header,
-                sep=sep,
-                quote_char=escape_char,
-                escape_char=escape_char,
-                line_term_char=line_term_char,
-                parquet_compression=parquet_compression,
-                json_col_paths=json_col_paths,
-            )
-            return glue_spec
+            generator = generate_spec_from_template
+
+        out = generator(
+            database_name=database_name,
+            table_name=metadata.name,
+            location=table_location,
+            spec_opts=opts,
+            table_desc=metadata.description,
+            columns=table_cols,
+            partitions=partition_cols,
+        )
+
+        return out
+
+
+
+def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
+    """Gets a table spec (dict) for a specific name
+    prefilled with standard properties / info for that
+    specific spec.
+
+    Args:
+        spec_name (str): Name of the spec currently -
+        'csv', 'json' or 'parquet'
+
+        serde_name (str): Name of the specific serde -
+        CSV: 'open' or 'lazy'
+        JSON: 'hive' or 'openx'
+        PARQUET: None
+
+    Returns:
+        dict: A base spec that can be used with boto to create a table.
+        Once specific details from metadata are filled into it.
+    """
+    if serde_name:
+        filename = f"{serde_name}_{spec_name}_spec.json"
+    else:
+        filename = f"{spec_name}_spec.json"
+
+    table_spec = json.load(
+        pkg_resources.open_text(specs, filename)
+    )
+    return table_spec
+
+
+def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> Template:
+    """Gets a table spec in the form of a DDL for a specific name
+    prefilled with standard properties / info for that
+    specific spec.
+
+    Args:
+        spec_name (str): Name of the spec currently -
+        'lazy_csv', 'open_csv', 'json' or 'parquet'
+
+    Returns:
+        Template: A jinja template that can be used with an SQL engine
+        (e.g. boto3 or aws-wrangler) to run the command in SQL to create
+        the table. Once specific details from metadata are filled into it.
+    """
+    if serde_name:
+        filename = f"{serde_name}_{spec_name}_ddl.txt"
+    else:
+        filename = f"{spec_name}_ddl.txt"
+    template = pkg_resources.read_text(specs, filename)
+    return Template(template)
+
+
+def _get_spec_and_serde_name_from_opts(spec_opts) -> Tuple[str, str]:
+    """Returns the spec name and serde name for a given option Class
+    and parameters
+
+    Args:
+        spec_opts ([type]): [description]
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        Tuple[str, str]: [description]
+    """
+    if isinstance(spec_opts, CsvOptions):
+        spec_name = "csv"
+        serde_name = spec_opts.serde
+    elif isinstance(spec_opts, JsonOptions):
+        spec_name = "json"
+        serde_name = spec_opts.serde
+    elif isinstance(spec_opts, ParquetOptions):
+        spec_name = "parquet"
+        serde_name = None
+    else:
+        raise ValueError(
+            f"expected opts to be of an options Type not {type(spec_opts)}"
+        )
+
+    return spec_name, serde_name
+
+
+def _convert_opts_into_dict(spec_opts: SpecOptions):
+    """Takes the spec_opts and converts it to a dict
+    Just used to pass to Template.render().
+
+    Args:
+        spec_opts (SpecOptions): One of the SpecOptions
+        classes
+
+    Returns:
+        dict: A dict representation of the data class
+    """
+    out_dict = {}
+    for k, _ in spec_opts.__annotations__:
+        out_dict[k] = getattr(spec_opts, k)
+    return out_dict
+
+
+def generate_spec_from_template(
+    database_name,
+    table_name,
+    location,
+    spec_opts: SpecOptions,
+    table_desc="",
+    columns=[],
+    partitions=[],
+):
+    spec_name, serde_name = _get_spec_and_serde_name_from_opts(spec_opts)
+
+    base_spec = _get_base_table_spec(spec_name, serde_name)
+    base_spec["Name"] = table_name
+    base_spec["Description"] = table_desc
+    base_spec["StorageDescriptor"]["Columns"] = columns
+    base_spec["PartitionKeys"] = partitions
+    base_spec["StorageDescriptor"]["Location"] = location
+
+    # Do general options
+    base_spec["StorageDescriptor"]["Compressed"] = spec_opts.compressed
+
+    # Do CSV options
+    if spec_name == "csv":
+
+        csv_param_lu = {
+            "sep": {
+                "lazy": "field.delim",
+                "open": "separatorChar"
+            },
+            "quote_char": {
+                "lazy": None,
+                "open": "quoteChar"
+            },
+            "escape_char": {
+                "lazy": "escape.delim",
+                "open": "escapeChar"
+            },
+        }
+
+        if spec_opts.skip_header:
+            (base_spec["StorageDescriptor"]["SerdeInfo"]
+                ["Parameters"]["skip.header.line.count"]) = "1"
+            (base_spec["StorageDescriptor"]["Parameters"]
+                ["skip.header.line.count"]) = "1"
+
+        if spec_opts.sep:
+            param_name = csv_param_lu["sep"][serde_name]
+            (base_spec["StorageDescriptor"]["SerdeInfo"]
+                ["Parameters"][param_name]) = spec_opts.sep
+
+        if spec_opts.quote_char and serde_name != "lazy":
+            (base_spec["StorageDescriptor"]["SerdeInfo"]
+                ["Parameters"]["quoteChar"]) = spec_opts.quote_char
+
+        if spec_opts.escape_char:
+            param_name = csv_param_lu["escape_char"][serde_name]
+            (base_spec["StorageDescriptor"]["SerdeInfo"]
+                ["Parameters"][param_name]) = spec_opts.escape_char
+
+    # Do JSON options
+    if spec_name == "json":
+        json_col_paths = ",".join([c["Name"] for c in columns])
+        base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["paths"]: json_col_paths
+
+    # if "parquet" in base_spec:
+    #     if options.compression:
+    #         base_spec["StorageDescriptor"]
+    #         ["Parameters"]["compressionType"] = options.compression
+
+    out_dict = {
+        "DatabaseName": database_name,
+        "TableInput": base_spec
+    }
+    return out_dict
+
+
+def generate_ddl_from_template(
+    database_name,
+    table_name,
+    location,
+    spec_opts: Union[CsvOptions, JsonOptions, ParquetOptions],
+    table_desc="",
+    columns=[],
+    partitions=[],
+) -> str:
+    """generates a HIVE/Glue DDL from a template.
+
+    Args:
+        template (str): A jinja template which at a minimum excepts
+          the parameters of this function.
+
+        database_name (str): database name
+
+        table (str): table name
+
+        columns (list): List of dictionaries must have name, type
+          and description key value bindings
+
+        partitions (list): List of dictionaries must have name, type
+          and description key value bindings
+
+        location (str): path to table in S3
+
+        **kwargs additional arguments passed to template via Jinja
+    """
+    template = get_default_ddl_template(spec_name)
+    ddl = template.render(
+        spec_name,
+        database_name,
+        table_name,
+        location,
+        table_desc,
+        columns,
+        partitions,
+        skip_header,
+        sep,
+        quote_char,
+        escape_char,
+        line_term_char,
+        parquet_compression,
+        json_col_paths,
+    )
+    return ddl

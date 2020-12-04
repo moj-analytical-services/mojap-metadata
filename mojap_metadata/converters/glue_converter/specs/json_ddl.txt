@@ -1,12 +1,12 @@
 CREATE EXTERNAL TABLE {{database}}.{{Name}} (
 {% for c in StorageDescriptor.Columns -%} 
-    `{{c.name}}` {{c.type}} COMMENT `{{c.description}}`
+    `{{c.Name}}` {{c.Type}} COMMENT `{{c.Comment}}`
 {% endfor -%}
 )
 {% if PartitionKeys -%}
 PARTITION BY (
 {% for p in PartitionKeys -%}
-    `{{p.name}}` {{p.type}} COMMENT `{{p.description}}`
+    `{{p.Name}}` {{p.Type}} COMMENT `{{p.Comment}}`
 {% endfor -%}
 )
 {% endif -%}
