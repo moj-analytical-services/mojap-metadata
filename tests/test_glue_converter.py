@@ -12,6 +12,7 @@ from mojap_metadata.converters.glue_converter import (
 @pytest.mark.parametrize(
     argnames="meta_type,glue_type,expect_raises",
     argvalues=[
+        ("bool_", "BOOLEAN", None),
         ("int8", "TINYINT", None),
         ("int16", "SMALLINT", None),
         ("int32", "INT", None),

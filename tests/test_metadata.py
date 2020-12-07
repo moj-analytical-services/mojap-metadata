@@ -79,6 +79,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
+        [{"name": "test", "type": "bool_"}],
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
         [{"name": "test", "type": "int64"}],

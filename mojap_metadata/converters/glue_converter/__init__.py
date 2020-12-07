@@ -17,6 +17,7 @@ from mojap_metadata.converters.glue_converter import specs
 # if glue_type is Null then we have no way to safely
 # convert it
 _default_type_converter = {
+    "bool_": ("BOOLEAN", True),
     "int8": ("TINYINT", True),
     "int16": ("SMALLINT", True),
     "int32": ("INT", True),
