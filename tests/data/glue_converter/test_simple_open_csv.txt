@@ -18,7 +18,7 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
     'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION
-    's3://bucket/test_table/'
+    's3://bucket/test_table'
 TBLPROPERTIES (
     'classification'='csv',
 );

@@ -1,9 +1,11 @@
 import pytest
+import json
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueConverterOptions,
+    _get_base_table_ddl,
 )
 
 
@@ -66,19 +68,20 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
 
 
 @pytest.mark.parametrize(
-    argnames="file_format,csv_type,expected_file_name",
+    argnames="spec_name,serde_name,expected_file_name",
     argvalues=[
-        ("csv", "lazy", "test_simple_lazy_csv.txt"),
-        ("csv", "open", "test_simple_open_csv.txt"),
-        ("json", None, "test_simple_json.txt"),
-        ("parquet", None, "test_simple_parquet.txt"),
+        ("csv", "lazy", "test_simple_lazy_csv"),
+        ("csv", "open", "test_simple_open_csv"),
+        ("json", "hive", "test_simple_hive_json"),
+        ("json", "openx", "test_simple_openx_json"),
+        ("parquet", None, "test_simple_parquet"),
     ],
 )
-def test_generate_from_meta(file_format, csv_type, expected_file_name):
+def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     md = Metadata.from_dict(
         {
             "name": "test_table",
-            "file_format": file_format,
+            "file_format": spec_name,
             "columns": [
                 {
                     "name": "my_int",
@@ -99,40 +102,73 @@ def test_generate_from_meta(file_format, csv_type, expected_file_name):
     )
 
     gc = GlueConverter()
-    if csv_type == "open":
-        gc.options.set_csv_serde("open")
+    if spec_name == "csv":
+        gc.options.set_csv_serde(serde_name)
+
+    if spec_name == "json":
+        gc.options.set_json_serde(serde_name)
 
     opts = GlueConverterOptions(
         default_db_base_path="s3://bucket/", default_db_name="test_db"
     )
-    if csv_type == "open":
-        opts.set_csv_serde("open")
 
     gc_default_opts = GlueConverter(opts)
 
-    table_path = "s3://bucket/test_table/"
-    ddl = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
-    ddl_default_opts = gc_default_opts.generate_from_meta(md)
+    table_path = "s3://bucket/test_table"
 
+    # DO DDL TEST
+    ddl = gc.generate_from_meta(
+        md,
+        database_name="test_db",
+        table_location=table_path,
+        return_as_str_ddl=True
+    )
+    ddl_default_opts = gc_default_opts.generate_from_meta(
+        md,
+        return_as_str_ddl=True
+    )
     assert ddl == ddl_default_opts
 
-    with open(f"tests/data/glue_converter/{expected_file_name}") as f:
+    with open(f"tests/data/glue_converter/{expected_file_name}.txt") as f:
         expected_ddl = "".join(f.readlines())
 
     assert ddl == expected_ddl
 
+    # DO DICT TEST
+    spec = gc.generate_from_meta(
+        md,
+        database_name="test_db",
+        table_location=table_path
+    )
+    spec_default_opts = gc_default_opts.generate_from_meta(
+        md,
+    )
+    assert spec == spec_default_opts
+
+    with open(f"tests/data/glue_converter/{expected_file_name}.JSON") as f:
+        expected_spec = json.load(f)
+
+    assert spec == expected_spec
+
 
 def test_start_of_ddl_templates_match():
-    opts = GlueConverterOptions()
-    t_parquet = opts.parquet_template.split("ROW FORMAT SERDE")[0]
-    t_json = opts.json_template.split("ROW FORMAT SERDE")[0]
 
-    opts.set_csv_serde("lazy")
-    t_csv_lazy = opts.csv_template.split("ROW FORMAT SERDE")[0]
+    t_parquet = _get_base_table_ddl("parquet", None)
+    t_parquet = t_parquet.split("ROW FORMAT SERDE")[0]
 
-    opts.set_csv_serde("open")
-    t_csv_open = opts.csv_template.split("ROW FORMAT SERDE")[0]
+    t_json1 = _get_base_table_ddl("json", "openx")
+    t_json1 = t_json1.split("ROW FORMAT SERDE")[0]
 
-    assert t_parquet == t_json
-    assert t_parquet == t_csv_lazy
-    assert t_parquet == t_csv_open
+    t_json2 = _get_base_table_ddl("json", "hive")
+    t_json2 = t_json2.split("ROW FORMAT SERDE")[0]
+
+    t_csv1 = _get_base_table_ddl("csv", "open")
+    t_csv1 = t_csv1.split("ROW FORMAT SERDE")[0]
+
+    t_csv2 = _get_base_table_ddl("csv", "lazy")
+    t_csv2 = t_csv2.split("ROW FORMAT SERDE")[0]
+
+    assert t_parquet == t_json1
+    assert t_parquet == t_json2
+    assert t_parquet == t_csv1
+    assert t_parquet == t_csv2

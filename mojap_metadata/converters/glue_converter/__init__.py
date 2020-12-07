@@ -1,5 +1,7 @@
 import os
 import json
+import re
+
 from typing import Tuple, List, Union
 from jinja2 import Template
 
@@ -221,7 +223,7 @@ class GlueConverter(BaseConverter):
         partitions = []
         for c in metadata.columns:
             if c["name"] in metadata.partitions:
-                cols.append(
+                partitions.append(
                     {
                         "Name": c["name"],
                         "Type": self.convert_col_type(c["type"]),
@@ -229,7 +231,7 @@ class GlueConverter(BaseConverter):
                     }
                 )
             else:
-                partitions.append(
+                cols.append(
                     {
                         "Name": c["name"],
                         "Type": self.convert_col_type(c["type"]),
@@ -297,7 +299,7 @@ class GlueConverter(BaseConverter):
         if not table_location:
             if self.options.default_db_base_path:
                 table_location = os.path.join(
-                    self.options.default_db_base_path, f"{metadata.name}/"
+                    self.options.default_db_base_path, f"{metadata.name}"
                 )
             else:
                 error_msg = (
@@ -309,12 +311,8 @@ class GlueConverter(BaseConverter):
 
         table_cols, partition_cols = self.convert_columns(metadata)
 
-        if return_as_str_ddl:
-            generator = generate_ddl_from_template
-        else:
-            generator = generate_spec_from_template
 
-        out = generator(
+        spec = generate_spec_from_template(
             database_name=database_name,
             table_name=metadata.name,
             location=table_location,
@@ -324,8 +322,34 @@ class GlueConverter(BaseConverter):
             partitions=partition_cols,
         )
 
-        return out
+        
 
+        if return_as_str_ddl:
+            # Get serde as raw strings to ensure DDL doesn't escape \
+            return generate_ddl_from_spec(
+                database_name=spec["DatabaseName"],
+                table_spec=spec["TableInput"],
+                spec_opts=opts,
+            )
+        else:
+            return spec
+
+
+def generate_ddl_from_spec(database_name, table_spec, spec_opts):
+    spec_name, serde_name = _get_spec_and_serde_name_from_opts(spec_opts)
+    template = Template(_get_base_table_ddl(spec_name, serde_name))
+    csv_serde_properties = {}
+    if spec_name == "csv":
+        csv_serde_properties = {
+            "raw_sep": re.escape(spec_opts.sep),
+            "raw_escape": re.escape(spec_opts.escape_char),
+            "raw_quote": re.escape(spec_opts.quote_char),
+        }
+
+    return template.render(
+        database=database_name,
+        csv_serde_properties=csv_serde_properties,
+        **table_spec)
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
@@ -357,7 +381,7 @@ def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
     return table_spec
 
 
-def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> Template:
+def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> str:
     """Gets a table spec in the form of a DDL for a specific name
     prefilled with standard properties / info for that
     specific spec.
@@ -367,7 +391,7 @@ def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> Template:
         'lazy_csv', 'open_csv', 'json' or 'parquet'
 
     Returns:
-        Template: A jinja template that can be used with an SQL engine
+        str: A str for a Jinja2 template that can be used with an SQL engine
         (e.g. boto3 or aws-wrangler) to run the command in SQL to create
         the table. Once specific details from metadata are filled into it.
     """
@@ -376,7 +400,7 @@ def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> Template:
     else:
         filename = f"{spec_name}_ddl.txt"
     template = pkg_resources.read_text(specs, filename)
-    return Template(template)
+    return template
 
 
 def _get_spec_and_serde_name_from_opts(spec_opts) -> Tuple[str, str]:
@@ -466,8 +490,6 @@ def generate_spec_from_template(
         }
 
         if spec_opts.skip_header:
-            (base_spec["StorageDescriptor"]["SerdeInfo"]
-                ["Parameters"]["skip.header.line.count"]) = "1"
             (base_spec["StorageDescriptor"]["Parameters"]
                 ["skip.header.line.count"]) = "1"
 
@@ -488,12 +510,9 @@ def generate_spec_from_template(
     # Do JSON options
     if spec_name == "json":
         json_col_paths = ",".join([c["Name"] for c in columns])
-        base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["paths"]: json_col_paths
-
-    # if "parquet" in base_spec:
-    #     if options.compression:
-    #         base_spec["StorageDescriptor"]
-    #         ["Parameters"]["compressionType"] = options.compression
+        print(json_col_paths)
+        (base_spec["StorageDescriptor"]["SerdeInfo"]
+            ["Parameters"]["paths"]) = json_col_paths
 
     out_dict = {
         "DatabaseName": database_name,

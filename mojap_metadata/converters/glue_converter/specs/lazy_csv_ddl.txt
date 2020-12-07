@@ -1,29 +1,33 @@
-CREATE EXTERNAL TABLE {{database}}.{{table}} (
-{% for c in columns -%} 
-    `{{c.name}}` {{c.type}} COMMENT `{{c.description}}`
+CREATE EXTERNAL TABLE {{database}}.{{Name}} (
+{% for c in StorageDescriptor.Columns -%} 
+    `{{c.Name}}` {{c.Type}} COMMENT `{{c.Comment}}`
 {% endfor -%}
 )
-{% if partitions -%}
+{% if PartitionKeys -%}
 PARTITION BY (
-{% for p in partitions -%}
-    `{{p.name}}` {{p.type}} COMMENT `{{p.description}}`
+{% for p in PartitionKeys -%}
+    `{{p.Name}}` {{p.Type}} COMMENT `{{p.Comment}}`
 {% endfor -%}
 )
 {% endif -%}
 ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
 ROW FORMAT DELIMITED
-    FIELDS TERMINATED BY '{{sep}}'
-    ESCAPED BY '{{escape_char}}'
-    LINES TERMINATED BY '{{line_term_char}}'
+    {% if csv_serde_properties.raw_sep -%}
+    FIELDS TERMINATED BY '{{csv_serde_properties.raw_sep}}'
+    {% endif -%}
+    {% if csv_serde_properties.raw_escape -%}
+    ESCAPED BY '{{csv_serde_properties.raw_escape}}'
+    {% endif -%}
+    LINES TERMINATED BY '\n'
 STORED AS INPUTFORMAT
     'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT
     'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION
-    '{{location}}'
+    '{{StorageDescriptor.Location}}'
 TBLPROPERTIES (
     'classification'='csv',
-{% if skip_header -%}
-    'skip.header.line.count'='1'
+{% if "skip.header.line.count" in StorageDescriptor.Parameters -%}
+    'skip.header.line.count' = '1'
 {%- endif -%}
 );

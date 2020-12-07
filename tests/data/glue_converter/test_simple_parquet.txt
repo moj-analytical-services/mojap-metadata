@@ -14,8 +14,8 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
     'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION
-    's3://bucket/test_table/'
+    's3://bucket/test_table'
 TBLPROPERTIES (
-    'classification'='json',
+    'classification'='parquet',
     'parquet.compression'='SNAPPY'
 );

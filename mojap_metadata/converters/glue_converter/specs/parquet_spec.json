@@ -8,7 +8,7 @@
         "Location": "",
         "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
         "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
-        "Compressed": false,
+        "Compressed": true,
         "NumberOfBuckets": -1,
         "SerdeInfo": {
             "SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
@@ -20,7 +20,7 @@
         "SortColumns": [],
         "Parameters": {
             "classification": "parquet",
-            "compressionType": "none"
+            "compressionType": "SNAPPY"
         },
         "StoredAsSubDirectories": false
     },

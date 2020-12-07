@@ -7,11 +7,11 @@ CREATE EXTERNAL TABLE test_db.test_table (
 PARTITION BY (
 `my_timestamp` TIMESTAMP COMMENT `Partition column`
 )
-ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-ROW FORMAT DELIMITED
-    FIELDS TERMINATED BY ','
-    ESCAPED BY '\\'
-    LINES TERMINATED BY '\n'
+ROW FORMAT SERDE
+    'org.openx.data.jsonserde.JsonSerDe'
+WITH SERDEPROPERTIES (
+    'paths'='my_int,my_double,my_date,my_decimal'
+)
 STORED AS INPUTFORMAT
     'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT
@@ -19,5 +19,5 @@ OUTPUTFORMAT
 LOCATION
     's3://bucket/test_table'
 TBLPROPERTIES (
-    'classification'='csv',
+    'classification'='json'
 );

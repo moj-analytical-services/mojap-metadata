@@ -1,12 +1,12 @@
-CREATE EXTERNAL TABLE {{database}}.{{table}} (
-{% for c in columns -%} 
-    `{{c.name}}` {{c.type}} COMMENT `{{c.description}}`
+CREATE EXTERNAL TABLE {{database}}.{{Name}} (
+{% for c in StorageDescriptor.Columns -%} 
+    `{{c.Name}}` {{c.Type}} COMMENT `{{c.Comment}}`
 {% endfor -%}
 )
-{% if partitions -%}
+{% if PartitionKeys -%}
 PARTITION BY (
-{% for p in partitions -%}
-    `{{p.name}}` {{p.type}} COMMENT `{{p.description}}`
+{% for p in PartitionKeys -%}
+    `{{p.Name}}` {{p.Type}} COMMENT `{{p.Comment}}`
 {% endfor -%}
 )
 {% endif -%}
@@ -17,10 +17,10 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
     'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION
-    '{{location}}'
+    '{{StorageDescriptor.Location}}'
 TBLPROPERTIES (
-    'classification'='json',
-    {% if parquet_compression -%}
-    'parquet.compression'='{{parquet_compression}}'
+    'classification'='parquet',
+    {% if StorageDescriptor.Parameters.compressionType -%}
+    'parquet.compression'='{{StorageDescriptor.Parameters.compressionType}}'
     {%- endif %}
 );
