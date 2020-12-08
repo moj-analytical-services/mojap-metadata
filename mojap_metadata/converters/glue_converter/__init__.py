@@ -437,8 +437,8 @@ def generate_spec_from_template(
         }
 
         if spec_opts.skip_header:
-            (base_spec["StorageDescriptor"]["Parameters"]
-                ["skip.header.line.count"]) = "1"
+            (base_spec["StorageDescriptor"]["SerdeInfo"]
+                ["Parameters"]["skip.header.line.count"]) = "1"
 
         if spec_opts.sep:
             param_name = csv_param_lu["sep"][serde_name]
