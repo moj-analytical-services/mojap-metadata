@@ -14,18 +14,15 @@
                 },
                 {
                     "Name": "my_double",
-                    "Type": "double",
-                    "Comment": ""
+                    "Type": "double"
                 },
                 {
                     "Name": "my_date",
-                    "Type": "date",
-                    "Comment": ""
+                    "Type": "date"
                 },
                 {
                     "Name": "my_decimal",
-                    "Type": "decimal(10,2)",
-                    "Comment": ""
+                    "Type": "decimal(10,2)"
                 }
             ],
             "Location": "s3://bucket/test_table",

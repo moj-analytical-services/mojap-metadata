@@ -227,18 +227,20 @@ class GlueConverter(BaseConverter):
                 partitions.append(
                     {
                         "Name": c["name"],
-                        "Type": self.convert_col_type(c["type"]),
-                        "Comment": c.get("description", ""),
+                        "Type": self.convert_col_type(c["type"])
                     }
                 )
+                if "description" in c:
+                    partitions[-1]["Comment"] = c["description"]
             else:
                 cols.append(
                     {
                         "Name": c["name"],
-                        "Type": self.convert_col_type(c["type"]),
-                        "Comment": c.get("description", ""),
+                        "Type": self.convert_col_type(c["type"])
                     }
                 )
+                if "description" in c:
+                    cols[-1]["Comment"] = c["description"]
         return cols, partitions
 
     def generate_from_meta(
