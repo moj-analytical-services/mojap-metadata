@@ -13,10 +13,10 @@ class MetadataProperty:
         self.name = name
 
     def __get__(self, obj, type=None) -> object:
-        return obj._data.get(self.name)
+        return obj.__dict__["_data"].get(self.name)
 
     def __set__(self, obj, value) -> None:
-        obj._data[self.name] = value
+        obj.__dict__["_data"][self.name] = value
         obj.validate()
 
 
@@ -74,7 +74,7 @@ class Metadata:
 
         self.validate()
 
-    def _init_data_with_default_key_values(self, data: dict, copy_data: bool = True):
+    def _init_data_with_default_key_values(self, data: dict):
         """
         Used to create the class from a dictionary
 
@@ -82,10 +82,8 @@ class Metadata:
             data (dict): [description]
             copy_data (bool, optional): [description]. Defaults to True.
         """
-        if copy_data:
-            self._data = deepcopy(data)
-        else:
-            self._data = data
+        _data = deepcopy(data)
+        self._data = _data
 
         defaults = {
             "$schema": "",
@@ -99,7 +97,7 @@ class Metadata:
         }
 
         for k, v in defaults.items():
-            self._data[k] = data.get(k, v)
+            self._data[k] = _data.get(k, v)
 
     def validate(self):
         jsonschema.validate(instance=self._data, schema=self._schema)
