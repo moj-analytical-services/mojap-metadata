@@ -9,22 +9,22 @@
             "Columns": [
                 {
                     "Name": "my_int",
-                    "Type": "BIGINT",
+                    "Type": "bigint",
                     "Comment": "This is an integer"
                 },
                 {
                     "Name": "my_double",
-                    "Type": "DOUBLE",
+                    "Type": "double",
                     "Comment": ""
                 },
                 {
                     "Name": "my_date",
-                    "Type": "DATE",
+                    "Type": "date",
                     "Comment": ""
                 },
                 {
                     "Name": "my_decimal",
-                    "Type": "DECIMAL(10,2)",
+                    "Type": "decimal(10,2)",
                     "Comment": ""
                 }
             ],
@@ -46,7 +46,7 @@
         "PartitionKeys": [
             {
                 "Name": "my_timestamp",
-                "Type": "TIMESTAMP",
+                "Type": "timestamp",
                 "Comment": "Partition column"
             }
         ],

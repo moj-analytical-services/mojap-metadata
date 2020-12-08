@@ -17,36 +17,36 @@ from mojap_metadata.converters.glue_converter import specs
 # if glue_type is Null then we have no way to safely
 # convert it
 _default_type_converter = {
-    "bool_": ("BOOLEAN", True),
-    "int8": ("TINYINT", True),
-    "int16": ("SMALLINT", True),
-    "int32": ("INT", True),
-    "int64": ("BIGINT", True),
-    "uint8": ("SMALLINT", False),
-    "uint16": ("INT", False),
-    "uint32": ("BIGINT", False),
+    "bool_": ("boolean", True),
+    "int8": ("tinyint", True),
+    "int16": ("smallint", True),
+    "int32": ("int", True),
+    "int64": ("bigint", True),
+    "uint8": ("smallint", False),
+    "uint16": ("int", False),
+    "uint32": ("bigint", False),
     "uint64": (None, False),
-    "decimal128": ("DECIMAL", True),
-    "float16": ("FLOAT", False),
-    "float32": ("FLOAT", True),
-    "float64": ("DOUBLE", True),
+    "decimal128": ("decimal", True),
+    "float16": ("float", False),
+    "float32": ("float", True),
+    "float64": ("double", True),
     "time32": (None, False),
     "time32(s)": (None, False),
     "time32(ms)": (None, False),
     "time64(us)": (None, False),
     "time64(ns)": (None, False),
-    "date32": ("DATE", True),
-    "date64": ("DATE", True),
-    "timestamp(s)": ("TIMESTAMP", True),
-    "timestamp(ms)": ("TIMESTAMP", True),
-    "timestamp(us)": ("TIMESTAMP", True),
-    "timestamp(ns)": ("TIMESTAMP", True),
-    "string": ("STRING", True),
-    "large_string": ("STRING", True),
-    "utf8": ("STRING", True),
-    "large_utf8": ("STRING", True),
-    "binary": ("BINARY", True),
-    "large_binary": ("BINARY", True),
+    "date32": ("date", True),
+    "date64": ("date", True),
+    "timestamp(s)": ("timestamp", True),
+    "timestamp(ms)": ("timestamp", True),
+    "timestamp(us)": ("timestamp", True),
+    "timestamp(ns)": ("timestamp", True),
+    "string": ("string", True),
+    "large_string": ("string", True),
+    "utf8": ("string", True),
+    "large_utf8": ("string", True),
+    "binary": ("binary", True),
+    "large_binary": ("binary", True),
     # Need to do MAPS / STRUCTS
 }
 
@@ -246,8 +246,7 @@ class GlueConverter(BaseConverter):
         metadata: Metadata,
         database_name: str = None,
         table_location: str = None,
-        return_as_str_ddl: bool = False
-    ) -> str:
+    ) -> dict:
         """Generates the Hive DDL from our metadata
 
         Args:
@@ -259,16 +258,12 @@ class GlueConverter(BaseConverter):
               needed for table DDL. If `None` this function will look to the
               options.default_database_name attribute to find a name. Defaults
               to None.
-            return_as_str_ddl (bool, option): States if the user wants the table spec as a dict
-            for things like boto3/pulumi or a DDL as a string for SQL engines like Athena.
-            Defaults to False.
         Raises:
             ValueError: If database_name and table_location are not set (and there
               are no default options set)
 
         Returns:
-            str: An SQL string that can be used to create the table in Glue metadata
-              store.
+            dict: for Glue API
         """
 
         ff = metadata.file_format
@@ -312,7 +307,6 @@ class GlueConverter(BaseConverter):
 
         table_cols, partition_cols = self.convert_columns(metadata)
 
-
         spec = generate_spec_from_template(
             database_name=database_name,
             table_name=metadata.name,
@@ -322,35 +316,7 @@ class GlueConverter(BaseConverter):
             columns=table_cols,
             partitions=partition_cols,
         )
-
-        
-
-        if return_as_str_ddl:
-            # Get serde as raw strings to ensure DDL doesn't escape \
-            return generate_ddl_from_spec(
-                database_name=spec["DatabaseName"],
-                table_spec=spec["TableInput"],
-                spec_opts=opts,
-            )
-        else:
-            return spec
-
-
-def generate_ddl_from_spec(database_name, table_spec, spec_opts):
-    spec_name, serde_name = _get_spec_and_serde_name_from_opts(spec_opts)
-    template = Template(_get_base_table_ddl(spec_name, serde_name))
-    csv_serde_properties = {}
-    if spec_name == "csv":
-        csv_serde_properties = {
-            "raw_sep": re.escape(spec_opts.sep),
-            "raw_escape": re.escape(spec_opts.escape_char),
-            "raw_quote": re.escape(spec_opts.quote_char),
-        }
-
-    return template.render(
-        database=database_name,
-        csv_serde_properties=csv_serde_properties,
-        **table_spec)
+        return spec
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
@@ -380,28 +346,6 @@ def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
         pkg_resources.open_text(specs, filename)
     )
     return table_spec
-
-
-def _get_base_table_ddl(spec_name: str, serde_name:str = None) -> str:
-    """Gets a table spec in the form of a DDL for a specific name
-    prefilled with standard properties / info for that
-    specific spec.
-
-    Args:
-        spec_name (str): Name of the spec currently -
-        'lazy_csv', 'open_csv', 'json' or 'parquet'
-
-    Returns:
-        str: A str for a Jinja2 template that can be used with an SQL engine
-        (e.g. boto3 or aws-wrangler) to run the command in SQL to create
-        the table. Once specific details from metadata are filled into it.
-    """
-    if serde_name:
-        filename = f"{serde_name}_{spec_name}_ddl.txt"
-    else:
-        filename = f"{spec_name}_ddl.txt"
-    template = pkg_resources.read_text(specs, filename)
-    return template
 
 
 def _get_spec_and_serde_name_from_opts(spec_opts) -> Tuple[str, str]:
@@ -520,52 +464,3 @@ def generate_spec_from_template(
         "TableInput": base_spec
     }
     return out_dict
-
-
-def generate_ddl_from_template(
-    database_name,
-    table_name,
-    location,
-    spec_opts: Union[CsvOptions, JsonOptions, ParquetOptions],
-    table_desc="",
-    columns=[],
-    partitions=[],
-) -> str:
-    """generates a HIVE/Glue DDL from a template.
-
-    Args:
-        template (str): A jinja template which at a minimum excepts
-          the parameters of this function.
-
-        database_name (str): database name
-
-        table (str): table name
-
-        columns (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        partitions (list): List of dictionaries must have name, type
-          and description key value bindings
-
-        location (str): path to table in S3
-
-        **kwargs additional arguments passed to template via Jinja
-    """
-    template = get_default_ddl_template(spec_name)
-    ddl = template.render(
-        spec_name,
-        database_name,
-        table_name,
-        location,
-        table_desc,
-        columns,
-        partitions,
-        skip_header,
-        sep,
-        quote_char,
-        escape_char,
-        line_term_char,
-        parquet_compression,
-        json_col_paths,
-    )
-    return ddl
