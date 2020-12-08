@@ -1,9 +1,7 @@
 import os
 import json
-import re
 
 from typing import Tuple, List, Union
-from jinja2 import Template
 
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
@@ -457,7 +455,6 @@ def generate_spec_from_template(
     # Do JSON options
     if spec_name == "json":
         json_col_paths = ",".join([c["Name"] for c in columns])
-        print(json_col_paths)
         (base_spec["StorageDescriptor"]["SerdeInfo"]
             ["Parameters"]["paths"]) = json_col_paths
 
