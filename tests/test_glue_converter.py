@@ -131,4 +131,3 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         expected_spec = json.load(f)
 
     assert spec == expected_spec
-

@@ -54,6 +54,7 @@ class CsvOptions:
     """
     Specific options for CSV spec
     """
+
     serde: str = "lazy"
     skip_header: bool = False
     sep: str = ","
@@ -129,6 +130,7 @@ class GlueConverterOptions:
     parquet_compression (str):
       parameter to parquet ddl function
     """
+
     csv = CsvOptions()
     json = JsonOptions()
     parquet = ParquetOptions()
@@ -139,7 +141,10 @@ class GlueConverterOptions:
     def set_csv_serde(self, serde_name: str):
         allowed_serdes = ["lazy", "open"]
         if serde_name not in allowed_serdes:
-            err_msg = f"Input serde_name must be one of {allowed_serdes} but got {serde_name}."
+            err_msg = (
+                f"Input serde_name must be one of {allowed_serdes} "
+                f"but got {serde_name}."
+            )
             raise ValueError(err_msg)
         else:
             self.csv.serde = serde_name
@@ -147,7 +152,10 @@ class GlueConverterOptions:
     def set_json_serde(self, serde_name: str):
         allowed_serdes = ["hive", "openx"]
         if serde_name not in allowed_serdes:
-            err_msg = f"Input serde_name must be one of {allowed_serdes} but got {serde_name}."
+            err_msg = (
+                f"Input serde_name must be one of {allowed_serdes} "
+                f"but got {serde_name}."
+            )
             raise ValueError(err_msg)
         else:
             self.json.serde = serde_name
@@ -223,19 +231,13 @@ class GlueConverter(BaseConverter):
         for c in metadata.columns:
             if c["name"] in metadata.partitions:
                 partitions.append(
-                    {
-                        "Name": c["name"],
-                        "Type": self.convert_col_type(c["type"])
-                    }
+                    {"Name": c["name"], "Type": self.convert_col_type(c["type"])}
                 )
                 if "description" in c:
                     partitions[-1]["Comment"] = c["description"]
             else:
                 cols.append(
-                    {
-                        "Name": c["name"],
-                        "Type": self.convert_col_type(c["type"])
-                    }
+                    {"Name": c["name"], "Type": self.convert_col_type(c["type"])}
                 )
                 if "description" in c:
                     cols[-1]["Comment"] = c["description"]
@@ -342,9 +344,7 @@ def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
     else:
         filename = f"{spec_name}_spec.json"
 
-    table_spec = json.load(
-        pkg_resources.open_text(specs, filename)
-    )
+    table_spec = json.load(pkg_resources.open_text(specs, filename))
     return table_spec
 
 
@@ -420,46 +420,41 @@ def generate_spec_from_template(
     if spec_name == "csv":
 
         csv_param_lu = {
-            "sep": {
-                "lazy": "field.delim",
-                "open": "separatorChar"
-            },
-            "quote_char": {
-                "lazy": None,
-                "open": "quoteChar"
-            },
-            "escape_char": {
-                "lazy": "escape.delim",
-                "open": "escapeChar"
-            },
+            "sep": {"lazy": "field.delim", "open": "separatorChar"},
+            "quote_char": {"lazy": None, "open": "quoteChar"},
+            "escape_char": {"lazy": "escape.delim", "open": "escapeChar"},
         }
 
         if spec_opts.skip_header:
-            (base_spec["StorageDescriptor"]["SerdeInfo"]
-                ["Parameters"]["skip.header.line.count"]) = "1"
+            (
+                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][
+                    "skip.header.line.count"
+                ]
+            ) = "1"
 
         if spec_opts.sep:
             param_name = csv_param_lu["sep"][serde_name]
-            (base_spec["StorageDescriptor"]["SerdeInfo"]
-                ["Parameters"][param_name]) = spec_opts.sep
+            (
+                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]
+            ) = spec_opts.sep
 
         if spec_opts.quote_char and serde_name != "lazy":
-            (base_spec["StorageDescriptor"]["SerdeInfo"]
-                ["Parameters"]["quoteChar"]) = spec_opts.quote_char
+            (
+                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["quoteChar"]
+            ) = spec_opts.quote_char
 
         if spec_opts.escape_char:
             param_name = csv_param_lu["escape_char"][serde_name]
-            (base_spec["StorageDescriptor"]["SerdeInfo"]
-                ["Parameters"][param_name]) = spec_opts.escape_char
+            (
+                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]
+            ) = spec_opts.escape_char
 
     # Do JSON options
     if spec_name == "json":
         json_col_paths = ",".join([c["Name"] for c in columns])
-        (base_spec["StorageDescriptor"]["SerdeInfo"]
-            ["Parameters"]["paths"]) = json_col_paths
+        (
+            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["paths"]
+        ) = json_col_paths
 
-    out_dict = {
-        "DatabaseName": database_name,
-        "TableInput": base_spec
-    }
+    out_dict = {"DatabaseName": database_name, "TableInput": base_spec}
     return out_dict

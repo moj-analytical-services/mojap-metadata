@@ -54,9 +54,9 @@ class Metadata:
         description: str = "",
         file_format: str = "",
         sensitive: bool = False,
-        columns: list = [],
-        primary_key: list = [],
-        partitions: list = [],
+        columns: list = None,
+        primary_key: list = None,
+        partitions: list = None,
     ) -> None:
 
         self._schema = deepcopy(_table_schema)
@@ -67,9 +67,9 @@ class Metadata:
             "description": description,
             "file_format": file_format,
             "sensitive": sensitive,
-            "columns": columns,
-            "primary_key": primary_key,
-            "partitions": partitions,
+            "columns": columns if columns else [],
+            "primary_key": primary_key if primary_key else [],
+            "partitions": partitions if partitions else [],
         }
 
         self.validate()
