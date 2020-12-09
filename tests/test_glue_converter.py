@@ -1,4 +1,5 @@
 import pytest
+import json
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
@@ -10,36 +11,37 @@ from mojap_metadata.converters.glue_converter import (
 @pytest.mark.parametrize(
     argnames="meta_type,glue_type,expect_raises",
     argvalues=[
-        ("int8", "TINYINT", None),
-        ("int16", "SMALLINT", None),
-        ("int32", "INT", None),
-        ("int64", "BIGINT", None),
-        ("uint8", "SMALLINT", "warning"),
-        ("uint16", "INT", "warning"),
-        ("uint32", "BIGINT", "warning"),
+        ("bool_", "boolean", None),
+        ("int8", "tinyint", None),
+        ("int16", "smallint", None),
+        ("int32", "int", None),
+        ("int64", "bigint", None),
+        ("uint8", "smallint", "warning"),
+        ("uint16", "int", "warning"),
+        ("uint32", "bigint", "warning"),
         ("uint64", None, "error"),
-        ("float16", "FLOAT", "warning"),
-        ("float32", "FLOAT", None),
-        ("float64", "DOUBLE", None),
-        ("decimal128(0,38)", "DECIMAL(0,38)", None),
-        ("decimal128(1,2)", "DECIMAL(1,2)", None),
+        ("float16", "float", "warning"),
+        ("float32", "float", None),
+        ("float64", "double", None),
+        ("decimal128(0,38)", "decimal(0,38)", None),
+        ("decimal128(1,2)", "decimal(1,2)", None),
         ("time32(s)", None, "error"),
         ("time32(ms)", None, "error"),
         ("time64(us)", None, "error"),
         ("time64(ns)", None, "error"),
-        ("timestamp(s)", "TIMESTAMP", None),
-        ("timestamp(ms)", "TIMESTAMP", None),
-        ("timestamp(us)", "TIMESTAMP", None),
-        ("timestamp(ns)", "TIMESTAMP", None),
-        ("date32", "DATE", None),
-        ("date64", "DATE", None),
-        ("string", "STRING", None),
-        ("large_string", "STRING", None),
-        ("utf8", "STRING", None),
-        ("large_utf8", "STRING", None),
-        ("binary", "BINARY", None),
-        ("binary(128)", "BINARY", None),
-        ("large_binary", "BINARY", None),
+        ("timestamp(s)", "timestamp", None),
+        ("timestamp(ms)", "timestamp", None),
+        ("timestamp(us)", "timestamp", None),
+        ("timestamp(ns)", "timestamp", None),
+        ("date32", "date", None),
+        ("date64", "date", None),
+        ("string", "string", None),
+        ("large_string", "string", None),
+        ("utf8", "string", None),
+        ("large_utf8", "string", None),
+        ("binary", "binary", None),
+        ("binary(128)", "binary", None),
+        ("large_binary", "binary", None),
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
@@ -66,19 +68,20 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
 
 
 @pytest.mark.parametrize(
-    argnames="file_format,csv_type,expected_file_name",
+    argnames="spec_name,serde_name,expected_file_name",
     argvalues=[
-        ("csv", "lazy", "test_simple_lazy_csv.txt"),
-        ("csv", "open", "test_simple_open_csv.txt"),
-        ("json", None, "test_simple_json.txt"),
-        ("parquet", None, "test_simple_parquet.txt"),
+        ("csv", "lazy", "test_simple_lazy_csv"),
+        ("csv", "open", "test_simple_open_csv"),
+        ("json", "hive", "test_simple_hive_json"),
+        ("json", "openx", "test_simple_openx_json"),
+        ("parquet", None, "test_simple_parquet"),
     ],
 )
-def test_generate_from_meta(file_format, csv_type, expected_file_name):
+def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     md = Metadata.from_dict(
         {
             "name": "test_table",
-            "file_format": file_format,
+            "file_format": spec_name,
             "columns": [
                 {
                     "name": "my_int",
@@ -99,40 +102,32 @@ def test_generate_from_meta(file_format, csv_type, expected_file_name):
     )
 
     gc = GlueConverter()
-    if csv_type == "open":
-        gc.options.set_csv_serde("open")
+    if spec_name == "csv":
+        gc.options.set_csv_serde(serde_name)
+
+    if spec_name == "json":
+        gc.options.set_json_serde(serde_name)
 
     opts = GlueConverterOptions(
         default_db_base_path="s3://bucket/", default_db_name="test_db"
     )
-    if csv_type == "open":
-        opts.set_csv_serde("open")
 
     gc_default_opts = GlueConverter(opts)
 
-    table_path = "s3://bucket/test_table/"
-    ddl = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
-    ddl_default_opts = gc_default_opts.generate_from_meta(md)
+    table_path = "s3://bucket/test_table"
 
-    assert ddl == ddl_default_opts
+    # DO DICT TEST
+    spec = gc.generate_from_meta(
+        md,
+        database_name="test_db",
+        table_location=table_path
+    )
+    spec_default_opts = gc_default_opts.generate_from_meta(
+        md,
+    )
+    assert spec == spec_default_opts
 
-    with open(f"tests/data/glue_converter/{expected_file_name}") as f:
-        expected_ddl = "".join(f.readlines())
+    with open(f"tests/data/glue_converter/{expected_file_name}.json") as f:
+        expected_spec = json.load(f)
 
-    assert ddl == expected_ddl
-
-
-def test_start_of_ddl_templates_match():
-    opts = GlueConverterOptions()
-    t_parquet = opts.parquet_template.split("ROW FORMAT SERDE")[0]
-    t_json = opts.json_template.split("ROW FORMAT SERDE")[0]
-
-    opts.set_csv_serde("lazy")
-    t_csv_lazy = opts.csv_template.split("ROW FORMAT SERDE")[0]
-
-    opts.set_csv_serde("open")
-    t_csv_open = opts.csv_template.split("ROW FORMAT SERDE")[0]
-
-    assert t_parquet == t_json
-    assert t_parquet == t_csv_lazy
-    assert t_parquet == t_csv_open
+    assert spec == expected_spec

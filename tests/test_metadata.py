@@ -79,6 +79,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
+        [{"name": "test", "type": "bool_"}],
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
         [{"name": "test", "type": "int64"}],
@@ -164,6 +165,18 @@ def test_preservation_of_underlying_metadata():
 
     # make sure data is copied and not just a pointer
     assert id(test_dict) != id(meta._data)
+
+    test_dict["columns"] = [{"name": "new_test", "type": "bool_"}]
+    assert test_dict != meta.columns
+
+    # Assert Metadata instances are different
+    m1 = Metadata()
+    m2 = Metadata()
+
+    assert m1.columns == m2.columns
+
+    m1.columns.append({"name": "new_test", "type": "bool_"})
+    assert m1.columns != m2.columns
 
 
 def test_to_dict():
