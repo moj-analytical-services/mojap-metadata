@@ -3,7 +3,7 @@ from typing import Any
 from jsonschema.exceptions import ValidationError
 
 import pytest
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata import Metadata
 
 
 @pytest.mark.parametrize(
@@ -79,6 +79,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
+        [{"name": "test", "type": "bool_"}],
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
         [{"name": "test", "type": "int64"}],
@@ -158,10 +159,24 @@ def test_preservation_of_underlying_metadata():
         "additional-attr": "test",
     }
     meta = Metadata.from_dict(test_dict)
-    assert test_dict == meta.to_dict()
+    out_dict = meta.to_dict()
+    for k, v in test_dict.items():
+        assert out_dict[k] == v
 
     # make sure data is copied and not just a pointer
     assert id(test_dict) != id(meta._data)
+
+    test_dict["columns"] = [{"name": "new_test", "type": "bool_"}]
+    assert test_dict != meta.columns
+
+    # Assert Metadata instances are different
+    m1 = Metadata()
+    m2 = Metadata()
+
+    assert m1.columns == m2.columns
+
+    m1.columns.append({"name": "new_test", "type": "bool_"})
+    assert m1.columns != m2.columns
 
 
 def test_to_dict():
@@ -193,10 +208,7 @@ def test_create_file(tmpdir):
     assert p.read() == "content"
 
 
-@pytest.mark.parametrize(
-    argnames="writer",
-    argvalues=["json", "yaml"]
-)
+@pytest.mark.parametrize(argnames="writer", argvalues=["json", "yaml"])
 def test_to_from_json_yaml(tmpdir, writer):
     path_file = tmpdir.mkdir("test_outputs").join("meta.{writer}")
 
@@ -214,4 +226,6 @@ def test_to_from_json_yaml(tmpdir, writer):
     # test in/out reader
     getattr(meta, f"to_{writer}")(str(path_file))
     read_meta = getattr(Metadata, f"from_{writer}")(str(path_file))
-    assert read_meta.to_dict() == test_dict
+    out_dict = read_meta.to_dict()
+    for k, v in test_dict.items():
+        assert out_dict[k] == v

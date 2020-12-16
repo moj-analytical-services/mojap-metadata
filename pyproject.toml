@@ -1,10 +1,10 @@
 [tool]
 [tool.poetry]
-name = "mojap_metadta"
-version = "0.0.1"
+name = "mojap-metadata"
+version = "1.0.0"
 description = "A python package to manage metadata"
 license = "MIT"
-authors = ["MoJ Data Engineering <cant-remember-our-email>"]
+authors = ["MoJ Data Engineering <dataengineering@digital.justice.gov.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -12,16 +12,6 @@ python = "^3.7"
 jsonschema = ">=3.0.0"
 parameterized = "0.7.*"
 PyYAML = "^5"
-
-# A list of all of the optional dependencies, some of which are included in the
-# below `extras`. They can be opted into by apps.
-pandas = { version = ">=0.25.0", optional = true }
-boto3 = { version = ">=1.9.205", optional = true }
-
-[tool.poetry.extras]
-glue = ["boto3"]
-pandas = ["pandas"]
-
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

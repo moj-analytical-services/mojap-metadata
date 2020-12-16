@@ -1,8 +1,11 @@
 import json
 import yaml
 from copy import deepcopy
-
+import importlib.resources as pkg_resources
 import jsonschema
+from mojap_metadata.metadata import specs
+
+_table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 
 
 class MetadataProperty:
@@ -10,19 +13,18 @@ class MetadataProperty:
         self.name = name
 
     def __get__(self, obj, type=None) -> object:
-        return obj._data.get(self.name)
+        return obj.__dict__["_data"].get(self.name)
 
     def __set__(self, obj, value) -> None:
-        obj._data[self.name] = value
+        obj.__dict__["_data"][self.name] = value
         obj.validate()
 
 
 class Metadata:
-
     @classmethod
     def from_dict(cls, d: dict) -> object:
         m = cls()
-        m._data = deepcopy(d)
+        m._init_data_with_default_key_values(d)
         m.validate()
         return m
 
@@ -52,12 +54,12 @@ class Metadata:
         description: str = "",
         file_format: str = "",
         sensitive: bool = False,
-        columns: list = [],
-        primary_key: set = [],
-        partitions: set = []
+        columns: list = None,
+        primary_key: list = None,
+        partitions: list = None,
     ) -> None:
-        with open("mojap_metadata/metadata/specs/table_schema.json") as f:
-            self._schema = json.load(f)
+
+        self._schema = deepcopy(_table_schema)
 
         self._data = {
             "$schema": "",
@@ -65,17 +67,40 @@ class Metadata:
             "description": description,
             "file_format": file_format,
             "sensitive": sensitive,
-            "columns": columns,
-            "primary_key": primary_key,
-            "partitions": partitions,
+            "columns": columns if columns else [],
+            "primary_key": primary_key if primary_key else [],
+            "partitions": partitions if partitions else [],
         }
 
         self.validate()
 
+    def _init_data_with_default_key_values(self, data: dict):
+        """
+        Used to create the class from a dictionary
+
+        Args:
+            data (dict): [description]
+            copy_data (bool, optional): [description]. Defaults to True.
+        """
+        _data = deepcopy(data)
+        self._data = _data
+
+        defaults = {
+            "$schema": "",
+            "name": "",
+            "description": "",
+            "file_format": "",
+            "sensitive": False,
+            "columns": [],
+            "primary_key": [],
+            "partitions": [],
+        }
+
+        for k, v in defaults.items():
+            self._data[k] = _data.get(k, v)
+
     def validate(self):
-        jsonschema.validate(
-            instance=self._data, schema=self._schema
-        )
+        jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
 
