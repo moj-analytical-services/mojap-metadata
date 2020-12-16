@@ -1,0 +1,463 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "title": "Metadata",
+    "description": "MoJ Data Catalogue Metadata",
+    "required": [
+        "name",
+        "columns"
+    ],
+    "properties": {
+        "name": {
+            "type": "string",
+            "title": "The name of the table in the database"
+        },
+        "description": {
+            "type": "string",
+            "title": "A description of what this table contains"
+        },
+        "file_format": {
+            "type": "string",
+            "title": "The format the data is stored in"
+        },
+        "sensitive": {
+            "type": "boolean",
+            "title": "Specifies whether the table contains any sensitive data",
+            "default": false
+        },
+        "primary_key": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            },
+            "title": "Columns that form the primary key of the table",
+            "default": []
+        },
+        "partitions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            },
+            "title": "Columns used to partition the table",
+            "default": []
+        },
+        "columns": {
+            "type": "array",
+            "title": "The columns in the table. An array of objects",
+            "items": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "oneOf": [
+                    {
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "type"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "type_category"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "required": [
+                            "type",
+                            "type_category"
+                        ],
+                        "oneOf": [
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^null$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^u?int(8|16|32|64)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^string$|^large_string$|^utf8$|^large_utf8$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^binary(\\([0-9]+\\))?$|^large_binary$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^bool_$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^list_\\(\\w+(,[0-9]+)?\\)$|^large_list\\(\\w+\\)$"
+                                    }
+                                }
+                            },
+                            {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^map_$|^struct$|^field$|^schema$"
+                                    }
+                                }
+                            }
+                        ],
+                        "if": {
+                            "properties": {
+                                "type": {
+                                    "pattern": "^null$"
+                                }
+                            }
+                        },
+                        "then": {
+                            "properties": {
+                                "type_category": {
+                                    "enum": [
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "else": {
+                            "if": {
+                                "properties": {
+                                    "type": {
+                                        "pattern": "^u?int(8|16|32|64)$"
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "type_category": {
+                                        "enum": [
+                                            "integer"
+                                        ]
+                                    }
+                                }
+                            },
+                            "else": {
+                                "if": {
+                                    "properties": {
+                                        "type": {
+                                            "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "type_category": {
+                                            "enum": [
+                                                "float"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "else": {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "pattern": "^string$|^large_string$|^utf8$|^large_utf8$"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "properties": {
+                                            "type_category": {
+                                                "enum": [
+                                                    "string"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "else": {
+                                        "if": {
+                                            "properties": {
+                                                "type": {
+                                                    "pattern": "^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$"
+                                                }
+                                            }
+                                        },
+                                        "then": {
+                                            "properties": {
+                                                "type_category": {
+                                                    "enum": [
+                                                        "datetime"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "else": {
+                                            "if": {
+                                                "properties": {
+                                                    "type": {
+                                                        "pattern": "^binary(\\([0-9]+\\))?$|^large_binary$"
+                                                    }
+                                                }
+                                            },
+                                            "then": {
+                                                "properties": {
+                                                    "type_category": {
+                                                        "enum": [
+                                                            "binary"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "else": {
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "pattern": "^bool_$"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "properties": {
+                                                        "type_category": {
+                                                            "enum": [
+                                                                "boolean"
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "else": {
+                                                    "if": {
+                                                        "properties": {
+                                                            "type": {
+                                                                "pattern": "^list_\\(\\w+(,[0-9]+)?\\)$|^large_list\\(\\w+\\)$"
+                                                            }
+                                                        }
+                                                    },
+                                                    "then": {
+                                                        "properties": {
+                                                            "type_category": {
+                                                                "enum": [
+                                                                    "array"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "else": {
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "pattern": "^map_$|^struct$|^field$|^schema$"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "properties": {
+                                                                "type_category": {
+                                                                    "enum": [
+                                                                        "object"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "The column name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "A description of this field",
+                        "default": ""
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "The data type. Should be one of the Arrow types",
+                        "pattern": "^null$|^u?int(8|16|32|64)$|^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$|^string$|^large_string$|^utf8$|^large_utf8$|^time32\\((s|ms)\\)$|^time64\\((us|ns)\\)$|^date(32|64)$|^timestamp\\((s|ms|us|ns)\\)$|^binary(\\([0-9]+\\))?$|^large_binary$|^bool_$"
+                    },
+                    "type_category": {
+                        "type": "string",
+                        "title": "The type category. The 'type' can be inferred from this if it is not provided",
+                        "enum": [
+                            "integer",
+                            "float",
+                            "string",
+                            "datetime",
+                            "boolean",
+                            "array",
+                            "object",
+                            "null",
+                            "binary"
+                        ]
+                    },
+                    "nullable": {
+                        "type": "boolean",
+                        "title": "Specifies if column is nullable (can have missing values) or not (cannot have missing values)"
+                    },
+                    "sensitive": {
+                        "type": "boolean",
+                        "title": "Specifies if the column contains personal or special category data"
+                    },
+                    "alias": {
+                        "type": "string",
+                        "title": "If this column contains a standard ID or other linking field but has a non-standard name, the alias can provide the standard name",
+                        "examples": [
+                            "nomis_id"
+                        ]
+                    },
+                    "foreign_key": {
+                        "type": "array",
+                        "title": "The list of foreign key relationships this column has, if any",
+                        "default": [],
+                        "examples": [
+                            [
+                                {
+                                    "table": "",
+                                    "columns": []
+                                }
+                            ]
+                        ],
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "default": {},
+                                    "examples": [
+                                        {
+                                            "table": "",
+                                            "columns": []
+                                        }
+                                    ],
+                                    "required": [
+                                        "table",
+                                        "columns"
+                                    ],
+                                    "properties": {
+                                        "table": {
+                                            "type": "string",
+                                            "title": "The table name",
+                                            "default": "",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        },
+                                        "columns": {
+                                            "type": "array",
+                                            "title": "The list of column names",
+                                            "default": []
+                                        }
+                                    },
+                                    "additionalProperties": true
+                                }
+                            ]
+                        }
+                    },
+                    "unique": {
+                        "type": "boolean",
+                        "title": "Specifies if the values in the column must be unique",
+                        "default": false
+                    },
+                    "enum": {
+                        "type": "array",
+                        "title": "An array of valid values that can exist in this column. Note NULL/None is not required, please use nullable property to define if column is nullable.",
+                        "examples": [
+                            [
+                                "Y",
+                                "N"
+                            ],
+                            [
+                                0,
+                                1,
+                                2,
+                                3,
+                                4
+                            ],
+                            [
+                                "England",
+                                "Northern Ireland",
+                                "Scotland",
+                                "Wales"
+                            ]
+                        ]
+                    },
+                    "pattern": {
+                        "type": "string",
+                        "title": "regex pattern that can be used to validate data in this column"
+                    },
+                    "minimum": {
+                        "type": [
+                            "null",
+                            "number"
+                        ],
+                        "title": "The minumum value a numerical type can take",
+                        "default": null
+                    },
+                    "maximum": {
+                        "type": [
+                            "null",
+                            "number"
+                        ],
+                        "title": "The maximum value a numerical type can take",
+                        "default": null
+                    },
+                    "minLength": {
+                        "type": [
+                            "null",
+                            "number"
+                        ],
+                        "title": "The minimum length a string type can have",
+                        "default": null
+                    },
+                    "maxLength": {
+                        "type": [
+                            "null",
+                            "number"
+                        ],
+                        "title": "The maximum length a string type can have",
+                        "default": null
+                    }
+                },
+                "additionalProperties": true
+            }
+        }
+    },
+    "additionalProperties": true
+}

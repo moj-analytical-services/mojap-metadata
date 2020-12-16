@@ -1,0 +1,28 @@
+{
+    "Name": "",
+    "Description": "",
+    "Owner": "owner",
+    "Retention": 0,
+    "StorageDescriptor": {
+        "Columns": [],
+        "Location": "",
+        "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+        "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+        "Compressed": false,
+        "NumberOfBuckets": -1,
+        "SerdeInfo": {
+            "SerializationLibrary": "org.openx.data.jsonserde.JsonSerDe",
+            "Parameters": {
+                "paths": ""
+            }
+        },
+        "BucketColumns": [],
+        "SortColumns": [],
+        "StoredAsSubDirectories": false
+    },
+    "PartitionKeys": [],
+    "TableType": "EXTERNAL_TABLE",
+    "Parameters": {
+        "classification": "json"
+    }
+}
