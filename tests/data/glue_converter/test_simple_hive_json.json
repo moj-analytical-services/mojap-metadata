@@ -1,0 +1,55 @@
+{
+    "DatabaseName": "test_db",
+    "TableInput": {
+        "Name": "test_table",
+        "Description": "",
+        "Owner": "owner",
+        "Retention": 0,
+        "StorageDescriptor": {
+            "Columns": [
+                {
+                    "Name": "my_int",
+                    "Type": "bigint",
+                    "Comment": "This is an integer"
+                },
+                {
+                    "Name": "my_double",
+                    "Type": "double"
+                },
+                {
+                    "Name": "my_date",
+                    "Type": "date"
+                },
+                {
+                    "Name": "my_decimal",
+                    "Type": "decimal(10,2)"
+                }
+            ],
+            "Location": "s3://bucket/test_table",
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Compressed": false,
+            "NumberOfBuckets": -1,
+            "SerdeInfo": {
+                "SerializationLibrary": "org.apache.hive.hcatalog.data.JsonSerDe",
+                "Parameters": {
+                    "paths": "my_int,my_double,my_date,my_decimal"
+                }
+            },
+            "BucketColumns": [],
+            "SortColumns": [],
+            "StoredAsSubDirectories": false
+        },
+        "PartitionKeys": [
+            {
+                "Name": "my_timestamp",
+                "Type": "timestamp",
+                "Comment": "Partition column"
+            }
+        ],
+        "TableType": "EXTERNAL_TABLE",
+        "Parameters": {
+            "classification": "json"
+        }
+    }
+}

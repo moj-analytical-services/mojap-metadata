@@ -1,22 +1,45 @@
 import json
-from warnings import warn
-
+import yaml
+from copy import deepcopy
+import importlib.resources as pkg_resources
 import jsonschema
+from mojap_metadata.metadata import specs
+
+_table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 
 
 class MetadataProperty:
     def __set_name__(self, owner, name) -> None:
-        self.name = f"_{name}"
+        self.name = name
 
     def __get__(self, obj, type=None) -> object:
-        return getattr(obj, self.name)
+        return obj.__dict__["_data"].get(self.name)
 
     def __set__(self, obj, value) -> None:
-        setattr(obj, self.name, value)
+        obj.__dict__["_data"][self.name] = value
         obj.validate()
 
 
 class Metadata:
+    @classmethod
+    def from_dict(cls, d: dict) -> object:
+        m = cls()
+        m._init_data_with_default_key_values(d)
+        m.validate()
+        return m
+
+    @classmethod
+    def from_json(cls, filename, **kwargs) -> object:
+        with open(filename, "r") as f:
+            obj = json.load(f, **kwargs)
+            return cls.from_dict(obj)
+
+    @classmethod
+    def from_yaml(cls, filename, **kwargs) -> object:
+        with open(filename, "r") as f:
+            obj = yaml.safe_load(f, **kwargs)
+            return cls.from_dict(obj)
+
     name = MetadataProperty()
     description = MetadataProperty()
     file_format = MetadataProperty()
@@ -31,27 +54,53 @@ class Metadata:
         description: str = "",
         file_format: str = "",
         sensitive: bool = False,
-        columns: list = [],
-        primary_key: set = [],
-        partitions: set = [],
+        columns: list = None,
+        primary_key: list = None,
+        partitions: list = None,
     ) -> None:
-        self._name = name
-        self._description = description
-        self._file_format = file_format
-        self._sensitive = sensitive
-        self._columns = columns
-        self._primary_key = primary_key
-        self._partitions = partitions
 
-        with open("mojap_metadata/metadata/specs/table_schema.json") as file:
-            self._schema = json.load(file)
+        self._schema = deepcopy(_table_schema)
+
+        self._data = {
+            "$schema": "",
+            "name": name,
+            "description": description,
+            "file_format": file_format,
+            "sensitive": sensitive,
+            "columns": columns if columns else [],
+            "primary_key": primary_key if primary_key else [],
+            "partitions": partitions if partitions else [],
+        }
 
         self.validate()
 
+    def _init_data_with_default_key_values(self, data: dict):
+        """
+        Used to create the class from a dictionary
+
+        Args:
+            data (dict): [description]
+            copy_data (bool, optional): [description]. Defaults to True.
+        """
+        _data = deepcopy(data)
+        self._data = _data
+
+        defaults = {
+            "$schema": "",
+            "name": "",
+            "description": "",
+            "file_format": "",
+            "sensitive": False,
+            "columns": [],
+            "primary_key": [],
+            "partitions": [],
+        }
+
+        for k, v in defaults.items():
+            self._data[k] = _data.get(k, v)
+
     def validate(self):
-        jsonschema.validate(
-            instance=self.to_dict(include_schema=False), schema=self._schema
-        )
+        jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
 
@@ -67,50 +116,13 @@ class Metadata:
         if len(columns) != len(set(columns)):
             raise ValueError(f"'All elements of '{attribute}' must be unique")
 
-    def from_dict(self, d: dict) -> None:
-        self.name = d.get("name", "")
-        self.description = d.get("description", "")
-        self.file_format = d.get("file_format", "")
-        self.sensitive = d.get("sensitive", False)
-        self.columns = d.get("columns", [])
-        self.primary_key = d.get("primary_key", [])
-        self.partitions = d.get("parititions", [])
-        diff = set(d).difference(
-            {
-                "name",
-                "description",
-                "file_format",
-                "sensitive",
-                "columns",
-                "primary_key",
-                "partitions",
-            }
-        )
-        if diff:
-            warn(
-                f"Some properties will be ignored: {', '.join(sorted(diff))}",
-                UserWarning,
-            )
+    def to_dict(self) -> dict:
+        return deepcopy(self._data)
 
-    def to_dict(self, include_schema: bool = False) -> dict:
-        output = {
-            "name": self.name,
-            "description": self.description,
-            "file_format": self.file_format,
-            "sensitive": self.sensitive,
-            "primary_key": self.primary_key,
-            "partitions": self.partitions,
-            "columns": self.columns,
-        }
-        if include_schema:
-            output["$schema"] = self._schema
-        return output
+    def to_json(self, filepath: str, mode: str = "w", **kwargs) -> None:
+        with open(filepath, mode) as f:
+            json.dump(self.to_dict(), f, **kwargs)
 
-    def from_json(self, file, **kwargs) -> dict:
-        with open(file, "r") as f:
-            obj = json.load(f, **kwargs)
-            self.from_dict(obj)
-
-    def to_json(self, file: str, mode: str = "w", **kwargs) -> None:
-        with open(file, mode) as f:
-            json.dump(self.to_dict(), f)
+    def to_yaml(self, filepath: str, mode: str = "w", **kwargs) -> None:
+        with open(filepath, mode) as f:
+            yaml.safe_dump(self.to_dict(), f)

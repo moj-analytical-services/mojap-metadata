@@ -1,0 +1,30 @@
+{
+    "Name": "",
+    "Description": "",
+    "Owner": "owner",
+    "Retention": 0,
+    "StorageDescriptor": {
+        "Columns": [],
+        "Location": "",
+        "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+        "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+        "Compressed": false,
+        "NumberOfBuckets": -1,
+        "SerdeInfo": {
+            "SerializationLibrary": "org.apache.hadoop.hive.serde2.OpenCSVSerde",
+            "Parameters": {
+                "serialization.format": "1"
+            }
+        },
+        "BucketColumns": [],
+        "SortColumns": [],
+        "Parameters": {
+        },
+        "StoredAsSubDirectories": false
+    },
+    "PartitionKeys": [],
+    "TableType": "EXTERNAL_TABLE",
+    "Parameters": {
+        "classification": "csv"
+    }
+}
