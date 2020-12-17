@@ -1,6 +1,7 @@
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 import pyarrow as pa
+from typing import Tuple, List, Any
 
 
 def _get_pa_type(meta_type: str) -> pa.DataType:
@@ -16,21 +17,45 @@ def _get_pa_type(meta_type: str) -> pa.DataType:
     """
     is_time_type = meta_type.startswith("time")
     is_decimal_type = meta_type.startswith("decimal128")
-    if is_time_type or is_decimal_type:
+    is_binary_type = meta_type.startswith("binary")
+    if is_time_type or is_decimal_type or is_binary_type:
         attr_name, values = _extract_bracket_params(meta_type)
-        if is_decimal_type:
-            values = [int(v.strip()) for v in values]
-            pa_type = getattr(pa, attr_name)(*values)
     else:
-        pa_type = getattr(pa, meta_type)()
+        attr_name = meta_type
+        values = []
 
-    return pa_type
+    return getattr(pa, attr_name)(*values)
 
 
-def _extract_bracket_params(meta_type):
-    attr_name, value_str = meta_type.split("(", 1)
-    value_str = value_str.split(")")[0]
-    values = value_str.split(",")
+def _extract_bracket_params(meta_type: str) -> Tuple[str, List[Any]]:
+    """
+    Gets parameters from the string representation of the type
+
+    Args:
+        meta_type (str): The string name of the metadata type
+
+    Returns:
+        Tuple[str, List[Any]]: A tuple, first arg is a string of the type
+        name only and then the second value is a list of values (if any)
+        inside the brackets of the meta_type. e.g. "int64" returns ("int64", [])
+        and "decimal128(1,2)" returns ("decimal128", [1, 2])
+    """
+    is_decimal_type = meta_type.startswith("decimal128")
+    is_binary_type = meta_type.startswith("binary")
+
+    if "(" in meta_type:
+        attr_name, value_str = meta_type.split("(", 1)
+        value_str = value_str.split(")")[0]
+        values = value_str.split(",")
+        if not any([bool(v) for v in values]):
+            values = []
+
+        # cast input to int for specific types
+        if (is_decimal_type or is_binary_type) and values:
+            values = [int(v.strip()) for v in values]
+    else:
+        attr_name = meta_type
+        values = []
     return attr_name, values
 
 
@@ -38,19 +63,17 @@ class ArrowConverter(BaseConverter):
     def __init__(self):
         """
         Converts metadata objects to an Arrow Schema.
-
-        options (GlueConverterOptions, optional): See ?GlueConverterOptions
-        for more details. If not set a default GlueConverterOptions is set to
-        the options parameter.
+        Note that this converter has no options
+        (i.e. ArrowConverter().options returns None)
 
         Example:
         from mojap_metadata.converters.arrow_converter import (
             ArrowConverter,
         )
-        options = GlueConverterOptions(csv_ddl = _create_open_csv_ddl)
+
         ac = ArrowConverter()
         metadata = Metadata.from_json("my-table-metadata.json")
-        ddl = ac.generate_from_meta(metadata) # get pyArrow Schema
+        pyarrow_schema = ac.generate_from_meta(metadata) # get pyArrow Schema
         """
         super().__init__(None)
 
