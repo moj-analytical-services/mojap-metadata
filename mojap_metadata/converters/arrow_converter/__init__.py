@@ -98,6 +98,12 @@ class ArrowConverter(BaseConverter):
             if drop_partitions and (col["name"] in metadata.partitions):
                 pass
             else:
-                arrow_cols.append((col["name"], _get_pa_type(col["type"])))
+                arrow_cols.append(
+                    pa.field(
+                        col["name"],
+                        _get_pa_type(col["type"]),
+                        nullable=col.get("nullable", True)
+                    )
+                )
 
         return pa.schema(arrow_cols)

@@ -69,8 +69,9 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
                     "name": "my_int",
                     "type": "int64",
                     "description": "This is an integer",
+                    "nullable": False,
                 },
-                {"name": "my_double", "type": "float64"},
+                {"name": "my_double", "type": "float64", "nullable": True},
                 {"name": "my_date", "type": "date64"},
                 {"name": "my_decimal", "type": "decimal128(10,2)"},
                 {
@@ -93,7 +94,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     assert isinstance(schema2, pa.Schema)
 
     schema_str1 = (
-        "my_int: int64\nmy_double: double\n"
+        "my_int: int64 not null\nmy_double: double\n"
         "my_date: date64[ms]\nmy_decimal: decimal(10, 2)"
     )
     schema_str2 = schema_str1 + "\nmy_timestamp: timestamp[s]"
