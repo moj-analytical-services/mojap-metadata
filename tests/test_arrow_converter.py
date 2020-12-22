@@ -7,6 +7,7 @@ from mojap_metadata.converters.arrow_converter import (
     _extract_bracket_params,
 )
 import pyarrow as pa
+from mojap_metadata.converters import BaseConverterOptions
 
 
 @pytest.mark.parametrize(
@@ -85,7 +86,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     )
 
     ac = ArrowConverter()
-    assert ac.options is None
+    assert isinstance(ac.options, BaseConverterOptions)
 
     schema1 = ac.generate_from_meta(md)
     schema2 = ac.generate_from_meta(md, False)

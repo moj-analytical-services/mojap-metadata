@@ -22,22 +22,25 @@ def _dict_merge(dct, merge_dct):
 
 
 @dataclass
-class ConverterOptions:
+class BaseConverterOptions:
     ignore_warnings = False
 
 
 class BaseConverter:
-    def __init__(self, options: Union[ConverterOptions, Any] = None):
+    def __init__(self, options: Union[BaseConverterOptions, Any] = None):
         """
         Base class to be used as standard for parsing in an object, say DDL
         or oracle db connection and then outputting a Metadata class. Not sure
         if needed or will be too strict for generalisation.
 
-        options (ConverterOptions): A simple class that lets users set or get
+        options (BaseConverterOptions): A simple class that lets users set or get
         particular paramters. Each one will specific to the converter but each
         converter uses this standard class to access and set parameters.
         """
-        self.options = options
+        if options is None:
+            self.options = BaseConverterOptions()
+        else:
+            self.options = options
 
     def generate_to_meta(self, item, **kwargs) -> Metadata:
         """

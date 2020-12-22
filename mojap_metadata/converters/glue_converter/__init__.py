@@ -181,13 +181,11 @@ class GlueConverter(BaseConverter):
         metadata = Metadata.from_json("my-table-metadata.json")
         ddl = gc.generate_from_meta(metadata) # get Glue/Hive DDL
         """
-        super().__init__(options)
-
-        self._default_type_converter = _default_type_converter
         if options is None:
-            self.options = GlueConverterOptions()
-        else:
-            self.options = options
+            options = GlueConverterOptions()
+
+        super().__init__(options)
+        self._default_type_converter = _default_type_converter
 
     def warn_conversion(self, coltype, converted_type, is_fully_supported):
         if converted_type is None:

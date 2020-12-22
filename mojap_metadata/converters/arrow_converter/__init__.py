@@ -64,7 +64,8 @@ class ArrowConverter(BaseConverter):
         """
         Converts metadata objects to an Arrow Schema.
         Note that this converter has no options
-        (i.e. ArrowConverter().options returns None)
+        (i.e. ArrowConverter().options returns
+        the BaseCoverterOptions)
 
         Example:
         from mojap_metadata.converters.arrow_converter import (
