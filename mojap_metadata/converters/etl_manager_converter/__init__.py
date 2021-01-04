@@ -1,5 +1,5 @@
 from typing import Callable, List
-
+from copy import deepcopy
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 import warnings
@@ -54,8 +54,8 @@ _reverse_default_type_converter = {
     "datetime": ("timestamp(s)", True),
     "binary": ("binary", True),
     "boolean": ("bool_", True),
-    "struct": ("map_", False),
-    "array": ("list_", False),
+    # "struct": ("map_", False),
+    # "array": ("list_", False),
 }
 
 
@@ -119,9 +119,7 @@ class EtlManagerConverter(BaseConverter):
         return t
 
     def convert_columns(
-        self,
-        metadata: Metadata,
-        include_extra_column_params: bool = True
+        self, metadata: Metadata, include_extra_column_params: bool = True
     ) -> List[dict]:
         """Converts metadata.columns to a list of etl_manager columns
 
@@ -135,18 +133,9 @@ class EtlManagerConverter(BaseConverter):
         """
 
         etl_manager_cols = []
-        etl_manager_params = [
-            "nullable",
-            "sensitive",
-            "enum",
-            "pattern"
-        ]
+        etl_manager_params = ["nullable", "sensitive", "enum", "pattern"]
 
-        default_params = [
-            "name",
-            "type",
-            "description"
-        ]
+        default_params = ["name", "type", "description"]
 
         for c in metadata.columns:
             etl_manager_cols.append(
@@ -190,7 +179,8 @@ class EtlManagerConverter(BaseConverter):
         table_location: str = None,
         file_format_mapper: Callable = None,
         include_extra_column_params: bool = True,
-    ) -> dict:
+        glue_specific: dict = None,
+    ) -> TableMeta:
         """Generates a TableMeta object from our metadata
 
         Args:
@@ -207,6 +197,8 @@ class EtlManagerConverter(BaseConverter):
                 column parameters that may not be used by etl_manager but other
                 downstream tools that use etl_manager schemas. Set to False to only
                 convert the params that are used by etl_manager.
+            glue_specific (dict): dictionary used for specific glue parameterisation
+                used by etl_manager
         Returns:
             TableMeta: An object from the TableMeta class in etl_manager.meta
         """
@@ -227,7 +219,7 @@ class EtlManagerConverter(BaseConverter):
             description=getattr(metadata, "description", ""),
             partitions=getattr(metadata, "partitions", []),
             primary_key=getattr(metadata, "primary_key", []),
-            glue_specific={},
+            glue_specific=glue_specific,
             database=None,
         )
 
@@ -240,7 +232,7 @@ class EtlManagerConverter(BaseConverter):
             coltype ([str]): str representation of etl-manager column types
 
         Returns:
-            [type]: str representation of Metadta col type
+            [type]: str representation of Metadata col type
         """
         if coltype.startswith("decimal"):
             t, is_supported = self._reverse_default_type_converter.get("decimal")
@@ -249,19 +241,16 @@ class EtlManagerConverter(BaseConverter):
         elif coltype.startswith("binary"):
             coltype_ = coltype.split("(", 1)[0]
             t, is_supported = self._reverse_default_type_converter.get(
-                coltype_,
-                (None, None)
+                coltype_, (None, None)
             )
         elif coltype.startswith("struct") or coltype.startswith("array"):
             coltype_ = coltype.split("<", 1)[0]
             t, is_supported = self._reverse_default_type_converter.get(
-                coltype_,
-                (None, None)
+                coltype_, (None, None)
             )
         else:
             t, is_supported = self._reverse_default_type_converter.get(
-                coltype,
-                (None, None)
+                coltype, (None, None)
             )
 
         self.warn_conversion(coltype, t, is_supported)
@@ -271,7 +260,7 @@ class EtlManagerConverter(BaseConverter):
         self,
         table_meta: TableMeta,
         data_format_mapper: Callable = None,
-        col_type_mapper: Callable = None
+        col_type_mapper: Callable = None,
     ) -> Metadata:
         """Takes a TableMeta object and converts it to our Metadata object
 
@@ -292,7 +281,7 @@ class EtlManagerConverter(BaseConverter):
             TableMeta: An object from the TableMeta class in etl_manager.meta
         """
 
-        table_meta_dict = table_meta.to_dict()
+        table_meta_dict = deepcopy(table_meta.to_dict())
 
         renamed_params = {"data_format": "file_format"}
         for old_name, new_name in renamed_params.items():

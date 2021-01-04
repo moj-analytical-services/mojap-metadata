@@ -20,5 +20,5 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry config virtualenvs.create false \
-          && poetry install --extras "arrow" --no-interaction --no-ansi
+          && poetry install --extras "arrow, etl-manager" --no-interaction --no-ansi
         pytest tests/ -vv

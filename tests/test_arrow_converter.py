@@ -1,9 +1,10 @@
 import pytest
 
+from tests.helper import assert_meta_col_conversion
+
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import (
     ArrowConverter,
-    _get_pa_type,
     _extract_bracket_params,
 )
 import pyarrow as pa
@@ -47,24 +48,16 @@ from mojap_metadata.converters import BaseConverterOptions
     ],
 )
 def test_meta_to_arrow_type(meta_type, arrow_type):
-    assert _get_pa_type(meta_type) == arrow_type
+    assert_meta_col_conversion(
+        ArrowConverter, meta_type, arrow_type, expect_raises=None
+    )
 
 
-@pytest.mark.parametrize(
-    argnames="spec_name,serde_name,expected_file_name",
-    argvalues=[
-        ("csv", "lazy", "test_simple_lazy_csv"),
-        ("csv", "open", "test_simple_open_csv"),
-        ("json", "hive", "test_simple_hive_json"),
-        ("json", "openx", "test_simple_openx_json"),
-        ("parquet", None, "test_simple_parquet"),
-    ],
-)
-def test_generate_from_meta(spec_name, serde_name, expected_file_name):
+def test_generate_from_meta():
     md = Metadata.from_dict(
         {
             "name": "test_table",
-            "file_format": spec_name,
+            "file_format": "test-format",
             "columns": [
                 {
                     "name": "my_int",
