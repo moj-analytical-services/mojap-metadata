@@ -1,5 +1,5 @@
 from mojap_metadata.metadata.metadata import Metadata
-from typing import IO, Union, Any
+from typing import Union, Any
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -54,24 +54,16 @@ class BaseConverter:
         """
         raise NotImplementedError("This function has not been overwritten")
 
-    def to_json(self, filepath: Union[IO, str]):
+    def convert_col_type(self, coltype: str) -> Any:
         """
-        Should be overwritten to write Converter parameters to a json config
-        """
-        raise NotImplementedError("This function has not been overwritten")
-
-    def to_yaml(self, filepath: Union[IO, str]):
-        """
-        Should be overwritten to write Converter parameters to a yaml config
+        Should be overwritten to transform the col type (str) from the our agnostic
+        metadata types to the equivalent type for the converter
         """
         raise NotImplementedError("This function has not been overwritten")
 
-    def read_config(self, file: IO):
+    def reverse_convert_col_type(self, coltype: Any) -> str:
         """
-        Should be overwritten to read a config and parameterise itself.
-        Configs should be json or yaml. Can just use yaml to read both:
-
-        with open(file) as f:
-            converter.read_config(f)
+        Should be overwritten to transform a coltype object (Any) to our agnostic
+        metadata types
         """
         raise NotImplementedError("This function has not been overwritten")
