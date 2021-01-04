@@ -13,7 +13,7 @@ jsonschema = ">=3.0.0"
 parameterized = "0.7.*"
 PyYAML = "^5"
 pyarrow = { version = "^2.0", optional = true }
-etl_manager = { version = "^7.4", optional = true }
+etl-manager = { version = "^7.4", optional = true }
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
@@ -23,7 +23,7 @@ pytest-watch = "^4.2.0"
 
 [tool.poetry.extras]
 arrow = ["pyarrow"]
-etl-manager = ["etl_manager"] 
+etl-manager = ["etl-manager"] 
 
 [build-system]
 requires = ["poetry>=0.12"]
