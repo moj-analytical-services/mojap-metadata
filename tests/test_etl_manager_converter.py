@@ -103,7 +103,7 @@ def test_generate_from_meta():
     )
 
     expected1 = {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json", # noqa: 401
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json",  # noqa: 401
         "name": "test_table",
         "data_format": "csv",
         "location": "test_table/",
