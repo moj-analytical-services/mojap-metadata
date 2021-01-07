@@ -1,7 +1,7 @@
 import os
 import json
 
-from typing import Tuple, List, Union, Callable
+from typing import Tuple, List, Union
 
 from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import (
