@@ -340,8 +340,7 @@ class GlueConverter(BaseConverter):
 def _flatten_and_convert_complex_data_type(
     data_type: Union[dict, str], converter_fun: Callable
 ) -> str:
-    """
-    Recursive function to flattern a complex datatype in a dictionary
+    """Recursive function to flattern a complex datatype in a dictionary
     format i.e. output from (from Metadata.unpack_complex_data_type).
     And flattern it down to a string but with the converted data types.
 
@@ -360,7 +359,7 @@ def _flatten_and_convert_complex_data_type(
     else:
         fields = []
         for k, v in data_type.items():
-            if k in ["struct", "list_"]:
+            if k in ["struct", "list_", "large_list"]:
                 inner_data_type = _flatten_and_convert_complex_data_type(
                     v, converter_fun
                 )

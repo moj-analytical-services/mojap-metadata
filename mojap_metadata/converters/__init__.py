@@ -1,5 +1,5 @@
 from mojap_metadata.metadata.metadata import Metadata
-from typing import Union, Any, Callable
+from typing import Union, Any
 from collections.abc import Mapping
 from dataclasses import dataclass
 

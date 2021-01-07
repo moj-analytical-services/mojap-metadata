@@ -317,7 +317,7 @@ def test_parse_and_split(text, char, expected):
             {"list_": "decimal128(38,0)"},
         ),
         (
-            "struct<a: timestamp[s], b: struct<f1: int32, f2: string, f3: decimal128(3,5)>>",
+            "struct<a:timestamp[s], b:struct<f1:int32, f2:string, f3:decimal128(3,5)>>",
             {
                 "struct": {
                     "a": "timestamp[s]",
