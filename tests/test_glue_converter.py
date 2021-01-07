@@ -44,6 +44,29 @@ from mojap_metadata.converters.glue_converter import (
         ("binary", "binary", None),
         ("binary(128)", "binary", None),
         ("large_binary", "binary", None),
+        ("struct<num:int64>", "struct<num:bigint>", None),
+        ("list_<int64>", "array<bigint>", None),
+        ("list_<list_<int64>>", "array<array<bigint>>", None),
+        ("large_list<int64>", "array<bigint>", None),
+        ("large_list<large_list<int64>>", "array<array<bigint>>", None),
+        ("struct<num:int64, newnum:int64>", "struct<num:bigint, newnum:bigint>", None),
+        (
+            "struct<num:int64, arr:list_<int64>>",
+            "struct<num:bigint, arr:array<bigint>>",
+            None,
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            "array<struct<num:bigint, desc:string>>",
+            None,
+        ),
+        ("struct<num:int64,desc:string>", "struct<num:bigint, desc:string>", None),
+        ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
+        (
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string,f3:decimal128(3,5)>>",
+            "struct<a:timestamp, b:struct<f1:int, f2:string, f3:decimal(3,5)>>",
+            None,
+        ),
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):

@@ -1,9 +1,9 @@
 import os
 import json
 
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Callable
 
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import BaseConverter
 import warnings
 import importlib.resources as pkg_resources
@@ -45,7 +45,9 @@ _default_type_converter = {
     "large_utf8": ("string", True),
     "binary": ("binary", True),
     "large_binary": ("binary", True),
-    # Need to do MAPS / STRUCTS
+    "list_": ("array", True),
+    "large_list": ("array", True),
+    "struct": ("struct", True),
 }
 
 
@@ -201,14 +203,30 @@ class GlueConverter(BaseConverter):
             )
             warnings.warn(w)
 
-    def convert_col_type(self, coltype: str):
+    def convert_col_type(self, coltype: str) -> str:
         """Converts our metadata types to Athena/Glue versions
 
         Args:
-            coltype ([str]): str representation of our metadata column types
+            coltype (str): str representation of our metadata column types
 
         Returns:
-            [type]: str representation of athena column type version of `coltype`
+            str: String representation of athena column type version of `coltype`
+        """
+
+        data_type = _unpack_complex_data_type(coltype)
+
+        return _flatten_and_convert_complex_data_type(
+            data_type, self.convert_basic_col_type
+        )
+
+    def convert_basic_col_type(self, coltype: str) -> str:
+        """Converts our metadata types to Athena/Glue versions
+
+        Args:
+            coltype (str): str representation of our metadata column types
+
+        Returns:
+            str: String representation of athena column type version of `coltype`
         """
         if coltype.startswith("decimal128"):
             t, is_supported = self._default_type_converter.get("decimal128")
@@ -317,6 +335,41 @@ class GlueConverter(BaseConverter):
             partitions=partition_cols,
         )
         return spec
+
+
+def _flatten_and_convert_complex_data_type(
+    data_type: Union[dict, str], converter_fun: Callable
+) -> str:
+    """
+    Recursive function to flattern a complex datatype in a dictionary
+    format i.e. output from (from Metadata.unpack_complex_data_type).
+    And flattern it down to a string but with the converted data types.
+
+    Args:
+        data_type (dict): complex data type as a dictionary
+        converter_fun (Callable): standard converter function to change
+            a str data_type to the new data_type
+
+    Returns:
+        str: Complex datatype converted back into a flattened str of
+            converted datatypes
+    """
+    if isinstance(data_type, str):
+        return converter_fun(data_type)
+
+    else:
+        fields = []
+        for k, v in data_type.items():
+            if k in ["struct", "list_"]:
+                inner_data_type = _flatten_and_convert_complex_data_type(
+                    v, converter_fun
+                )
+                return f"{converter_fun(k)}<{inner_data_type}>"
+            else:
+                new_v = _flatten_and_convert_complex_data_type(v, converter_fun)
+                fields.append(f"{k}:{new_v}")
+
+        return ", ".join(fields)
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
