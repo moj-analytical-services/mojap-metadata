@@ -46,6 +46,30 @@ from etl_manager.meta import TableMeta
         ("binary", "binary", None),
         ("binary(128)", "binary", None),
         ("large_binary", "binary", None),
+        ("large_binary", "binary", None),
+        ("struct<num:int64>", "struct<num:long>", None),
+        ("list_<int64>", "array<long>", None),
+        ("list_<list_<int64>>", "array<array<long>>", None),
+        ("large_list<int64>", "array<long>", None),
+        ("large_list<large_list<int64>>", "array<array<long>>", None),
+        ("struct<num:int64, newnum:int64>", "struct<num:long, newnum:long>", None),
+        (
+            "struct<num:int64, arr:list_<int64>>",
+            "struct<num:long, arr:array<long>>",
+            None,
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            "array<struct<num:long, desc:character>>",
+            None,
+        ),
+        ("struct<num:int64,desc:string>", "struct<num:long, desc:character>", None),
+        ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
+        (
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string,f3:decimal128(3,5)>>",
+            "struct<a:datetime, b:struct<f1:int, f2:character, f3:decimal(3,5)>>",
+            None,
+        ),
     ],
 )
 def test_meta_to_etl_manager_type(meta_type, etl_type, expect_raises):
@@ -66,6 +90,27 @@ def test_meta_to_etl_manager_type(meta_type, etl_type, expect_raises):
         ("datetime", "timestamp(s)", None),
         ("binary", "binary", None),
         ("boolean", "bool_", None),
+        ("struct<num:long>", "struct<num:int64>", None),
+        ("array<long>", "list_<int64>", None),
+        ("array<array<long>>", "list_<list_<int64>>", None),
+        ("struct<num:long, newnum:long>", "struct<num:int64, newnum:int64>", None),
+        (
+            "struct<num:long, arr:array<long>>",
+            "struct<num:int64, arr:list_<int64>>",
+            None,
+        ),
+        (
+            "array<struct<num:long,desc:character>>",
+            "list_<struct<num:int64, desc:string>>",
+            None,
+        ),
+        ("struct<num:long, desc:character>", "struct<num:int64, desc:string>", None),
+        ("array<decimal(38,0)>", "list_<decimal128(38,0)>", None),
+        (
+            "struct<a:datetime, b:struct<f1:int, f2:character, f3:decimal(3,5)>>",
+            "struct<a:timestamp(s), b:struct<f1:int32, f2:string, f3:decimal128(3,5)>>",
+            None,
+        ),
     ],
 )
 def test_etl_manager_to_meta_type(etl_type, meta_type, expect_raises):
@@ -103,7 +148,7 @@ def test_generate_from_meta():
     )
 
     expected1 = {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json", # noqa: 401
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json",  # noqa: 401
         "name": "test_table",
         "data_format": "csv",
         "location": "test_table/",

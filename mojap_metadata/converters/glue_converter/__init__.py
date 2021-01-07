@@ -3,8 +3,11 @@ import json
 
 from typing import Tuple, List, Union
 
-from mojap_metadata.metadata.metadata import Metadata
-from mojap_metadata.converters import BaseConverter
+from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
+from mojap_metadata.converters import (
+    BaseConverter,
+    _flatten_and_convert_complex_data_type,
+)
 import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
@@ -45,7 +48,9 @@ _default_type_converter = {
     "large_utf8": ("string", True),
     "binary": ("binary", True),
     "large_binary": ("binary", True),
-    # Need to do MAPS / STRUCTS
+    "list_": ("array", True),
+    "large_list": ("array", True),
+    "struct": ("struct", True),
 }
 
 
@@ -201,14 +206,32 @@ class GlueConverter(BaseConverter):
             )
             warnings.warn(w)
 
-    def convert_col_type(self, coltype: str):
+    def convert_col_type(self, coltype: str) -> str:
         """Converts our metadata types to Athena/Glue versions
 
         Args:
-            coltype ([str]): str representation of our metadata column types
+            coltype (str): str representation of our metadata column types
 
         Returns:
-            [type]: str representation of athena column type version of `coltype`
+            str: String representation of athena column type version of `coltype`
+        """
+
+        data_type = _unpack_complex_data_type(coltype)
+
+        return _flatten_and_convert_complex_data_type(
+            data_type, self.convert_basic_col_type
+        )
+
+    def convert_basic_col_type(self, coltype: str) -> str:
+        """Converts our metadata types (non complex ones)
+        to etl-manager metadata. Used with the _flatten_and_convert_complex_data_type
+        and convert_col_type functions.
+
+        Args:
+            coltype (str): str representation of our metadata column types
+
+        Returns:
+            str: String representation of athena column type version of `coltype`
         """
         if coltype.startswith("decimal128"):
             t, is_supported = self._default_type_converter.get("decimal128")

@@ -1,7 +1,15 @@
-from typing import Callable, List
+from typing import Callable, List, Union
 from copy import deepcopy
-from mojap_metadata.metadata.metadata import Metadata
-from mojap_metadata.converters import BaseConverter
+from mojap_metadata.metadata.metadata import (
+    Metadata,
+    _get_first_level,
+    _parse_and_split,
+    _unpack_complex_data_type,
+)
+from mojap_metadata.converters import (
+    BaseConverter,
+    _flatten_and_convert_complex_data_type,
+)
 import warnings
 from etl_manager.meta import TableMeta
 
@@ -40,7 +48,9 @@ _default_type_converter = {
     "large_utf8": ("character", True),
     "binary": ("binary", True),
     "large_binary": ("binary", True),
-    # Need to do MAPS / STRUCTS
+    "list_": ("array", True),
+    "large_list": ("array", True),
+    "struct": ("struct", True),
 }
 
 _reverse_default_type_converter = {
@@ -54,9 +64,49 @@ _reverse_default_type_converter = {
     "datetime": ("timestamp(s)", True),
     "binary": ("binary", True),
     "boolean": ("bool_", True),
-    # "struct": ("map_", False),
-    # "array": ("list_", False),
+    "struct": ("struct", True),
+    "array": ("list_", True),
 }
+
+
+def _unpack_complex_etl_type(data_type: str) -> Union[str, dict]:
+    """Recursive function that jumps into complex
+    data types and returns complex types as a dict.
+    Non complex types are returned as a str. Similar to
+    mojap_metadata.metadata.metadata._unpack_complex_data_type
+    but uses etl type names instead of agnostic names.
+
+    Args:
+        data_type (str): Name of etl-manager data type
+
+    Returns:
+        Union[str, dict]: unpacked representation of data type as dict
+            for complex types. If datatype is not complex then original
+            data type is returned (as str).
+    """
+    d = {}
+    if data_type.startswith("struct<"):
+        d["struct"] = {}
+        next_data_type = _get_first_level(data_type)
+        for data_param in _parse_and_split(next_data_type, ","):
+            k, v = data_param.split(":", 1)
+            k = k.strip()
+            v = v.strip()
+            if v.startswith("struct<") or v.startswith("array<"):
+                d["struct"][k] = _unpack_complex_etl_type(v)
+            else:
+                d["struct"][k] = v
+        return d
+    elif data_type.startswith("array<"):
+        d["array"] = {}
+        next_data_type = _get_first_level(data_type).strip()
+        if next_data_type.startswith("struct<") or next_data_type.startswith("array<"):
+            d["array"] = _unpack_complex_etl_type(next_data_type)
+        else:
+            d["array"] = next_data_type
+        return d
+    else:
+        return data_type
 
 
 class EtlManagerConverter(BaseConverter):
@@ -96,14 +146,32 @@ class EtlManagerConverter(BaseConverter):
             )
             warnings.warn(w)
 
-    def convert_col_type(self, coltype: str):
-        """Converts our metadata types to etl-manager metadata
+    def convert_col_type(self, coltype: str) -> str:
+        """Converts our metadata types to Athena/Glue versions
+
+        Args:
+            coltype (str): str representation of our metadata column types
+
+        Returns:
+            str: String representation of athena column type version of `coltype`
+        """
+
+        data_type = _unpack_complex_data_type(coltype)
+
+        return _flatten_and_convert_complex_data_type(
+            data_type, self.convert_basic_col_type
+        )
+
+    def convert_basic_col_type(self, coltype: str):
+        """Converts our metadata types (non complex ones)
+        to etl-manager metadata. Used with the _flatten_and_convert_complex_data_type
+        and convert_col_type functions.
 
         Args:
             coltype ([str]): str representation of our metadata column types
 
         Returns:
-            [type]: str representation of etl-manager column type version of `coltype`
+            str: String representation of etl-manager column type version of `coltype`
         """
         if coltype.startswith("decimal128"):
             t, is_supported = self._default_type_converter.get("decimal128")
@@ -234,17 +302,29 @@ class EtlManagerConverter(BaseConverter):
         Returns:
             [type]: str representation of Metadata col type
         """
+        data_type = _unpack_complex_etl_type(coltype)
+
+        return _flatten_and_convert_complex_data_type(
+            data_type,
+            self.reverse_convert_basic_col_type,
+            complex_dtype_names=("array", "struct"),
+        )
+
+    def reverse_convert_basic_col_type(self, coltype: str):
+        """Converts basic etl-manager metadata col types to Metadata col types
+
+        Args:
+            coltype ([str]): str representation of etl-manager column types
+
+        Returns:
+            [type]: str representation of Metadata col type
+        """
         if coltype.startswith("decimal"):
             t, is_supported = self._reverse_default_type_converter.get("decimal")
             brackets = coltype.split("(")[1].split(")")[0]
             t = f"{t}({brackets})"
         elif coltype.startswith("binary"):
             coltype_ = coltype.split("(", 1)[0]
-            t, is_supported = self._reverse_default_type_converter.get(
-                coltype_, (None, None)
-            )
-        elif coltype.startswith("struct") or coltype.startswith("array"):
-            coltype_ = coltype.split("<", 1)[0]
             t, is_supported = self._reverse_default_type_converter.get(
                 coltype_, (None, None)
             )

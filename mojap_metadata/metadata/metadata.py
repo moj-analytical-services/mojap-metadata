@@ -5,7 +5,103 @@ import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
+from typing import Union, List
+
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
+
+
+def _parse_and_split(text: str, char: str) -> List[str]:
+    """
+    Splits a string into a list by splitting on
+    any input char that is outside of parentheses.
+    If `char` is inside parentheses then no split
+    occurs. Also strips each str in the list.
+    """
+    in_parentheses = [0, 0, 0]  # square  # round  # angular
+
+    start = -1
+    for i, s in enumerate(text):
+        if s == "[":
+            in_parentheses[0] += 1
+        elif s == "]":
+            in_parentheses[0] -= 1
+        elif s == "(":
+            in_parentheses[1] += 1
+        elif s == ")":
+            in_parentheses[1] -= 1
+        elif s == "<":
+            in_parentheses[2] += 1
+        elif s == ">":
+            in_parentheses[2] += 1
+
+        if s == char and not any([bool(p) for p in in_parentheses]):
+            yield text[start + 1 : i].strip()
+            start = i
+
+    yield text[start + 1 :].strip()
+
+
+def _get_first_level(text: str) -> str:
+    """Returns everything in first set of <>"""
+    start = 0
+    end = len(text)
+    for i, c in enumerate(text):
+        if c == "<":
+            start = i + 1
+            break
+    for i, c in enumerate(reversed(text)):
+        if c == ">":
+            end = len(text) - (i + 1)
+            break
+
+    return text[start:end]
+
+
+def _unpack_complex_data_type(data_type: str) -> Union[str, dict]:
+    """Recursive function that jumps into complex
+    data types and returns complex types as a dict.
+    Non complex types are returned as a str.
+
+    Args:
+        data_type (str): Name of agnostic data type
+
+    Returns:
+        Union[str, dict]: unpacked representation of data type as dict
+            for complex types. If datatype is not complex then original
+            data type is returned (as str).
+    """
+    d = {}
+    if data_type.startswith("struct<"):
+        d["struct"] = {}
+        next_data_type = _get_first_level(data_type)
+        for data_param in _parse_and_split(next_data_type, ","):
+            k, v = data_param.split(":", 1)
+            k = k.strip()
+            v = v.strip()
+            if (
+                v.startswith("struct<")
+                or v.startswith("list_<")
+                or v.startswith("large_list<")
+            ):
+                d["struct"][k] = _unpack_complex_data_type(v)
+            else:
+                d["struct"][k] = v
+        return d
+    elif data_type.startswith("list_<") or data_type.startswith("large_list<"):
+        k = "list_" if data_type.startswith("list_<") else "large_list"
+        d[k] = {}
+        next_data_type = _get_first_level(data_type).strip()
+        if (
+            next_data_type.startswith("struct<")
+            or next_data_type.startswith("list_<")
+            or next_data_type.startswith("large_list<")
+        ):
+            d[k] = _unpack_complex_data_type(next_data_type)
+        else:
+            d[k] = next_data_type
+        return d
+    else:
+        return data_type
 
 
 class MetadataProperty:
@@ -126,3 +222,21 @@ class Metadata:
     def to_yaml(self, filepath: str, mode: str = "w", **kwargs) -> None:
         with open(filepath, mode) as f:
             yaml.safe_dump(self.to_dict(), f)
+
+    def unpack_complex_data_type(self, data_type: str) -> Union[str, dict]:
+        """
+        Takes the coltype definition as a string and parses it.
+        If the data_type is complex (list_ or struct) then a dict
+        representation of unpacked coltypes is returned. If the
+        type is not complex then the same input `data_type` is
+        returned.
+
+        Args:
+            coltype (str): Agnostic data type
+
+        Returns:
+            Union[str, dict]: unpacked representation of data type as dict
+                for complex types. If data type is not complex then original
+                data type is returned (as str).
+        """
+        return _unpack_complex_data_type(data_type)
