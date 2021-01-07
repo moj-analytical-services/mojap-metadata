@@ -1,7 +1,26 @@
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import BaseConverter
 import pyarrow as pa
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Union, Callable
+
+
+def _convert_complex_data_type_to_pa(
+    data_type: Union[dict, str], converter_fun: Callable
+) -> Any:
+    if isinstance(data_type, str):
+        return converter_fun(data_type)
+
+    else:
+        fields = []
+        for k, v in data_type.items():
+            if k in ["struct", "list_", "large_list"]:
+                inner_data_type = _convert_complex_data_type_to_pa(v, converter_fun)
+                return getattr(pa, k)(inner_data_type)
+            else:
+                new_v = _convert_complex_data_type_to_pa(v, converter_fun)
+                fields.append((k, new_v))
+
+        return fields
 
 
 def _extract_bracket_params(meta_type: str) -> Tuple[str, List[Any]]:
@@ -56,6 +75,20 @@ class ArrowConverter(BaseConverter):
         super().__init__(None)
 
     def convert_col_type(self, coltype: str) -> pa.DataType:
+        """Converts our metadata types to arrow data type object
+
+        Args:
+            coltype (str): str representation of our metadata column types
+
+        Returns:
+            pa.DataType: Arrow data type
+        """
+
+        data_type = _unpack_complex_data_type(coltype)
+
+        return _convert_complex_data_type_to_pa(data_type, self.convert_basic_col_type)
+
+    def convert_basic_col_type(self, coltype: str) -> pa.DataType:
         """
         Returns a pyarrow type from the name
         of the type in our metadata (which is based on

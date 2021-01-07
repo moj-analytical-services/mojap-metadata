@@ -8,7 +8,7 @@ from mojap_metadata.metadata.metadata import (
 )
 from mojap_metadata.converters import (
     BaseConverter,
-    _flatten_and_convert_complex_data_type
+    _flatten_and_convert_complex_data_type,
 )
 import warnings
 from etl_manager.meta import TableMeta
@@ -69,7 +69,6 @@ _reverse_default_type_converter = {
 }
 
 
-
 def _unpack_complex_etl_type(data_type: str) -> Union[str, dict]:
     """Recursive function that jumps into complex
     data types and returns complex types as a dict.
@@ -93,10 +92,7 @@ def _unpack_complex_etl_type(data_type: str) -> Union[str, dict]:
             k, v = data_param.split(":", 1)
             k = k.strip()
             v = v.strip()
-            if (
-                v.startswith("struct<")
-                or v.startswith("array<")
-            ):
+            if v.startswith("struct<") or v.startswith("array<"):
                 d["struct"][k] = _unpack_complex_etl_type(v)
             else:
                 d["struct"][k] = v
@@ -104,10 +100,7 @@ def _unpack_complex_etl_type(data_type: str) -> Union[str, dict]:
     elif data_type.startswith("array<"):
         d["array"] = {}
         next_data_type = _get_first_level(data_type).strip()
-        if (
-            next_data_type.startswith("struct<")
-            or next_data_type.startswith("array<")
-        ):
+        if next_data_type.startswith("struct<") or next_data_type.startswith("array<"):
             d["array"] = _unpack_complex_etl_type(next_data_type)
         else:
             d["array"] = next_data_type
@@ -314,7 +307,7 @@ class EtlManagerConverter(BaseConverter):
         return _flatten_and_convert_complex_data_type(
             data_type,
             self.reverse_convert_basic_col_type,
-            complex_dtype_names=("array", "struct")
+            complex_dtype_names=("array", "struct"),
         )
 
     def reverse_convert_basic_col_type(self, coltype: str):

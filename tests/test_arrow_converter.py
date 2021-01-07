@@ -45,6 +45,46 @@ from mojap_metadata.converters import BaseConverterOptions
         ("binary", pa.binary()),
         ("binary(128)", pa.binary(128)),
         ("large_binary", pa.large_binary()),
+        ("struct<num:int64>", pa.struct([("num", pa.int64())])),
+        ("list_<int64>", pa.list_(pa.int64())),
+        ("list_<list_<int64>>", pa.list_(pa.list_(pa.int64()))),
+        ("large_list<int64>", pa.large_list(pa.int64())),
+        ("large_list<large_list<int64>>", pa.large_list(pa.large_list(pa.int64()))),
+        (
+            "struct<num:int64, newnum:int64>",
+            pa.struct([("num", pa.int64()), ("newnum", pa.int64())]),
+        ),
+        (
+            "struct<num:int64, arr:list_<int64>>",
+            pa.struct([("num", pa.int64()), ("arr", pa.list_(pa.int64()))]),
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            pa.list_(pa.struct([("num", pa.int64()), ("desc", pa.string())])),
+        ),
+        (
+            "struct<num:int64,desc:string>",
+            pa.struct([("num", pa.int64()), ("desc", pa.string())]),
+        ),
+        ("list_<decimal128(38,0)>", pa.list_(pa.decimal128(38, 0))),
+        (
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string,f3:decimal128(3,5)>>",
+            pa.struct(
+                [
+                    ("a", pa.timestamp("s")),
+                    (
+                        "b",
+                        pa.struct(
+                            [
+                                ("f1", pa.int32()),
+                                ("f2", pa.string()),
+                                ("f3", pa.decimal128(3, 5)),
+                            ]
+                        ),
+                    ),
+                ]
+            ),
+        ),
     ],
 )
 def test_meta_to_arrow_type(meta_type, arrow_type):

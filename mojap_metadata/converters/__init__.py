@@ -24,7 +24,7 @@ def _dict_merge(dct, merge_dct):
 def _flatten_and_convert_complex_data_type(
     data_type: Union[dict, str],
     converter_fun: Callable,
-    complex_dtype_names: Tuple[str] = None
+    complex_dtype_names: Tuple[str] = None,
 ) -> str:
     """Recursive function to flattern a complex datatype in a dictionary
     format i.e. output from (from Metadata.unpack_complex_data_type).
@@ -57,7 +57,9 @@ def _flatten_and_convert_complex_data_type(
                 )
                 return f"{converter_fun(k)}<{inner_data_type}>"
             else:
-                new_v = _flatten_and_convert_complex_data_type(v, converter_fun, complex_dtype_names)
+                new_v = _flatten_and_convert_complex_data_type(
+                    v, converter_fun, complex_dtype_names
+                )
                 fields.append(f"{k}:{new_v}")
 
         return ", ".join(fields)

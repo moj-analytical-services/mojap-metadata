@@ -1,3 +1,3 @@
 import pytest
 
-pytest.register_assert_rewrite('tests.helper')
+pytest.register_assert_rewrite("tests.helper")
