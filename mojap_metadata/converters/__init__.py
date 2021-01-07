@@ -1,5 +1,5 @@
 from mojap_metadata.metadata.metadata import Metadata
-from typing import Union, Any
+from typing import Union, Any, Callable, Tuple
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -19,6 +19,48 @@ def _dict_merge(dct, merge_dct):
             _dict_merge(dct[k], merge_dct[k])
         else:
             dct[k] = merge_dct[k]
+
+
+def _flatten_and_convert_complex_data_type(
+    data_type: Union[dict, str],
+    converter_fun: Callable,
+    complex_dtype_names: Tuple[str] = None
+) -> str:
+    """Recursive function to flattern a complex datatype in a dictionary
+    format i.e. output from (from Metadata.unpack_complex_data_type).
+    And flattern it down to a string but with the converted data types.
+
+    Args:
+        data_type (dict): complex data type as a dictionary
+        converter_fun (Callable): standard converter function to change
+            a str data_type to the new data_type
+        complex_dtype_names (Tuple[str]): A set of names that define a complex
+            datatype (the name given before <>). If None, defaults to
+            ("struct", "list_", "large_list") the agnostic dtype names
+
+    Returns:
+        str: Complex datatype converted back into a flattened str of
+            converted datatypes
+    """
+    if complex_dtype_names is None:
+        complex_dtype_names = ("struct", "list_", "large_list")
+
+    if isinstance(data_type, str):
+        return converter_fun(data_type)
+
+    else:
+        fields = []
+        for k, v in data_type.items():
+            if k in complex_dtype_names:
+                inner_data_type = _flatten_and_convert_complex_data_type(
+                    v, converter_fun, complex_dtype_names
+                )
+                return f"{converter_fun(k)}<{inner_data_type}>"
+            else:
+                new_v = _flatten_and_convert_complex_data_type(v, converter_fun, complex_dtype_names)
+                fields.append(f"{k}:{new_v}")
+
+        return ", ".join(fields)
 
 
 @dataclass

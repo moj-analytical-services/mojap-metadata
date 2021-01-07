@@ -4,7 +4,10 @@ import json
 from typing import Tuple, List, Union, Callable
 
 from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
-from mojap_metadata.converters import BaseConverter
+from mojap_metadata.converters import (
+    BaseConverter,
+    _flatten_and_convert_complex_data_type,
+)
 import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
@@ -220,7 +223,9 @@ class GlueConverter(BaseConverter):
         )
 
     def convert_basic_col_type(self, coltype: str) -> str:
-        """Converts our metadata types to Athena/Glue versions
+        """Converts our metadata types (non complex ones)
+        to etl-manager metadata. Used with the _flatten_and_convert_complex_data_type
+        and convert_col_type functions.
 
         Args:
             coltype (str): str representation of our metadata column types
@@ -335,40 +340,6 @@ class GlueConverter(BaseConverter):
             partitions=partition_cols,
         )
         return spec
-
-
-def _flatten_and_convert_complex_data_type(
-    data_type: Union[dict, str], converter_fun: Callable
-) -> str:
-    """Recursive function to flattern a complex datatype in a dictionary
-    format i.e. output from (from Metadata.unpack_complex_data_type).
-    And flattern it down to a string but with the converted data types.
-
-    Args:
-        data_type (dict): complex data type as a dictionary
-        converter_fun (Callable): standard converter function to change
-            a str data_type to the new data_type
-
-    Returns:
-        str: Complex datatype converted back into a flattened str of
-            converted datatypes
-    """
-    if isinstance(data_type, str):
-        return converter_fun(data_type)
-
-    else:
-        fields = []
-        for k, v in data_type.items():
-            if k in ["struct", "list_", "large_list"]:
-                inner_data_type = _flatten_and_convert_complex_data_type(
-                    v, converter_fun
-                )
-                return f"{converter_fun(k)}<{inner_data_type}>"
-            else:
-                new_v = _flatten_and_convert_complex_data_type(v, converter_fun)
-                fields.append(f"{k}:{new_v}")
-
-        return ", ".join(fields)
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
