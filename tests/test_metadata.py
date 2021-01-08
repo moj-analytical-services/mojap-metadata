@@ -65,7 +65,8 @@ def test_columns_default():
         [{"name": "test", "type": "time32"}],
         [{"name": "test", "type": "time64"}],
         [{"name": "test", "type": "timestamp"}],
-        [{"name": "test", "type_category": "datetime", "type": "timestamp"}],
+        [{"name": "test", "type_category": "timestamp", "type": "timestamp"}],
+        [{"name": "test", "type_category": "datetime", "type": "timestamp(s)"}],
     ],
 )
 def test_columns_validation_error(col_input: Any):
@@ -81,7 +82,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "integer"}],
         [{"name": "test", "type_category": "float"}],
         [{"name": "test", "type_category": "string"}],
-        [{"name": "test", "type_category": "datetime"}],
+        [{"name": "test", "type_category": "timestamp"}],
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
@@ -118,7 +119,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "integer", "type": "int8"}],
         [{"name": "test", "type_category": "float", "type": "float32"}],
         [{"name": "test", "type_category": "string", "type": "string"}],
-        [{"name": "test", "type_category": "datetime", "type": "timestamp(ms)"}],
+        [{"name": "test", "type_category": "timestamp", "type": "timestamp(ms)"}],
         [{"name": "test", "type_category": "binary", "type": "binary(128)"}],
         [{"name": "test", "type_category": "binary", "type": "binary"}],
         [{"name": "test", "type_category": "boolean", "type": "bool_"}],
