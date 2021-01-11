@@ -1,11 +1,12 @@
 import json
 import yaml
+import warnings
 from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
-from typing import Union, List
+from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 
@@ -17,7 +18,7 @@ def _parse_and_split(text: str, char: str) -> List[str]:
     If `char` is inside parentheses then no split
     occurs. Also strips each str in the list.
     """
-    in_parentheses = [0, 0, 0]  # square  # round  # angular
+    in_parentheses = [0, 0, 0]  # [square, round, angular]
 
     start = -1
     for i, s in enumerate(text):
@@ -168,6 +169,18 @@ class Metadata:
             "partitions": partitions if partitions else [],
         }
 
+        self.default_type_category_lookup = {
+            "null": "null",
+            "integer": "int64",
+            "float": "float64",
+            "string": "string",
+            "timestamp": "timestamp(s)",
+            "binary": "binary",
+            "boolean": "bool_",
+            "list": "list_<null>",
+            "struct": "struct<null>",
+        }
+
         self.validate()
 
     def _init_data_with_default_key_values(self, data: dict):
@@ -240,3 +253,51 @@ class Metadata:
                 data type is returned (as str).
         """
         return _unpack_complex_data_type(data_type)
+
+    def set_col_types_from_type_category(self, type_category_lookup: Callable = None):
+        """Set missing any type attribute for each column
+        based on the type_category attribute.
+
+        Args:
+            type_category_lookup (Callable): A function that takes
+            the type_category string and returns the type that
+            you want to be inferred from the type_category. To apply
+            a dictionary pass the dictionary get method as this arg.
+            If None applies the dictionary (self.default_type_category_lookup)
+            getter as a callable.
+        """
+
+        if type_category_lookup is None:
+            tcl = self.default_type_category_lookup.get
+            warn_complex_defaults = True
+
+        else:
+            tcl = type_category_lookup
+            warn_complex_defaults = False
+
+        for col in self.columns:
+            name = col.get("name")
+            if col.get("type") is None:
+                tc = col.get("type_category")
+                if tc is None:
+                    err_msg = (
+                        "type and type_category attributes "
+                        f"are missing from the col: {name}"
+                    )
+                    raise KeyError(err_msg)
+
+                new_type = tcl(tc)
+                if warn_complex_defaults and tc in ["struct", "list"]:
+                    warn_msg = (
+                        "For type_category of struct or list only a basic "
+                        "version is inferred i.e. struct<null> or list<null>"
+                    )
+                    warnings.warn(warn_msg)
+                print(name, tc, new_type)
+                if new_type is None:
+                    raise ValueError(
+                        f"No type returned for type_category: {tc} in col: {name}"
+                    )
+                col["type"] = new_type
+
+        self.validate()
