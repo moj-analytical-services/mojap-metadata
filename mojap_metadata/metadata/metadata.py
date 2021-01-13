@@ -159,7 +159,7 @@ class Metadata:
         self._schema = deepcopy(_table_schema)
 
         self._data = {
-            "$schema": "",
+            "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap-metadata/v1.0.0.json",  # noqa
             "name": name,
             "description": description,
             "file_format": file_format,
