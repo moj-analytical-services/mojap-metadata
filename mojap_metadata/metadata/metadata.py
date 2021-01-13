@@ -265,8 +265,8 @@ class Metadata:
             method with a lambda as this arg (e.g. lambda x: d.get(x["type_category"])).
             If None applies the dictionary (self.default_type_category_lookup) is used
             to assign types based on the column's type_category attribute. Will raise a
-            warning for "list" or "struct" type_category (this is due to these types need)
-            to be specified by the user.
+            warning for "list" or "struct" type_category (this is due to these types
+            need) to be specified by the user.
         """
 
         # Define standard getter for type category lookup
@@ -298,7 +298,7 @@ class Metadata:
 
                 if new_type is None:
                     raise ValueError(
-                        f"No type returned for type_category: {tc} in col: {name}"
+                        f"No type returned for col: {col}"
                     )
                 col["type"] = new_type
 
