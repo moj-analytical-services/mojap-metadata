@@ -1,6 +1,8 @@
 from typing import Any
 
 from jsonschema.exceptions import ValidationError
+import urllib.request
+import json
 
 import pytest
 from mojap_metadata import Metadata
@@ -9,6 +11,7 @@ from mojap_metadata.metadata.metadata import (
     _parse_and_split,
     _get_first_level,
     _unpack_complex_data_type,
+    _table_schema,
 )
 
 
@@ -208,7 +211,7 @@ def test_to_dict():
         partitions=["test"],
     )
     assert metadata.to_dict() == {
-        "$schema": "",
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
         "name": "test",
         "description": "test",
         "file_format": "test",
@@ -385,3 +388,11 @@ def test_set_col_types_from_type_category():
     for c in meta2.columns:
         default_type_cat = c["name"].replace("test_", "")
         assert c["type"] == new_dict.get(default_type_cat)
+
+
+def test_spec_matches_public_schema():
+    m = Metadata()
+    with urllib.request.urlopen(m._data["$schema"]) as url:
+        public_schema = json.loads(url.read().decode())
+
+    assert public_schema == _table_schema
