@@ -1,6 +1,8 @@
 import pytest
 import json
 
+from tests.helper import assert_meta_col_conversion
+
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
@@ -42,29 +44,33 @@ from mojap_metadata.converters.glue_converter import (
         ("binary", "binary", None),
         ("binary(128)", "binary", None),
         ("large_binary", "binary", None),
+        ("struct<num:int64>", "struct<num:bigint>", None),
+        ("list_<int64>", "array<bigint>", None),
+        ("list_<list_<int64>>", "array<array<bigint>>", None),
+        ("large_list<int64>", "array<bigint>", None),
+        ("large_list<large_list<int64>>", "array<array<bigint>>", None),
+        ("struct<num:int64, newnum:int64>", "struct<num:bigint, newnum:bigint>", None),
+        (
+            "struct<num:int64, arr:list_<int64>>",
+            "struct<num:bigint, arr:array<bigint>>",
+            None,
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            "array<struct<num:bigint, desc:string>>",
+            None,
+        ),
+        ("struct<num:int64,desc:string>", "struct<num:bigint, desc:string>", None),
+        ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
+        (
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string,f3:decimal128(3,5)>>",
+            "struct<a:timestamp, b:struct<f1:int, f2:string, f3:decimal(3,5)>>",
+            None,
+        ),
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
-    gc = GlueConverter()
-    gc_yolo = GlueConverter(GlueConverterOptions(ignore_warnings=True))
-    if expect_raises == "error":
-        with pytest.raises(ValueError):
-            gc.convert_col_type(meta_type)
-            gc_yolo.convert_col_type(meta_type)
-
-    elif expect_raises == "warning":
-        with pytest.warns(UserWarning):
-            assert gc.convert_col_type(meta_type) == glue_type
-
-        with pytest.warns(None) as record:
-            assert gc_yolo.convert_col_type(meta_type) == glue_type
-        if len(record) != 0:
-            fail_info = "Explected no warning as options.ignore_warnings = True."
-            pytest.fail(fail_info)
-
-    else:
-        assert gc.convert_col_type(meta_type) == glue_type
-        assert gc_yolo.convert_col_type(meta_type) == glue_type
+    assert_meta_col_conversion(GlueConverter, meta_type, glue_type, expect_raises)
 
 
 @pytest.mark.parametrize(
@@ -117,11 +123,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     table_path = "s3://bucket/test_table"
 
     # DO DICT TEST
-    spec = gc.generate_from_meta(
-        md,
-        database_name="test_db",
-        table_location=table_path
-    )
+    spec = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
     spec_default_opts = gc_default_opts.generate_from_meta(
         md,
     )

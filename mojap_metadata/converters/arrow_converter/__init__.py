@@ -1,30 +1,26 @@
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import BaseConverter
 import pyarrow as pa
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Union, Callable
 
 
-def _get_pa_type(meta_type: str) -> pa.DataType:
-    """Returns a pyarrow type from the name
-    of the type in our metadata (which is based on
-    arrow types)
+def _convert_complex_data_type_to_pa(
+    data_type: Union[dict, str], converter_fun: Callable
+) -> Any:
+    if isinstance(data_type, str):
+        return converter_fun(data_type)
 
-    Args:
-        meta_type (str): The metadata name for the datatype
-
-    Returns:
-        [pa.DataType]: A pyarrow datatype obj
-    """
-    is_time_type = meta_type.startswith("time")
-    is_decimal_type = meta_type.startswith("decimal128")
-    is_binary_type = meta_type.startswith("binary")
-    if is_time_type or is_decimal_type or is_binary_type:
-        attr_name, values = _extract_bracket_params(meta_type)
     else:
-        attr_name = meta_type
-        values = []
+        fields = []
+        for k, v in data_type.items():
+            if k in ["struct", "list_", "large_list"]:
+                inner_data_type = _convert_complex_data_type_to_pa(v, converter_fun)
+                return getattr(pa, k)(inner_data_type)
+            else:
+                new_v = _convert_complex_data_type_to_pa(v, converter_fun)
+                fields.append((k, new_v))
 
-    return getattr(pa, attr_name)(*values)
+        return fields
 
 
 def _extract_bracket_params(meta_type: str) -> Tuple[str, List[Any]]:
@@ -64,7 +60,8 @@ class ArrowConverter(BaseConverter):
         """
         Converts metadata objects to an Arrow Schema.
         Note that this converter has no options
-        (i.e. ArrowConverter().options returns None)
+        (i.e. ArrowConverter().options returns
+        the BaseCoverterOptions)
 
         Example:
         from mojap_metadata.converters.arrow_converter import (
@@ -76,6 +73,43 @@ class ArrowConverter(BaseConverter):
         pyarrow_schema = ac.generate_from_meta(metadata) # get pyArrow Schema
         """
         super().__init__(None)
+
+    def convert_col_type(self, coltype: str) -> pa.DataType:
+        """Converts our metadata types to arrow data type object
+
+        Args:
+            coltype (str): str representation of our metadata column types
+
+        Returns:
+            pa.DataType: Arrow data type
+        """
+
+        data_type = _unpack_complex_data_type(coltype)
+
+        return _convert_complex_data_type_to_pa(data_type, self.convert_basic_col_type)
+
+    def convert_basic_col_type(self, coltype: str) -> pa.DataType:
+        """
+        Returns a pyarrow type from the name
+        of the type in our metadata (which is based on
+        arrow types)
+
+        Args:
+            coltype ([str]): str representation of our metadata column types
+
+        Returns:
+            [pa.DataType]: The equivalent type object in pyArrow
+        """
+        is_time_type = coltype.startswith("time")
+        is_decimal_type = coltype.startswith("decimal128")
+        is_binary_type = coltype.startswith("binary")
+        if is_time_type or is_decimal_type or is_binary_type:
+            attr_name, values = _extract_bracket_params(coltype)
+        else:
+            attr_name = coltype
+            values = []
+
+        return getattr(pa, attr_name)(*values)
 
     def generate_from_meta(
         self,
@@ -101,8 +135,8 @@ class ArrowConverter(BaseConverter):
                 arrow_cols.append(
                     pa.field(
                         col["name"],
-                        _get_pa_type(col["type"]),
-                        nullable=col.get("nullable", True)
+                        self.convert_col_type(col["type"]),
+                        nullable=col.get("nullable", True),
                     )
                 )
 

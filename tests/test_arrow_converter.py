@@ -1,12 +1,14 @@
 import pytest
 
+from tests.helper import assert_meta_col_conversion
+
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import (
     ArrowConverter,
-    _get_pa_type,
     _extract_bracket_params,
 )
 import pyarrow as pa
+from mojap_metadata.converters import BaseConverterOptions
 
 
 @pytest.mark.parametrize(
@@ -43,27 +45,59 @@ import pyarrow as pa
         ("binary", pa.binary()),
         ("binary(128)", pa.binary(128)),
         ("large_binary", pa.large_binary()),
+        ("struct<num:int64>", pa.struct([("num", pa.int64())])),
+        ("list_<int64>", pa.list_(pa.int64())),
+        ("list_<list_<int64>>", pa.list_(pa.list_(pa.int64()))),
+        ("large_list<int64>", pa.large_list(pa.int64())),
+        ("large_list<large_list<int64>>", pa.large_list(pa.large_list(pa.int64()))),
+        (
+            "struct<num:int64, newnum:int64>",
+            pa.struct([("num", pa.int64()), ("newnum", pa.int64())]),
+        ),
+        (
+            "struct<num:int64, arr:list_<int64>>",
+            pa.struct([("num", pa.int64()), ("arr", pa.list_(pa.int64()))]),
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            pa.list_(pa.struct([("num", pa.int64()), ("desc", pa.string())])),
+        ),
+        (
+            "struct<num:int64,desc:string>",
+            pa.struct([("num", pa.int64()), ("desc", pa.string())]),
+        ),
+        ("list_<decimal128(38,0)>", pa.list_(pa.decimal128(38, 0))),
+        (
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string,f3:decimal128(3,5)>>",
+            pa.struct(
+                [
+                    ("a", pa.timestamp("s")),
+                    (
+                        "b",
+                        pa.struct(
+                            [
+                                ("f1", pa.int32()),
+                                ("f2", pa.string()),
+                                ("f3", pa.decimal128(3, 5)),
+                            ]
+                        ),
+                    ),
+                ]
+            ),
+        ),
     ],
 )
 def test_meta_to_arrow_type(meta_type, arrow_type):
-    assert _get_pa_type(meta_type) == arrow_type
+    assert_meta_col_conversion(
+        ArrowConverter, meta_type, arrow_type, expect_raises=None
+    )
 
 
-@pytest.mark.parametrize(
-    argnames="spec_name,serde_name,expected_file_name",
-    argvalues=[
-        ("csv", "lazy", "test_simple_lazy_csv"),
-        ("csv", "open", "test_simple_open_csv"),
-        ("json", "hive", "test_simple_hive_json"),
-        ("json", "openx", "test_simple_openx_json"),
-        ("parquet", None, "test_simple_parquet"),
-    ],
-)
-def test_generate_from_meta(spec_name, serde_name, expected_file_name):
+def test_generate_from_meta():
     md = Metadata.from_dict(
         {
             "name": "test_table",
-            "file_format": spec_name,
+            "file_format": "test-format",
             "columns": [
                 {
                     "name": "my_int",
@@ -85,7 +119,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     )
 
     ac = ArrowConverter()
-    assert ac.options is None
+    assert isinstance(ac.options, BaseConverterOptions)
 
     schema1 = ac.generate_from_meta(md)
     schema2 = ac.generate_from_meta(md, False)

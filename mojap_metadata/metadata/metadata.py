@@ -1,11 +1,108 @@
 import json
 import yaml
+import warnings
 from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
+from typing import Union, List, Callable
+
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
+
+
+def _parse_and_split(text: str, char: str) -> List[str]:
+    """
+    Splits a string into a list by splitting on
+    any input char that is outside of parentheses.
+    If `char` is inside parentheses then no split
+    occurs. Also strips each str in the list.
+    """
+    in_parentheses = [0, 0, 0]  # [square, round, angular]
+
+    start = -1
+    for i, s in enumerate(text):
+        if s == "[":
+            in_parentheses[0] += 1
+        elif s == "]":
+            in_parentheses[0] -= 1
+        elif s == "(":
+            in_parentheses[1] += 1
+        elif s == ")":
+            in_parentheses[1] -= 1
+        elif s == "<":
+            in_parentheses[2] += 1
+        elif s == ">":
+            in_parentheses[2] += 1
+
+        if s == char and not any([bool(p) for p in in_parentheses]):
+            yield text[start + 1 : i].strip()
+            start = i
+
+    yield text[start + 1 :].strip()
+
+
+def _get_first_level(text: str) -> str:
+    """Returns everything in first set of <>"""
+    start = 0
+    end = len(text)
+    for i, c in enumerate(text):
+        if c == "<":
+            start = i + 1
+            break
+    for i, c in enumerate(reversed(text)):
+        if c == ">":
+            end = len(text) - (i + 1)
+            break
+
+    return text[start:end]
+
+
+def _unpack_complex_data_type(data_type: str) -> Union[str, dict]:
+    """Recursive function that jumps into complex
+    data types and returns complex types as a dict.
+    Non complex types are returned as a str.
+
+    Args:
+        data_type (str): Name of agnostic data type
+
+    Returns:
+        Union[str, dict]: unpacked representation of data type as dict
+            for complex types. If datatype is not complex then original
+            data type is returned (as str).
+    """
+    d = {}
+    if data_type.startswith("struct<"):
+        d["struct"] = {}
+        next_data_type = _get_first_level(data_type)
+        for data_param in _parse_and_split(next_data_type, ","):
+            k, v = data_param.split(":", 1)
+            k = k.strip()
+            v = v.strip()
+            if (
+                v.startswith("struct<")
+                or v.startswith("list_<")
+                or v.startswith("large_list<")
+            ):
+                d["struct"][k] = _unpack_complex_data_type(v)
+            else:
+                d["struct"][k] = v
+        return d
+    elif data_type.startswith("list_<") or data_type.startswith("large_list<"):
+        k = "list_" if data_type.startswith("list_<") else "large_list"
+        d[k] = {}
+        next_data_type = _get_first_level(data_type).strip()
+        if (
+            next_data_type.startswith("struct<")
+            or next_data_type.startswith("list_<")
+            or next_data_type.startswith("large_list<")
+        ):
+            d[k] = _unpack_complex_data_type(next_data_type)
+        else:
+            d[k] = next_data_type
+        return d
+    else:
+        return data_type
 
 
 class MetadataProperty:
@@ -62,7 +159,7 @@ class Metadata:
         self._schema = deepcopy(_table_schema)
 
         self._data = {
-            "$schema": "",
+            "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",  # noqa
             "name": name,
             "description": description,
             "file_format": file_format,
@@ -70,6 +167,18 @@ class Metadata:
             "columns": columns if columns else [],
             "primary_key": primary_key if primary_key else [],
             "partitions": partitions if partitions else [],
+        }
+
+        self.default_type_category_lookup = {
+            "null": "null",
+            "integer": "int64",
+            "float": "float64",
+            "string": "string",
+            "timestamp": "timestamp(s)",
+            "binary": "binary",
+            "boolean": "bool_",
+            "list": "list_<null>",
+            "struct": "struct<null>",
         }
 
         self.validate()
@@ -126,3 +235,71 @@ class Metadata:
     def to_yaml(self, filepath: str, mode: str = "w", **kwargs) -> None:
         with open(filepath, mode) as f:
             yaml.safe_dump(self.to_dict(), f)
+
+    def unpack_complex_data_type(self, data_type: str) -> Union[str, dict]:
+        """
+        Takes the coltype definition as a string and parses it.
+        If the data_type is complex (list_ or struct) then a dict
+        representation of unpacked coltypes is returned. If the
+        type is not complex then the same input `data_type` is
+        returned.
+
+        Args:
+            coltype (str): Agnostic data type
+
+        Returns:
+            Union[str, dict]: unpacked representation of data type as dict
+                for complex types. If data type is not complex then original
+                data type is returned (as str).
+        """
+        return _unpack_complex_data_type(data_type)
+
+    def set_col_types_from_type_category(self, type_category_lookup: Callable = None):
+        """Set missing any type attribute for each column
+        based on the type_category attribute.
+
+        Args:
+            type_category_lookup (Callable): A function that takes
+            the col dict and returns the type based on attributes of the column
+            dict. To apply a simple dictionary lookup pass the dictionary get
+            method with a lambda as this arg (e.g. lambda x: d.get(x["type_category"])).
+            If None applies the dictionary (self.default_type_category_lookup) is used
+            to assign types based on the column's type_category attribute. Will raise a
+            warning for "list" or "struct" type_category (this is due to these types
+            need) to be specified by the user.
+        """
+
+        # Define standard getter for type category lookup
+        if type_category_lookup is None:
+
+            def type_category_lookup(col):
+                tc = col.get("type_category")
+                if tc is None:
+                    err_msg = (
+                        "type and type_category attributes "
+                        f"are missing from the col: {name}"
+                    )
+                    raise KeyError(err_msg)
+
+                if tc in ["struct", "list"]:
+                    warn_msg = (
+                        "For type_category of struct or list only a basic "
+                        "version is inferred i.e. struct<null> or list<null>"
+                    )
+                    warnings.warn(warn_msg)
+
+                return self.default_type_category_lookup.get(tc)
+
+        # Apply new types
+        for col in self.columns:
+            name = col.get("name")
+            if col.get("type") is None:
+                new_type = type_category_lookup(col)
+
+                if new_type is None:
+                    raise ValueError(
+                        f"No type returned for col: {col}"
+                    )
+                col["type"] = new_type
+
+        self.validate()

@@ -1,27 +1,42 @@
 # mojap-metadata
 
-Draft project on creating our own metadata package
+This python package allows users to read and alter our metadata schemas (using the metadata module) as well as convert our metadata schemas to other schema definitions utilised by other tools (these are defined in the converters module and are defined as Converters).
 
-This package currently has two submodules.
+
+## Installation
+
+> Make sure you are using a new version of pip (>=20.0.0)
+
+```bash
+pip install git+https://github.com/moj-analytical-services/mojap-metadata
+```
+
+To install additional dependencies that will be used by the converters (e.g. `etl-manager` and `arrow` extras)
+
+```bash
+pip install 'mojap-metadata[etl-manager,arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
+```
 
 <hr>
 
 # Metadata 
 
-Look it is one word! This module defines the generic metadata schemas that everything else is based off of. We use this generalised metadata to define our data in a centralised standard. This is basically the exact same as etl_manager.meta (but with the glue database creation and DDL creation taken out of it that bit is now in the converters section)
+This module creates a class called `Metadata` which allows you to interact with our agnostic metadata schemas. The `Metadata` class deals with parsing, manipulating and validating metadata json schemas.
 
-The `Metadata` class deals with parsing, manipulating and validating metadata configs. 
+## The Schema
+
+Our metadata schemas are used to define a table. The idea of these schemas are to define the contexts of a table with generic metadata schemas. If you want to use this schema to interact with Oracle, PyArrow or AWS Glue for example, then you can create a Converter class to take the metadata and converter it to a schema that works with that tool (or vice versa).
 
 When adding a parameter to the metadata config first thing is to look if it exists in [json-schema](https://json-schema.org/understanding-json-schema/index.html). For example `enum`, `pattern` and `type` are parameters in our column types but come from json schema naming definitions.
 
-An example of the metadata:
+An example of a basic metadata schema:
 
 ```json
 {
-    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/table/v2.0.0.json",
+    "$schema" : "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
     "name": "employees",
     "description": "table containing employee information",
-    "data_format": "parquet",
+    "file_format": "parquet",
     "columns": [
         {
             "name": "employee_id",
@@ -41,107 +56,141 @@ An example of the metadata:
             "name": "employee_dob",
             "type": "date64",
             "type_desc": "date",
-            "description": "date of birth for the employee"
+            "description": "date of birth for the employee in ISO format",
+            "pattern": "^\\d{4}-([0]\\d|1[0-2])-([0-2]\\d|3[01])$"
         }
     ]
 }
 ```
 
-## Table parameters
+### Schema Properties
 
-### name
+- **name:** String that can be whatever you want to name the table. Best to avoid spaces as most systems do not like that but it will let you do this.
 
-name can be whatever
+- **file_format:** String denoting the file format.
 
-### data_format
+- **columns:** List of objects where each object descibes a column in your table. Each column object must have at least a `name` and a (`type` or `type_description`).
 
-Type of data should be a lot looser than before can be anything.
+    - **name:** String denoting the name of the column.
+    - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with.
+    - **type_category:** These group different sets of `type` properties into a single superset. These are: `integer`, `float`, `string`, `timestamp`, `bool`, `list`, `struct`. For example we class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. It allows users to give more generic types if your data is not coming from a system or output with strict types (i.e. data exported from Excel or an unknown origin). The Metadata class has default type values for each given `type_category`. See the `default_type_category_lookup` attribute of the `Metadata` class to see said defaults. This field is required if `type` is not set.
+    - **description:** Description of the column.
+    - **enum:** List of what values that column can take. _(Same as the standardised json schema keyword)._
+    - **pattern**: Regex pattern that value has to to match (for string type_categories only). _(Same as the standardised json schema keyword)._
+    - **minLength / maxLength**: The minimum and maximum length of the string (for string type_categories only). _(Same as the standardised json schema keyword)._
+    - **minimum / maximum**: The minumum and maximum value a numerical type can take (for integer and float type_categories only).
+- **partitions**: List of what columns in your dataset are partitions.
 
-## Column Parameters
+#### Additional Schema Parameters
 
-The `columns` parameter of the metadata is an array of objects where each object can have the following parameters.
+We allow users to add addition parameters to the table schema object or any of the columns in the schema. If there are specific parameters / tags you want to add to your schema it should still pass validation (as long as the additional parameters are not the same name of ones already used in the schema).
 
-### name
+## Usage
 
-Name of the column
+```python
+from mojap_metadata import Metadata
 
+# Generate basic Metadata Table from dict
+meta1 = Metadata(name="test", columns=[{"name": "c1", "type": "int64"}, {"name": "c2", "type": "string"}])
 
-### type
+print(meta1.name) # test
+print(meta1.columns[0]) # {"name": "c1", "type": "int64"}
+print(meta1.description) # ""
 
-The allowable datatypes should allow names from this list of datatypes from [Arrows agnostic datatypes](https://arrow.apache.org/docs/python/api/datatypes.html).
+# Generate meta from dict
+d = {
+    "name": "test",
+    "columns": [
+        {"name": "c1", "type": "int64"},
+        {"name": "c2", "type": "string"}
+    ]
+}
+meta2 = Metadata.from_dict(d)
 
-### type_desc
-
-This should be an overaching superclass of the types values and a smaller group of types: `integer`, `double`, `string`, `date`, `datetime`, `boolean`, `array`, `object`. For example from the Arrow list we would class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. This type_desc would also allow us to map older metadata from `etl-manager` to this `metadata`. Users should be allowed to infer the `type` from the `type_desc` (e.g. if user just says integer will might want to class the `type` as `int64` by default. 
-
-### description
-
-Description of the column
-
-### enum
-
-What values that column can take
-
-### pattern
-
-Regex pattern that value has to to match (strings only)
-
-### minLength / maxLength
-
-The minimum and maximum length of the string (strings only)
-
-### format
-
-[A] Format of the data (string only). Needs thought can basically use as a wild card but worth considering how we use for dates/datetimes/times as most likely what this would be used for. For example if you wanted to specify an ISO date format would you use `%Y-%m-%d` or `YYYY-MM-DD`.
-
-### partitions
-
-[A] Think we should keep this as a lot of our data is partitioned and it would be useful for our metadata to describe said partitions.
-
-### minimum / maximum
-
-The minumum and maximum value a numerical type can take (integer / double only)
-
-## Other Column params for consideration 
-
-- **primary-key / foriegn-key relationships:** Is this useful (doesn't work perfectly if the metadata schemas are at table level only). You would need an ID property of the table itself to reference which other table column it matches to.
-
-- **ID parameter:** Unique ID of the table might just be useful to have this maybe in some format of a unique name like `repo/metadata/<folder>/<table_name>`. Which is essentially the file path to the table.
+# Read / write to json
+meta3 = Metadata.read_json("path/to/metadata_schema.json")
+meta3.name = "new_table"
+meta3.to_json("path/to/new_metadata_schema.json")
+```
 
 <hr>
 
 # Converters
 
+Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema. 
 
-Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). What is converted or generated can be wide ranging. An example of these can be:
+# Usage
 
-- Glue / Oracle / Postgres schemas
-- A pandas, Spark, arrow schema
+For example the `ArrowConverter` takes our schemas and converts them to a pyarrow schema:
 
-With the above we should be careful to decide what is in scope and not in scope. I think we should try to keep the converters as lightweight as possible.
+```python
+from mojap_metadata import Metadata
+from mojap_metadata.converters.arrow_converter import ArrowConverter
 
-The idea of this submodule is to add more and more converters. Converters have two base functions (see the `mojap_metadata.converters.base_converter`). One takes a thing and converts outputs the Metadata object with definitions based on said "thing". The other takes the a Metadata object and produces a "thing". I don't know if we want to be specific by the word thing as atm it is quite broad in the converters I've created as examples (worth noting how each converter is a Child of the base_converter that does nothing):
+d = {
+    "name": "test",
+    "columns": [
+        {"name": "c1", "type": "int64"},
+        {"name": "c2", "type": "string"},
+        {"name": "c3", "type": "struct<k1: string, k2:list<int64>>"}
+    ],
+    "file_format": "jsonl"
+}
+meta = Metadata.from_dict(d)
 
-- **pandas_converter:** Either infers what the metadata should be from a given dataframe or casts the columns in a dataframe to match the specified metadata. (Question it feels like this should produce a "pandas schema" for another package to do the conversion. This is a grey area where scoping could go either way - up for discussion!)
-<br>
-- **glue_converter:**: This is the other part of the etl_manager TableMeta class that I have gutted out of Metadata class here. It either takes the Glue DDL and converts it to our metadata or creates the glue DDL from our metadata. If we were to do this I'd imagine internals of etl_manager would just use the converters from here and the metadata class to then actually push the table DDLs to glue (as that _should_ be out of scope for the converters)
+ac = ArrowConverter()
+arrow_schema = ac.generate_from_meta(meta)
 
-## Glue converter (as an example of package scope)
+print(arrow_schema) # Could use this schema to read in data as arrow dataframe and cast it to the correct types
+```
 
-Takes the metadata and then generates a glue schema from the metadata. The metadata object is generalised so **restrictions on what is allowable is imposed by the Glue Converter class not the Metadata class**. This is very different to how etl-manager worked. 
+Another example is the `GlueConverter` which takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.
 
-The Glue Converter class can by default infer a lot about the transformation (like etl-manager does). However, it should allow far more flexibility in user definitions of how the Metadata maps to Glue. For example if the `Metadata.data_type` is `csv` the GlueConverter should default to a standard hive parser for CSV but you should also be able to alter the default and/or specify a custom hive parser for each table. Another example of this would be table types / table names. Users should be able to customise their Glue Converter. Converters should also be able to read/write configs as well as define their parameterisation as a config ([see base converter methods](base_converter.py)).
+```python
+import boto3
+from mojap_metadata import Metadata
+from mojap_metadata.converters.glue_converter import GlueConverter
 
-Another note on scoping is that the GlueConverter should only generate the glue schemas not interact with our infrastructure. You would expect that the etl_manager package (or its replacement) would have the ability to be given a glue table schema and then push that to the aws glue service ([this is what the boto3 glue client does](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html#Glue.Client.create_table) and what etl-manager calls under the hood). You would expect etl-manager to be able to accept our metadata schemas via the GlueConverter class. It should also accept the table schema or the output from the GlueConverter which would also be a compliant table schema for Glue. Then the additional functionality of `delete database, refresh partitions` etc would be part of etl-manager (as you wouldn't expect the GlueConverter to do that). I think keeping the scope to converters to only converting to/from our metadata and other schemas/configs will allow us to keep this package appropriately scoped (no doubt this will not be as clear cut in particular circumstances). 
+d = {
+    "name": "test",
+    "columns": [
+        {"name": "c1", "type": "int64"},
+        {"name": "c2", "type": "string"},
+        {"name": "c3", "type": "struct<k1: string, k2:list<int64>>"}
+    ],
+    "file_format": "jsonl"
+}
+meta = Metadata.from_dict(d)
 
-<hr>
+gc = ArrowConverter()
+boto_dict = gc.generate_from_meta(meta, )
+boto_dict = gc.generate_from_meta(meta, database_name="test_db", table_location="s3://bucket/test_db/test/")
 
-# Package Management
+print(boto_dict) 
 
-Converters are seperated out so that you can only install what you need. Let's say we had an Oracle converter that we integrated to this package that required the oracle_cx package. You can imagine that this might start to get unweildy the more converters we add in for postgres, mysql, pandas, etc. However, all we would do in this case is the following:
+glue_client = boto3.client("glue")
+glue_client.create_table(**boto_dict) # Would deploy glue schema based on our metadata
+```
 
-1. Make sure that additional packages are only referenced in the converter that uses them. Note in that Pandas is only imported in the `pandas_converter` and boto3 (other was stuff) is only used in the `glue_converter` module. When you install this package it won't come with pandas or boto3. It will only come with the bare packages needed to for the metadata submodule. If you want to install the extras then you specify it by using the `extras` option in your package install...
+All converter classes are sub classes of the `mojap_metadata.converters.BaseConverter`. This `BaseConverter` has no actual functionality but is a boilerplate class that ensures standardised attributes  for all added `Converters` these are:
 
-2. If you look at the `pyproject.toml` you'll see there is the option to install additional packages for your converter needs. If you needed the pandas_converter functionality you can then `pip install mojap-metadata[pandas]`. For glue `pip install mojap-metadata[glue]` or both pandas and glue `pip install mojap-metadata[glue,pandas]`.
+- **generate_from_meta:** (function) takes a Metadata object and returns whatever the converter is producing .
 
->FYI not stating we should use poetry - I just know how to create extras defintions in there.
+- **generate_to_meta:** (function) takes Any object (normally another schema for another system or package) and returns our Metadata object. (i.e. the reverse of generate_from_meta).
+
+- **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
+
+
+## Further Usage
+
+See the [mojap-aws-tools repo](https://github.com/moj-analytical-services/mojap-aws-tools-demo) which utilises the converters a lot in different tutorials.
+
+## Contributing and Design Considerations
+
+Each new converter (if not expanding on existing converters) should be added as a new submodule within the parent `converters` module. This is especially true if the new converter has additional package dependencies. By design the standard install of this package is fairly lightweight. However if you needed the `ArrowConverter` you would need to install the additional package dependencies for the arrow converter:
+
+```bash
+pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
+```
+
+This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed).

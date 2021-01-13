@@ -1,9 +1,18 @@
 from typing import Any
 
 from jsonschema.exceptions import ValidationError
+import urllib.request
+import json
 
 import pytest
 from mojap_metadata import Metadata
+
+from mojap_metadata.metadata.metadata import (
+    _parse_and_split,
+    _get_first_level,
+    _unpack_complex_data_type,
+    _table_schema,
+)
 
 
 @pytest.mark.parametrize(
@@ -59,7 +68,8 @@ def test_columns_default():
         [{"name": "test", "type": "time32"}],
         [{"name": "test", "type": "time64"}],
         [{"name": "test", "type": "timestamp"}],
-        [{"name": "test", "type_category": "datetime", "type": "timestamp"}],
+        [{"name": "test", "type_category": "timestamp", "type": "timestamp"}],
+        [{"name": "test", "type_category": "datetime", "type": "timestamp(s)"}],
     ],
 )
 def test_columns_validation_error(col_input: Any):
@@ -75,7 +85,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "integer"}],
         [{"name": "test", "type_category": "float"}],
         [{"name": "test", "type_category": "string"}],
-        [{"name": "test", "type_category": "datetime"}],
+        [{"name": "test", "type_category": "timestamp"}],
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
@@ -112,10 +122,21 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "integer", "type": "int8"}],
         [{"name": "test", "type_category": "float", "type": "float32"}],
         [{"name": "test", "type_category": "string", "type": "string"}],
-        [{"name": "test", "type_category": "datetime", "type": "timestamp(ms)"}],
+        [{"name": "test", "type_category": "timestamp", "type": "timestamp(ms)"}],
         [{"name": "test", "type_category": "binary", "type": "binary(128)"}],
         [{"name": "test", "type_category": "binary", "type": "binary"}],
         [{"name": "test", "type_category": "boolean", "type": "bool_"}],
+        [{"name": "test", "type": "struct<num:int64>"}],
+        [{"name": "test", "type": "list_<int64>"}],
+        [{"name": "test", "type": "list_<list_<int64>>"}],
+        [{"name": "test", "type": "large_list<int64>"}],
+        [{"name": "test", "type": "large_list<large_list<int64>>"}],
+        [{"name": "test", "type": "struct<num:int64,newnum:int64>"}],
+        [{"name": "test", "type": "struct<num:int64,arr:list_<int64>>"}],
+        [{"name": "test", "type": "list_<struct<num:int64,desc:string>>"}],
+        [{"name": "test", "type": "struct<num:int64,desc:string>"}],
+        [{"name": "test", "type": "list_<decimal128(38,0)>"}],
+        [{"name": "test", "type": "large_list<decimal128(38,0)>"}],
     ],
 )
 def test_columns_pass(col_input: Any):
@@ -190,7 +211,7 @@ def test_to_dict():
         partitions=["test"],
     )
     assert metadata.to_dict() == {
-        "$schema": "",
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",  # noqa
         "name": "test",
         "description": "test",
         "file_format": "test",
@@ -229,3 +250,149 @@ def test_to_from_json_yaml(tmpdir, writer):
     out_dict = read_meta.to_dict()
     for k, v in test_dict.items():
         assert out_dict[k] == v
+
+
+@pytest.mark.parametrize(
+    "t,e",
+    [
+        ("Don't grab this <Get this stuff> Don't grab this ", "Get this stuff"),
+        (
+            "struct<a: timestamp[s], b: struct<f1: int32, f2: string>>",
+            "a: timestamp[s], b: struct<f1: int32, f2: string>",
+        ),
+        ("a: timestamp[s], b: struct<f1: int32, f2: string>", "f1: int32, f2: string"),
+    ],
+)
+def test_get_first_level(t, e):
+    assert _get_first_level(t) == e
+
+
+@pytest.mark.parametrize(
+    "text,char,expected",
+    [
+        (
+            "a: timestamp[s], b: struct<f1: int32, f2: string>",
+            ",",
+            ["a: timestamp[s]", "b: struct<f1: int32, f2: string>"],
+        ),
+        (
+            'a: timestamp["s", +07:30], b: decimal128(3,5)',
+            ",",
+            ['a: timestamp["s", +07:30]', "b: decimal128(3,5)"],
+        ),
+        (
+            'a: timestamp["s", +07:30], b: decimal128(3,5)',
+            ":",
+            ["a", 'timestamp["s", +07:30], b', "decimal128(3,5)"],
+        ),
+    ],
+)
+def test_parse_and_split(text, char, expected):
+    assert list(_parse_and_split(text, char)) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type,expected",
+    [
+        ("string", "string"),
+        ("struct<num:int64>", {"struct": {"num": "int64"}}),
+        ("list_<int64>", {"list_": "int64"}),
+        ("list_<list_<int64>>", {"list_": {"list_": "int64"}}),
+        ("large_list<int64>", {"large_list": "int64"}),
+        ("large_list<large_list<int64>>", {"large_list": {"large_list": "int64"}}),
+        (
+            "struct<num:int64,newnum:int64>",
+            {"struct": {"num": "int64", "newnum": "int64"}},
+        ),
+        (
+            "struct<num:int64,arr:list_<int64>>",
+            {"struct": {"num": "int64", "arr": {"list_": "int64"}}},
+        ),
+        (
+            "list_<struct<num:int64,desc:string>>",
+            {"list_": {"struct": {"num": "int64", "desc": "string"}}},
+        ),
+        (
+            "struct<num:int64,desc:string>",
+            {"struct": {"num": "int64", "desc": "string"}},
+        ),
+        (
+            "list_<decimal128(38,0)>",
+            {"list_": "decimal128(38,0)"},
+        ),
+        (
+            "struct<a:timestamp[s], b:struct<f1:int32, f2:string, f3:decimal128(3,5)>>",
+            {
+                "struct": {
+                    "a": "timestamp[s]",
+                    "b": {
+                        "struct": {
+                            "f1": "int32",
+                            "f2": "string",
+                            "f3": "decimal128(3,5)",
+                        }
+                    },
+                }
+            },
+        ),
+    ],
+)
+def test_unpack_complex_data_type(data_type, expected):
+    meta = Metadata()
+    assert _unpack_complex_data_type(data_type) == expected
+    assert meta.unpack_complex_data_type(data_type) == expected
+
+
+def test_set_col_types_from_type_category():
+    test_dict = {
+        "name": "test",
+        "description": "test",
+        "file_format": "test",
+        "sensitive": False,
+        "columns": [
+            {"name": "test_null", "type_category": "null"},
+            {"name": "test_integer", "type_category": "integer"},
+            {"name": "test_float", "type_category": "float"},
+            {"name": "test_string", "type_category": "string"},
+            {"name": "test_timestamp", "type_category": "timestamp"},
+            {"name": "test_binary", "type_category": "binary"},
+            {"name": "test_boolean", "type_category": "boolean"},
+            {"name": "test_list", "type_category": "list"},
+            {"name": "test_struct", "type_category": "struct"},
+        ],
+    }
+    meta = Metadata.from_dict(test_dict)
+    with pytest.warns(UserWarning):
+        meta.set_col_types_from_type_category()
+
+    for c in meta.columns:
+        default_type_cat = c["name"].replace("test_", "")
+        expected_type = meta.default_type_category_lookup.get(default_type_cat)
+        assert c["type"] == expected_type
+
+    new_dict = {
+        "null": "null",
+        "integer": "uint8",
+        "float": "decimal128(2,5)",
+        "string": "large_string",
+        "timestamp": "timestamp(us)",
+        "binary": "large_binary",
+        "boolean": "bool_",
+        "list": "large_list<null>",
+        "struct": "map_<null>",
+    }
+
+    meta2 = Metadata.from_dict(test_dict)
+    meta2.set_col_types_from_type_category(lambda x: new_dict.get(x["type_category"]))
+
+    for c in meta2.columns:
+        default_type_cat = c["name"].replace("test_", "")
+        assert c["type"] == new_dict.get(default_type_cat)
+
+
+def test_spec_matches_public_schema():
+    m = Metadata()
+    with urllib.request.urlopen(m._data["$schema"]) as url:
+        public_schema = json.loads(url.read().decode())
+
+    assert public_schema == _table_schema
