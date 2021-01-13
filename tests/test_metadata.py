@@ -211,7 +211,7 @@ def test_to_dict():
         partitions=["test"],
     )
     assert metadata.to_dict() == {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",  # noqa
         "name": "test",
         "description": "test",
         "file_format": "test",
