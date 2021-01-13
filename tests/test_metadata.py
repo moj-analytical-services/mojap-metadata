@@ -380,7 +380,7 @@ def test_set_col_types_from_type_category():
     }
 
     meta2 = Metadata.from_dict(test_dict)
-    meta2.set_col_types_from_type_category(new_dict.get)
+    meta2.set_col_types_from_type_category(lambda x: new_dict.get(x["type_category"]))
 
     for c in meta2.columns:
         default_type_cat = c["name"].replace("test_", "")

@@ -260,24 +260,19 @@ class Metadata:
 
         Args:
             type_category_lookup (Callable): A function that takes
-            the type_category string and returns the type that
-            you want to be inferred from the type_category. To apply
-            a dictionary pass the dictionary get method as this arg.
-            If None applies the dictionary (self.default_type_category_lookup)
-            getter as a callable.
+            the col dict and returns the type based on attributes of the column
+            dict. To apply a simple dictionary lookup pass the dictionary get
+            method with a lambda as this arg (e.g. lambda x: d.get(x["type_category"])).
+            If None applies the dictionary (self.default_type_category_lookup) is used
+            to assign types based on the column's type_category attribute. Will raise a
+            warning for "list" or "struct" type_category (this is due to these types need)
+            to be specified by the user.
         """
 
+        # Define standard getter for type category lookup
         if type_category_lookup is None:
-            tcl = self.default_type_category_lookup.get
-            warn_complex_defaults = True
 
-        else:
-            tcl = type_category_lookup
-            warn_complex_defaults = False
-
-        for col in self.columns:
-            name = col.get("name")
-            if col.get("type") is None:
+            def type_category_lookup(col):
                 tc = col.get("type_category")
                 if tc is None:
                     err_msg = (
@@ -286,14 +281,21 @@ class Metadata:
                     )
                     raise KeyError(err_msg)
 
-                new_type = tcl(tc)
-                if warn_complex_defaults and tc in ["struct", "list"]:
+                if tc in ["struct", "list"]:
                     warn_msg = (
                         "For type_category of struct or list only a basic "
                         "version is inferred i.e. struct<null> or list<null>"
                     )
                     warnings.warn(warn_msg)
-                print(name, tc, new_type)
+
+                return self.default_type_category_lookup.get(tc)
+
+        # Apply new types
+        for col in self.columns:
+            name = col.get("name")
+            if col.get("type") is None:
+                new_type = type_category_lookup(col)
+
                 if new_type is None:
                     raise ValueError(
                         f"No type returned for type_category: {tc} in col: {name}"
