@@ -1,11 +1,12 @@
 import json
 import yaml
+import warnings
 from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
-from typing import Union, List
+from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 
@@ -17,7 +18,7 @@ def _parse_and_split(text: str, char: str) -> List[str]:
     If `char` is inside parentheses then no split
     occurs. Also strips each str in the list.
     """
-    in_parentheses = [0, 0, 0]  # square  # round  # angular
+    in_parentheses = [0, 0, 0]  # [square, round, angular]
 
     start = -1
     for i, s in enumerate(text):
@@ -168,6 +169,18 @@ class Metadata:
             "partitions": partitions if partitions else [],
         }
 
+        self.default_type_category_lookup = {
+            "null": "null",
+            "integer": "int64",
+            "float": "float64",
+            "string": "string",
+            "timestamp": "timestamp(s)",
+            "binary": "binary",
+            "boolean": "bool_",
+            "list": "list_<null>",
+            "struct": "struct<null>",
+        }
+
         self.validate()
 
     def _init_data_with_default_key_values(self, data: dict):
@@ -240,3 +253,53 @@ class Metadata:
                 data type is returned (as str).
         """
         return _unpack_complex_data_type(data_type)
+
+    def set_col_types_from_type_category(self, type_category_lookup: Callable = None):
+        """Set missing any type attribute for each column
+        based on the type_category attribute.
+
+        Args:
+            type_category_lookup (Callable): A function that takes
+            the col dict and returns the type based on attributes of the column
+            dict. To apply a simple dictionary lookup pass the dictionary get
+            method with a lambda as this arg (e.g. lambda x: d.get(x["type_category"])).
+            If None applies the dictionary (self.default_type_category_lookup) is used
+            to assign types based on the column's type_category attribute. Will raise a
+            warning for "list" or "struct" type_category (this is due to these types
+            need) to be specified by the user.
+        """
+
+        # Define standard getter for type category lookup
+        if type_category_lookup is None:
+
+            def type_category_lookup(col):
+                tc = col.get("type_category")
+                if tc is None:
+                    err_msg = (
+                        "type and type_category attributes "
+                        f"are missing from the col: {name}"
+                    )
+                    raise KeyError(err_msg)
+
+                if tc in ["struct", "list"]:
+                    warn_msg = (
+                        "For type_category of struct or list only a basic "
+                        "version is inferred i.e. struct<null> or list<null>"
+                    )
+                    warnings.warn(warn_msg)
+
+                return self.default_type_category_lookup.get(tc)
+
+        # Apply new types
+        for col in self.columns:
+            name = col.get("name")
+            if col.get("type") is None:
+                new_type = type_category_lookup(col)
+
+                if new_type is None:
+                    raise ValueError(
+                        f"No type returned for col: {col}"
+                    )
+                col["type"] = new_type
+
+        self.validate()

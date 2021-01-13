@@ -338,3 +338,50 @@ def test_unpack_complex_data_type(data_type, expected):
     meta = Metadata()
     assert _unpack_complex_data_type(data_type) == expected
     assert meta.unpack_complex_data_type(data_type) == expected
+
+
+def test_set_col_types_from_type_category():
+    test_dict = {
+        "name": "test",
+        "description": "test",
+        "file_format": "test",
+        "sensitive": False,
+        "columns": [
+            {"name": "test_null", "type_category": "null"},
+            {"name": "test_integer", "type_category": "integer"},
+            {"name": "test_float", "type_category": "float"},
+            {"name": "test_string", "type_category": "string"},
+            {"name": "test_timestamp", "type_category": "timestamp"},
+            {"name": "test_binary", "type_category": "binary"},
+            {"name": "test_boolean", "type_category": "boolean"},
+            {"name": "test_list", "type_category": "list"},
+            {"name": "test_struct", "type_category": "struct"},
+        ],
+    }
+    meta = Metadata.from_dict(test_dict)
+    with pytest.warns(UserWarning):
+        meta.set_col_types_from_type_category()
+
+    for c in meta.columns:
+        default_type_cat = c["name"].replace("test_", "")
+        expected_type = meta.default_type_category_lookup.get(default_type_cat)
+        assert c["type"] == expected_type
+
+    new_dict = {
+        "null": "null",
+        "integer": "uint8",
+        "float": "decimal128(2,5)",
+        "string": "large_string",
+        "timestamp": "timestamp(us)",
+        "binary": "large_binary",
+        "boolean": "bool_",
+        "list": "large_list<null>",
+        "struct": "map_<null>",
+    }
+
+    meta2 = Metadata.from_dict(test_dict)
+    meta2.set_col_types_from_type_category(lambda x: new_dict.get(x["type_category"]))
+
+    for c in meta2.columns:
+        default_type_cat = c["name"].replace("test_", "")
+        assert c["type"] == new_dict.get(default_type_cat)

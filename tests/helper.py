@@ -44,7 +44,7 @@ def assert_meta_col_conversion(
             assert getattr(yolo_converter, funname)(in_type) == out_type
 
         if len(record) != 0:
-            fail_info = "Explected no warning as options.ignore_warnings = True."
+            fail_info = "Expected no warning as options.ignore_warnings = True."
             pytest.fail(fail_info)
     else:
         with pytest.warns(None) as record:
