@@ -12,6 +12,7 @@ from mojap_metadata.metadata.metadata import (
     _get_first_level,
     _unpack_complex_data_type,
     _table_schema,
+    _get_type_category_pattern_dict_from_schema,
 )
 
 
@@ -140,7 +141,7 @@ def test_columns_validation_error(col_input: Any):
     ],
 )
 def test_columns_pass(col_input: Any):
-    Metadata(columns=col_input)
+    meta = Metadata(columns=col_input)
 
 
 def test_primary_key_and_partitions_attributes():
@@ -211,7 +212,7 @@ def test_to_dict():
         partitions=["test"],
     )
     assert metadata.to_dict() == {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",  # noqa
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.1.json",  # noqa
         "name": "test",
         "description": "test",
         "file_format": "test",
@@ -396,3 +397,72 @@ def test_spec_matches_public_schema():
         public_schema = json.loads(url.read().decode())
 
     assert public_schema == _table_schema
+
+
+def test_type_category_mapping():
+    expected = {
+        'null': r'^null$',
+        'integer': r'^u?int(8|16|32|64)$',
+        'float': r'^float(16|32|64)$|^decimal128\(\d+,\d+\)$',
+        'string': r'^string$|^large_string$|^utf8$|^large_utf8$',
+        'timestamp': r'^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$',  # noqa
+        'binary': r'^binary(\([0-9]+\))?$|^large_binary$',
+        'boolean': r'^bool_$',
+        'list': r'^large_list<.+>$|^list_<.+>$',
+        'struct': r'^map_<.+>$|^struct<.+>$'
+    }
+    actual = _get_type_category_pattern_dict_from_schema()
+    assert expected == actual
+
+
+@pytest.mark.parametrize(
+    argnames="col_input,expected_cat",
+    argvalues=[
+        ([{"name": "test", "type": "null"}], "null"),
+        ([{"name": "test", "type": "int8"}], "integer"),
+        ([{"name": "test", "type": "bool_"}], "boolean"),
+        ([{"name": "test", "type": "int16"}], "integer"),
+        ([{"name": "test", "type": "int32"}], "integer"),
+        ([{"name": "test", "type": "int64"}], "integer"),
+        ([{"name": "test", "type": "uint8"}], "integer"),
+        ([{"name": "test", "type": "uint16"}], "integer"),
+        ([{"name": "test", "type": "uint32"}], "integer"),
+        ([{"name": "test", "type": "uint64"}], "integer"),
+        ([{"name": "test", "type": "float16"}], "float"),
+        ([{"name": "test", "type": "float32"}], "float"),
+        ([{"name": "test", "type": "float64"}], "float"),
+        ([{"name": "test", "type": "decimal128(0,38)"}], "float"),
+        ([{"name": "test", "type": "time32(s)"}], "timestamp"),
+        ([{"name": "test", "type": "time32(ms)"}], "timestamp"),
+        ([{"name": "test", "type": "time64(us)"}], "timestamp"),
+        ([{"name": "test", "type": "time64(ns)"}], "timestamp"),
+        ([{"name": "test", "type": "timestamp(s)"}], "timestamp"),
+        ([{"name": "test", "type": "timestamp(ms)"}], "timestamp"),
+        ([{"name": "test", "type": "timestamp(us)"}], "timestamp"),
+        ([{"name": "test", "type": "timestamp(ns)"}], "timestamp"),
+        ([{"name": "test", "type": "date32"}], "timestamp"),
+        ([{"name": "test", "type": "date64"}], "timestamp"),
+        ([{"name": "test", "type": "string"}], "string"),
+        ([{"name": "test", "type": "large_string"}], "string"),
+        ([{"name": "test", "type": "utf8"}], "string"),
+        ([{"name": "test", "type": "large_utf8"}], "string"),
+        ([{"name": "test", "type": "binary"}], "binary"),
+        ([{"name": "test", "type": "binary(128)"}], "binary"),
+        ([{"name": "test", "type": "large_binary"}], "binary"),
+        ([{"name": "test", "type": "struct<num:int64>"}], "struct"),
+        ([{"name": "test", "type": "list_<int64>"}], "list"),
+        ([{"name": "test", "type": "list_<list_<int64>>"}], "list"),
+        ([{"name": "test", "type": "large_list<int64>"}], "list"),
+        ([{"name": "test", "type": "large_list<large_list<int64>>"}], "list"),
+        ([{"name": "test", "type": "struct<num:int64,newnum:int64>"}], "struct"),
+        ([{"name": "test", "type": "struct<num:int64,arr:list_<int64>>"}], "struct"),
+        ([{"name": "test", "type": "list_<struct<num:int64,desc:string>>"}], "list"),
+        ([{"name": "test", "type": "struct<num:int64,desc:string>"}], "struct"),
+        ([{"name": "test", "type": "list_<decimal128(38,0)>"}], "list"),
+        ([{"name": "test", "type": "large_list<decimal128(38,0)>"}], "list"),
+    ],
+)
+def test_set_col_type_category_from_types(col_input: Any, expected_cat: str):
+    meta = Metadata(columns=col_input)
+    meta.set_col_type_category_from_types()
+    assert meta.columns[0]["type_category"] == expected_cat

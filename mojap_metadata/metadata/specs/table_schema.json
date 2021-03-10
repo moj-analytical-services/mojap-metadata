@@ -304,19 +304,26 @@
                 }
             ]
         },
-        "struct_types": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "pattern": "^map_<.+>$|^struct<.+>$"
+        "struct_types":  {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/additional_col_properties"
                 },
-                "type_category": {
-                    "enum": [
-                        "struct"
-                    ]
+                {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "pattern": "^map_<.+>$|^struct<.+>$"
+                        },
+                        "type_category": {
+                            "enum": [
+                                "struct"
+                            ]
+                        }
+                    }
                 }
-            }
+            ]
         }
     },
     "type": "object",
