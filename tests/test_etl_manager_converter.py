@@ -4,6 +4,7 @@ import copy
 from tests.helper import assert_meta_col_conversion
 
 from mojap_metadata import Metadata
+from mojap_metadata.metadata.metadata import _schema_url
 from mojap_metadata.converters import BaseConverterOptions
 from mojap_metadata.converters.etl_manager_converter import (
     EtlManagerConverter,
@@ -227,7 +228,7 @@ def test_generate_from_meta():
 
 def test_generate_to_meta():
     expected1 = {
-        "$schema": "",
+        "$schema": _schema_url,
         "name": "test_table",
         "file_format": "csv",
         "description": "A test table",

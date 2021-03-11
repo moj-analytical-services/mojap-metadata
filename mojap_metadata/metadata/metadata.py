@@ -1,3 +1,4 @@
+import re
 import json
 import yaml
 import warnings
@@ -9,6 +10,25 @@ from mojap_metadata.metadata import specs
 from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
+_schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json"  # noqa
+
+
+def _get_type_category_pattern_dict_from_schema():
+    out = {}
+    for type_cat in _table_schema["definitions"].keys():
+        if not type_cat.endswith("types"):
+            continue
+
+        for a in _table_schema["definitions"][type_cat]["allOf"]:
+            enum = a.get("properties", {}).get("type_category", {}).get("enum")
+            patt = a.get("properties", {}).get("type", {}).get("pattern")
+
+            if enum and patt:
+                new_patt = patt.replace("\\\\", "\\")
+                out[enum[0]] = rf"{new_patt}"
+                break
+
+    return out
 
 
 def _parse_and_split(text: str, char: str) -> List[str]:
@@ -159,7 +179,7 @@ class Metadata:
         self._schema = deepcopy(_table_schema)
 
         self._data = {
-            "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",  # noqa
+            "$schema": _schema_url,
             "name": name,
             "description": description,
             "file_format": file_format,
@@ -195,7 +215,7 @@ class Metadata:
         self._data = _data
 
         defaults = {
-            "$schema": "",
+            "$schema": _schema_url,
             "name": "",
             "description": "",
             "file_format": "",
@@ -254,8 +274,22 @@ class Metadata:
         """
         return _unpack_complex_data_type(data_type)
 
+    def set_col_type_category_from_types(self):
+        """
+        Sets any missing type_category based on the type attribute of the column.
+        """
+        mapping = _get_type_category_pattern_dict_from_schema()
+
+        # Apply new types
+        for col in self.columns:
+            if "type_category" not in col and col.get("type"):
+                for type_cat, pattern in mapping.items():
+                    if re.match(pattern, col["type"]):
+                        col["type_category"] = type_cat
+                        break
+
     def set_col_types_from_type_category(self, type_category_lookup: Callable = None):
-        """Set missing any type attribute for each column
+        """Set any missing type attribute for each column
         based on the type_category attribute.
 
         Args:
