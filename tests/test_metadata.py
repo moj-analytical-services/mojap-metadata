@@ -142,7 +142,7 @@ def test_columns_validation_error(col_input: Any):
     ],
 )
 def test_columns_pass(col_input: Any):
-    meta = Metadata(columns=col_input)
+    Metadata(columns=col_input)
 
 
 def test_primary_key_and_partitions_attributes():
