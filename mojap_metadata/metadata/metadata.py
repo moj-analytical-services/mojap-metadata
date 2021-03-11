@@ -10,7 +10,7 @@ from mojap_metadata.metadata import specs
 from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
-_schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.1.json"  # noqa
+_schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json"  # noqa
 
 def _get_type_category_pattern_dict_from_schema():
     out = {}

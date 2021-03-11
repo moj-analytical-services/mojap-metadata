@@ -13,6 +13,7 @@ from mojap_metadata.metadata.metadata import (
     _unpack_complex_data_type,
     _table_schema,
     _get_type_category_pattern_dict_from_schema,
+    _schema_url
 )
 
 
@@ -212,7 +213,7 @@ def test_to_dict():
         partitions=["test"],
     )
     assert metadata.to_dict() == {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.1.json",  # noqa
+        "$schema": _schema_url,
         "name": "test",
         "description": "test",
         "file_format": "test",

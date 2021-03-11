@@ -304,7 +304,7 @@
                 }
             ]
         },
-        "struct_types":  {
+        "struct_types": {
             "allOf": [
                 {
                     "$ref": "#/definitions/additional_col_properties"
