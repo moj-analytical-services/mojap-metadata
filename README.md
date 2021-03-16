@@ -3,9 +3,9 @@
 This python package allows users to read and alter our metadata schemas (using the metadata module) as well as convert our metadata schemas to other schema definitions utilised by other tools (these are defined in the converters module and are defined as Converters).
 
 
-## Installation
+## Installation
 
-> Make sure you are using a new version of pip (>=20.0.0)
+Make sure you are using a new version of pip (>=20.0.0)
 
 ```bash
 pip install git+https://github.com/moj-analytical-services/mojap-metadata
