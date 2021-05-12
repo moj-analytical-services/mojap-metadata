@@ -1,4 +1,7 @@
-from mojap_metadata.metadata.metadata import Metadata
+from mojap_metadata.metadata.metadata import (
+    Metadata,
+    _metadata_complex_dtype_names,
+)
 from typing import Union, Any, Callable, Tuple
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -36,14 +39,15 @@ def _flatten_and_convert_complex_data_type(
             a str data_type to the new data_type
         complex_dtype_names (Tuple[str]): A set of names that define a complex
             datatype (the name given before <>). If None, defaults to
-            ("struct", "list_", "large_list") the agnostic dtype names
+            _metadata_complex_dtype_names from the metadata module
+            which are the agnostic dtype names
 
     Returns:
         str: Complex datatype converted back into a flattened str of
             converted datatypes
     """
     if complex_dtype_names is None:
-        complex_dtype_names = ("struct", "list_", "large_list")
+        complex_dtype_names = _metadata_complex_dtype_names
 
     if isinstance(data_type, str):
         return converter_fun(data_type)

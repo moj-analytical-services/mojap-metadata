@@ -18,6 +18,8 @@ from mojap_metadata.converters.glue_converter import specs
 # if glue_type is Null then we have no way to safely
 # convert it
 _default_type_converter = {
+    "null": (None, False),
+    "bool": ("boolean", True),
     "bool_": ("boolean", True),
     "int8": ("tinyint", True),
     "int16": ("smallint", True),
@@ -48,6 +50,7 @@ _default_type_converter = {
     "large_utf8": ("string", True),
     "binary": ("binary", True),
     "large_binary": ("binary", True),
+    "list": ("array", True),
     "list_": ("array", True),
     "large_list": ("array", True),
     "struct": ("struct", True),

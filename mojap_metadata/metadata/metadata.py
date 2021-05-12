@@ -12,6 +12,21 @@ from typing import Union, List, Callable
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json"  # noqa
 
+_metadata_struct_dtype_names = ("struct",)
+_metadata_struct_dtype_names_bracket = tuple(
+    [x + "<" for x in _metadata_struct_dtype_names]
+)
+_metadata_list_dtype_names = ("list", "list_", "large_list")
+_metadata_list_dtype_names_bracket = tuple(
+    [x + "<" for x in _metadata_list_dtype_names]
+)
+_metadata_complex_dtype_names = (
+    _metadata_struct_dtype_names + _metadata_list_dtype_names
+)
+_metadata_complex_dtype_names_bracket = (
+    _metadata_struct_dtype_names_bracket + _metadata_list_dtype_names_bracket
+)
+
 
 def _get_type_category_pattern_dict_from_schema():
     out = {}
@@ -92,31 +107,27 @@ def _unpack_complex_data_type(data_type: str) -> Union[str, dict]:
             data type is returned (as str).
     """
     d = {}
-    if data_type.startswith("struct<"):
+    _metadata_list_dtype_names_bracket
+    _metadata_struct_dtype_names_bracket
+    _metadata_complex_dtype_names_bracket
+
+    if data_type.startswith(_metadata_struct_dtype_names_bracket):
         d["struct"] = {}
         next_data_type = _get_first_level(data_type)
         for data_param in _parse_and_split(next_data_type, ","):
             k, v = data_param.split(":", 1)
             k = k.strip()
             v = v.strip()
-            if (
-                v.startswith("struct<")
-                or v.startswith("list_<")
-                or v.startswith("large_list<")
-            ):
+            if v.startswith(_metadata_complex_dtype_names_bracket):
                 d["struct"][k] = _unpack_complex_data_type(v)
             else:
                 d["struct"][k] = v
         return d
-    elif data_type.startswith("list_<") or data_type.startswith("large_list<"):
-        k = "list_" if data_type.startswith("list_<") else "large_list"
+    elif data_type.startswith(_metadata_list_dtype_names_bracket):
+        k = data_type.split("<", 1)[0]
         d[k] = {}
         next_data_type = _get_first_level(data_type).strip()
-        if (
-            next_data_type.startswith("struct<")
-            or next_data_type.startswith("list_<")
-            or next_data_type.startswith("large_list<")
-        ):
+        if next_data_type.startswith(_metadata_complex_dtype_names_bracket):
             d[k] = _unpack_complex_data_type(next_data_type)
         else:
             d[k] = next_data_type
@@ -331,9 +342,7 @@ class Metadata:
                 new_type = type_category_lookup(col)
 
                 if new_type is None:
-                    raise ValueError(
-                        f"No type returned for col: {col}"
-                    )
+                    raise ValueError(f"No type returned for col: {col}")
                 col["type"] = new_type
 
         self.validate()

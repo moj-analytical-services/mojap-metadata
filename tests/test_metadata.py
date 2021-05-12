@@ -91,7 +91,8 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
-        [{"name": "test", "type": "bool_"}],
+        [{"name": "test", "type": "bool"}],
+        [{"name": "test", "type": "bool_"}],  ## DEPRECATED
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
         [{"name": "test", "type": "int64"}],
@@ -127,17 +128,18 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "timestamp", "type": "timestamp(ms)"}],
         [{"name": "test", "type_category": "binary", "type": "binary(128)"}],
         [{"name": "test", "type_category": "binary", "type": "binary"}],
+        [{"name": "test", "type_category": "boolean", "type": "bool"}],
         [{"name": "test", "type_category": "boolean", "type": "bool_"}],
         [{"name": "test", "type": "struct<num:int64>"}],
-        [{"name": "test", "type": "list_<int64>"}],
-        [{"name": "test", "type": "list_<list_<int64>>"}],
+        [{"name": "test", "type": "list<int64>"}],
+        [{"name": "test", "type": "list<list_<int64>>"}],
         [{"name": "test", "type": "large_list<int64>"}],
         [{"name": "test", "type": "large_list<large_list<int64>>"}],
         [{"name": "test", "type": "struct<num:int64,newnum:int64>"}],
         [{"name": "test", "type": "struct<num:int64,arr:list_<int64>>"}],
         [{"name": "test", "type": "list_<struct<num:int64,desc:string>>"}],
         [{"name": "test", "type": "struct<num:int64,desc:string>"}],
-        [{"name": "test", "type": "list_<decimal128(38,0)>"}],
+        [{"name": "test", "type": "list<decimal128(38,0)>"}],
         [{"name": "test", "type": "large_list<decimal128(38,0)>"}],
     ],
 )
@@ -393,11 +395,15 @@ def test_set_col_types_from_type_category():
 
 
 def test_spec_matches_public_schema():
+    msg = (
+        "You will need to update the public schema here: "
+        "https://github.com/moj-analytical-services/metadata_schema/"
+    )
     m = Metadata()
     with urllib.request.urlopen(m._data["$schema"]) as url:
         public_schema = json.loads(url.read().decode())
 
-    assert public_schema == _table_schema
+    assert public_schema == _table_schema, msg
 
 
 def test_type_category_mapping():
@@ -408,8 +414,8 @@ def test_type_category_mapping():
         'string': r'^string$|^large_string$|^utf8$|^large_utf8$',
         'timestamp': r'^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$',  # noqa
         'binary': r'^binary(\([0-9]+\))?$|^large_binary$',
-        'boolean': r'^bool_$',
-        'list': r'^large_list<.+>$|^list_<.+>$',
+        'boolean': r'^bool$|^bool_$',
+        'list': r'^large_list<.+>$|^list_<.+>$|^list<.+>$',
         'struct': r'^map_<.+>$|^struct<.+>$'
     }
     actual = _get_type_category_pattern_dict_from_schema()

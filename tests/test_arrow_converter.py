@@ -1,6 +1,6 @@
 import pytest
 
-from tests.helper import assert_meta_col_conversion
+from tests.helper import assert_meta_col_conversion, valid_types
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import (
@@ -9,6 +9,21 @@ from mojap_metadata.converters.arrow_converter import (
 )
 import pyarrow as pa
 from mojap_metadata.converters import BaseConverterOptions
+
+
+@pytest.mark.parametrize(
+    argnames="meta_type",
+    argvalues=valid_types
+)
+def test_converter_accepts_type(meta_type):
+    """
+    If new type is added to tests.valid_types then it may fail this test
+
+    Args:
+        meta_type ([type]): str
+    """
+    ac = ArrowConverter()
+    _ = ac.convert_col_type(meta_type)
 
 
 @pytest.mark.parametrize(

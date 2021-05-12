@@ -273,7 +273,7 @@
                     "properties": {
                         "type": {
                             "type": "string",
-                            "pattern": "^bool_$"
+                            "pattern": "^bool$|^bool_$"
                         },
                         "type_category": {
                             "enum": [
@@ -293,7 +293,7 @@
                     "properties": {
                         "type": {
                             "type": "string",
-                            "pattern": "^large_list<.+>$|^list_<.+>$"
+                            "pattern": "^large_list<.+>$|^list_<.+>$|^list<.+>$"
                         },
                         "type_category": {
                             "enum": [

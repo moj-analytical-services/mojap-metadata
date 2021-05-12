@@ -72,7 +72,7 @@ An example of a basic metadata schema:
 - **columns:** List of objects where each object descibes a column in your table. Each column object must have at least a `name` and a (`type` or `type_description`).
 
     - **name:** String denoting the name of the column.
-    - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with.
+    - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with. _Note: In our naming convention for types we allow `bool` (which is equivalent to `bool_`) and `list` (which is equivalent to `list_`)._
     - **type_category:** These group different sets of `type` properties into a single superset. These are: `integer`, `float`, `string`, `timestamp`, `bool`, `list`, `struct`. For example we class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. It allows users to give more generic types if your data is not coming from a system or output with strict types (i.e. data exported from Excel or an unknown origin). The Metadata class has default type values for each given `type_category`. See the `default_type_category_lookup` attribute of the `Metadata` class to see said defaults. This field is required if `type` is not set.
     - **description:** Description of the column.
     - **enum:** List of what values that column can take. _(Same as the standardised json schema keyword)._

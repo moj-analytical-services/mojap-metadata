@@ -1,21 +1,41 @@
-from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
+from mojap_metadata.metadata.metadata import (
+    Metadata,
+    _unpack_complex_data_type,
+    _metadata_list_dtype_names_bracket,
+    _metadata_struct_dtype_names_bracket,
+    _metadata_complex_dtype_names_bracket,
+    _metadata_complex_dtype_names,
+)
 from mojap_metadata.converters import BaseConverter
 import pyarrow as pa
 from typing import Tuple, List, Any, Union, Callable
 
 
+def _rename_data_type_to_arrow_type(data_type: str):
+    if data_type == "bool":
+        return "bool_"
+    elif data_type == "list":
+        return "list_"
+    else:
+        return data_type
+
+
 def _convert_complex_data_type_to_pa(
     data_type: Union[dict, str], converter_fun: Callable
 ) -> Any:
+    """
+    Recursive function to unpack complex and basic datatypes.
+    """
     if isinstance(data_type, str):
         return converter_fun(data_type)
 
     else:
         fields = []
         for k, v in data_type.items():
-            if k in ["struct", "list_", "large_list"]:
+            if k in _metadata_complex_dtype_names:
                 inner_data_type = _convert_complex_data_type_to_pa(v, converter_fun)
-                return getattr(pa, k)(inner_data_type)
+                arrow_attr = _rename_data_type_to_arrow_type(k)
+                return getattr(pa, arrow_attr)(inner_data_type)
             else:
                 new_v = _convert_complex_data_type_to_pa(v, converter_fun)
                 fields.append((k, new_v))
@@ -108,6 +128,14 @@ class ArrowConverter(BaseConverter):
         else:
             attr_name = coltype
             values = []
+
+        # Allowing for types without underscores
+        if coltype == "bool":
+            attr_name = "bool_"
+        elif coltype == "list":
+            attr_name = "list_"
+        else:
+            pass
 
         return getattr(pa, attr_name)(*values)
 

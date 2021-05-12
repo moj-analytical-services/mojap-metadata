@@ -1,6 +1,53 @@
 import pytest
 from typing import Any
 
+valid_types = (
+    "null",
+    "int8",
+    "bool",
+    "bool_",  # bool_ DEPRECATED
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+    "float16",
+    "float32",
+    "float64",
+    "decimal128(1,38)",
+    "time32(s)",
+    "time32(ms)",
+    "time64(us)",
+    "time64(ns)",
+    "timestamp(s)",
+    "timestamp(ms)",
+    "timestamp(us)",
+    "timestamp(ns)",
+    "date32",
+    "date64",
+    "string",
+    "large_string",
+    "utf8",
+    "large_utf8",
+    "binary",
+    "binary(128)",
+    "large_binary",
+    "struct<num:int64>",
+    "list<int64>",
+    "list_<int64>",  # list_ DEPRECATED
+    "list<list_<int64>>",
+    "large_list<int64>",
+    "large_list<large_list<int64>>",
+    "struct<num:int64,newnum:int64>",
+    "struct<num:int64,arr:list_<int64>>",
+    "list<struct<num:int64,desc:string>>",
+    "struct<num:int64,desc:string>",
+    "list<decimal128(38,0)>",
+    "large_list<decimal128(38,0)>",
+)
+
 
 def assert_meta_col_conversion(
     converter_class: Any,
