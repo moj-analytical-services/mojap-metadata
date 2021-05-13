@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "mojap-metadata"
-version = "1.1.1"
+version = "1.2.0"
 description = "A python package to manage metadata"
 license = "MIT"
 authors = ["MoJ Data Engineering <dataengineering@digital.justice.gov.uk>"]
@@ -12,7 +12,7 @@ python = "^3.7"
 jsonschema = ">=3.0.0"
 parameterized = "0.7.*"
 PyYAML = "^5"
-pyarrow = { version = ">=2.0.0,<4.0.0", optional = true }
+pyarrow = { version = ">=2.0.0,<5.0.0", optional = true }
 etl-manager = { version = "^7.4", optional = true }
 
 [tool.poetry.dev-dependencies]

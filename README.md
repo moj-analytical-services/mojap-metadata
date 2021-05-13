@@ -113,6 +113,59 @@ meta3.name = "new_table"
 meta3.to_json("path/to/new_metadata_schema.json")
 ```
 
+## Added Class methods and properties
+
+The metadata class has some methods and properties that are not part of the schema but helps organise and manage the schema.
+
+### Column Methods
+
+The class has multiple methods to alter the columns list.
+
+- `column_names`: Get a list of column names
+- `update_column`: If column with name matches replace it otherwise add it to the end
+- `remove_column`: Remove column that matches the given name. Note if a name in the `partitions` property matches that name then it is also removed.
+
+```python
+    meta = Metadata(columns=[
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ])
+    meta.column_names # ["a", "b", "c"]
+
+    # 
+    meta.update_column({"name": "a", "type": "int64"})
+    meta.columns[0]["type"] # "int64"
+
+    meta.update_column({"name": "d", "type": "string"})
+    meta.column_names # ["a", "b", "c", "d"]
+
+    meta.remove_column("d")
+    assert meta.column_names == ["a", "b", "c"]
+```
+
+### force_partition_order Property
+
+By default this is set to None. However can be set to `"first"` or `"last"`. When set to None the Metadata Class will not trach column order relative to partitions.
+
+```python
+meta = Metadata(columns=[
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ])
+
+meta.partitions = ["b"]
+meta.column_names # ["a", "b", "c"]
+```
+
+If set to `"first"` or `"last"` then any changes to partitions will affect the column order.
+
+```python
+meta.force_partition_order = "first"
+meta.column_names # ["b", "a" ,"c"]
+```
+
 <hr>
 
 # Converters

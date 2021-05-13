@@ -1,13 +1,17 @@
+import collections
 import re
 import json
+from _pytest.python_api import raises
+from six import integer_types
 import yaml
 import warnings
 from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
+from collections import OrderedDict
 
-from typing import Union, List, Callable
+from typing import OrderedDict, Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json"  # noqa
@@ -172,9 +176,7 @@ class Metadata:
     description = MetadataProperty()
     file_format = MetadataProperty()
     sensitive = MetadataProperty()
-    columns = MetadataProperty()
     primary_key = MetadataProperty()
-    partitions = MetadataProperty()
 
     def __init__(
         self,
@@ -185,6 +187,7 @@ class Metadata:
         columns: list = None,
         primary_key: list = None,
         partitions: list = None,
+        force_partition_order: str = None,
     ) -> None:
 
         self._schema = deepcopy(_table_schema)
@@ -207,11 +210,110 @@ class Metadata:
             "string": "string",
             "timestamp": "timestamp(s)",
             "binary": "binary",
-            "boolean": "bool_",
-            "list": "list_<null>",
+            "boolean": "bool",
+            "list": "list<null>",
             "struct": "struct<null>",
         }
 
+        self.validate()
+        self.force_partition_order = force_partition_order
+
+    @property
+    def force_partition_order(self):
+        return self._force_partition_order
+
+    @force_partition_order.setter
+    def force_partition_order(self, order: str):
+        if order is not None and order not in ["first", "last"]:
+            raise ValueError(
+                "force_partition_order can only be set to None, "
+                f'"first" or "last". Given {order}'
+            )
+        else:
+            self._force_partition_order = order
+            self.reorder_cols_based_on_partition_order()
+
+    def reorder_cols_based_on_partition_order(self):
+        """
+        Reorders columns if metadata data has columns, partitions
+        and has force_partition_order set to "first" or "last".
+        """
+        if self.force_partition_order and self.partitions and self.columns:
+            non_partitions = [c for c in self.columns if c["name"] not in self.partitions]
+            partitions = [c for c in self.columns if c["name"] in self.partitions]
+
+            # Ensure partitions listed in column match partition order
+            partitions = sorted(partitions, key=lambda x: self.partitions.index(x["name"]))
+
+            # Set private property to avoild recursive calling
+            # no validation takes place as no data is added (just reordered)
+            if self.force_partition_order == "first":
+                self._data["columns"] = partitions + non_partitions
+            else:
+                self._data["columns"] = non_partitions + partitions
+        else:
+            pass
+
+    @property
+    def columns(self):
+        return self._data["columns"]
+
+    @columns.setter
+    def columns(self, columns: List[dict]):
+        self._data["columns"] = columns
+        self.validate()
+        self.reorder_cols_based_on_partition_order()
+
+    @property
+    def partitions(self):
+        return self._data["partitions"]
+
+    @partitions.setter
+    def partitions(self, partitions: List[str]):
+        self._data["partitions"] = partitions
+        self.validate()
+        self.reorder_cols_based_on_partition_order()
+
+    @property
+    def column_names(self):
+        return [c["name"] for c in self.columns]
+
+    def get_column(self, name: str):
+        """
+        Returns a column thats name matched input.
+        None is returned if no match.
+        """
+        c = None
+        for col in self.columns:
+            if col["name"] == name:
+                c = col
+                break
+        return c
+
+    def remove_column(self, name: str):
+        if name in self.column_names:
+            del self.columns[self.column_names.index(name)]
+            if name in self.partitions:
+                del self.partitions[self.partitions.index(name)]
+        else:
+            raise ValueError(f"Column: {name} not in metadata columns")
+
+    def update_column(self, column: dict):
+        """
+        Adds a column to the columns property. If the column name
+        alredy exists in in the metadata then that column is replaced.
+        If the column name does not exist it is added to the end.
+
+        Args:
+            column (dict): A dict that has the expected properties of
+                a column.
+        """
+        name = column["name"]
+        if name in self.column_names:
+            i = self.column_names.index(name)
+            self.columns[i] = column
+        else:
+            self.columns.append(column)
         self.validate()
 
     def _init_data_with_default_key_values(self, data: dict):

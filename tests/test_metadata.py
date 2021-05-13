@@ -1,4 +1,5 @@
 from typing import Any
+from attr import validate
 
 from jsonschema.exceptions import ValidationError
 import urllib.request
@@ -473,3 +474,67 @@ def test_set_col_type_category_from_types(col_input: Any, expected_cat: str):
     meta = Metadata(columns=col_input)
     meta.set_col_type_category_from_types()
     assert meta.columns[0]["type_category"] == expected_cat
+
+
+def test_basic_column_functions():
+    meta = Metadata(columns=[
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ])
+    assert meta.column_names == ["a", "b", "c"]
+
+    meta.update_column({"name": "a", "type": "int64"})
+    assert meta.columns[0]["type"] == "int64"
+
+    meta.update_column({"name": "d", "type": "string"})
+    assert meta.column_names == ["a", "b", "c", "d"]
+
+    meta.remove_column("d")
+    assert meta.column_names == ["a", "b", "c"]
+
+    with pytest.raises(ValidationError):
+        meta.update_column({"name": "d", "type": "error"})
+
+    with pytest.raises(ValueError):
+        meta.remove_column("e")
+
+
+def test_column_and_partition_functionality():
+    meta = Metadata()
+    assert meta.columns == []
+
+    cols = [
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ]
+
+    meta.columns = cols
+    assert meta.column_names == ["a", "b", "c"]
+
+    assert meta.partitions == []
+    assert meta.force_partition_order is None
+
+    # force_partition_order is None so no change to order
+    meta.partitions = ["b"]
+    assert meta.column_names == ["a", "b", "c"]
+
+    meta.force_partition_order = "first"
+    meta.partitions = ["c", "b"]
+    assert meta.column_names == ["c", "b", "a"]
+
+    meta.force_partition_order = "last"
+    assert meta.column_names == ["a", "c", "b"]
+
+    meta.remove_column("c")
+    assert meta.partitions == ["b"]
+
+    with pytest.raises(ValueError):
+        meta.force_partition_order = "error"
+
+    with pytest.raises(ValueError):
+        meta.partitions = ["c", "d"]
+
+    with pytest.raises(ValueError):
+        meta.columns = [{"name": "a", "type": "int8"}]
