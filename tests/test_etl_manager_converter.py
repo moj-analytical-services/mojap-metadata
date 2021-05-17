@@ -1,22 +1,40 @@
 import pytest
 import copy
 
-from tests.helper import assert_meta_col_conversion
+from tests.helper import assert_meta_col_conversion, valid_types
 
 from mojap_metadata import Metadata
 from mojap_metadata.metadata.metadata import _schema_url
 from mojap_metadata.converters import BaseConverterOptions
 from mojap_metadata.converters.etl_manager_converter import (
     EtlManagerConverter,
+    _default_type_converter,
 )
 
 from etl_manager.meta import TableMeta
+
+
+@pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
+def test_converter_accepts_type(meta_type):
+    """
+    If new type is added to tests.valid_types then it may fail this test
+
+    Args:
+        meta_type ([type]): str
+    """
+    emc = EtlManagerConverter()
+    emc.options.ignore_warnings = True
+    unsupported_types = [k for k, v in _default_type_converter.items() if v[0] is None]
+    unsupported_types = tuple(unsupported_types)
+    if not meta_type.startswith(unsupported_types):
+        _ = emc.convert_col_type(meta_type)
 
 
 @pytest.mark.parametrize(
     argnames="meta_type,etl_type,expect_raises",
     argvalues=[
         ("bool_", "boolean", None),
+        ("bool", "boolean", None),
         ("int8", "int", "warning"),
         ("int16", "int", "warning"),
         ("int32", "int", None),
@@ -50,6 +68,8 @@ from etl_manager.meta import TableMeta
         ("large_binary", "binary", None),
         ("struct<num:int64>", "struct<num:long>", None),
         ("list_<int64>", "array<long>", None),
+        ("list<int64>", "array<long>", None),
+        ("list<list_<int64>>", "array<array<long>>", None),
         ("list_<list_<int64>>", "array<array<long>>", None),
         ("large_list<int64>", "array<long>", None),
         ("large_list<large_list<int64>>", "array<array<long>>", None),
@@ -90,23 +110,23 @@ def test_meta_to_etl_manager_type(meta_type, etl_type, expect_raises):
         ("date", "date32", None),
         ("datetime", "timestamp(s)", None),
         ("binary", "binary", None),
-        ("boolean", "bool_", None),
+        ("boolean", "bool", None),
         ("struct<num:long>", "struct<num:int64>", None),
-        ("array<long>", "list_<int64>", None),
-        ("array<array<long>>", "list_<list_<int64>>", None),
+        ("array<long>", "list<int64>", None),
+        ("array<array<long>>", "list<list<int64>>", None),
         ("struct<num:long, newnum:long>", "struct<num:int64, newnum:int64>", None),
         (
             "struct<num:long, arr:array<long>>",
-            "struct<num:int64, arr:list_<int64>>",
+            "struct<num:int64, arr:list<int64>>",
             None,
         ),
         (
             "array<struct<num:long,desc:character>>",
-            "list_<struct<num:int64, desc:string>>",
+            "list<struct<num:int64, desc:string>>",
             None,
         ),
         ("struct<num:long, desc:character>", "struct<num:int64, desc:string>", None),
-        ("array<decimal(38,0)>", "list_<decimal128(38,0)>", None),
+        ("array<decimal(38,0)>", "list<decimal128(38,0)>", None),
         (
             "struct<a:datetime, b:struct<f1:int, f2:character, f3:decimal(3,5)>>",
             "struct<a:timestamp(s), b:struct<f1:int32, f2:string, f3:decimal128(3,5)>>",

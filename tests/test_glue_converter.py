@@ -1,18 +1,36 @@
 import pytest
 import json
 
-from tests.helper import assert_meta_col_conversion
+from tests.helper import assert_meta_col_conversion, valid_types
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueConverterOptions,
+    _default_type_converter,
 )
+
+
+@pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
+def test_converter_accepts_type(meta_type):
+    """
+    If new type is added to tests.valid_types then it may fail this test
+
+    Args:
+        meta_type ([type]): str
+    """
+    emc = GlueConverter()
+    emc.options.ignore_warnings = True
+    unsupported_types = [k for k, v in _default_type_converter.items() if v[0] is None]
+    unsupported_types = tuple(unsupported_types)
+    if not meta_type.startswith(unsupported_types):
+        _ = emc.convert_col_type(meta_type)
 
 
 @pytest.mark.parametrize(
     argnames="meta_type,glue_type,expect_raises",
     argvalues=[
+        ("bool", "boolean", None),
         ("bool_", "boolean", None),
         ("int8", "tinyint", None),
         ("int16", "smallint", None),
@@ -46,7 +64,9 @@ from mojap_metadata.converters.glue_converter import (
         ("large_binary", "binary", None),
         ("struct<num:int64>", "struct<num:bigint>", None),
         ("list_<int64>", "array<bigint>", None),
+        ("list<int64>", "array<bigint>", None),
         ("list_<list_<int64>>", "array<array<bigint>>", None),
+        ("list_<list<int64>>", "array<array<bigint>>", None),
         ("large_list<int64>", "array<bigint>", None),
         ("large_list<large_list<int64>>", "array<array<bigint>>", None),
         ("struct<num:int64, newnum:int64>", "struct<num:bigint, newnum:bigint>", None),
