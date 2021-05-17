@@ -226,13 +226,6 @@ def test_to_dict():
     }
 
 
-# content of test_tmpdir.py
-def test_create_file(tmpdir):
-    p = tmpdir.mkdir("sub").join("hello.txt")
-    p.write("content")
-    assert p.read() == "content"
-
-
 @pytest.mark.parametrize(argnames="writer", argvalues=["json", "yaml"])
 def test_to_from_json_yaml(tmpdir, writer):
     path_file = tmpdir.mkdir("test_outputs").join("meta.{writer}")
