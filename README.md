@@ -146,7 +146,9 @@ The class has multiple methods to alter the columns list.
 
 ### force_partition_order Property
 
-By default this is set to None. However can be set to `"first"` or `"last"`. When set to None the Metadata Class will not trach column order relative to partitions.
+By default this is set to None. However can be set to `"start"` or `"end"`. When set to None the Metadata Class will not track column order relative to partitions.
+
+> Note: For Athena we normally set partitions at the end.
 
 ```python
 meta = Metadata(columns=[
@@ -159,10 +161,10 @@ meta.partitions = ["b"]
 meta.column_names # ["a", "b", "c"]
 ```
 
-If set to `"first"` or `"last"` then any changes to partitions will affect the column order.
+If set to `"start"` or `"end"` then any changes to partitions will affect the column order.
 
 ```python
-meta.force_partition_order = "first"
+meta.force_partition_order = "start"
 meta.column_names # ["b", "a" ,"c"]
 ```
 
@@ -195,6 +197,29 @@ ac = ArrowConverter()
 arrow_schema = ac.generate_from_meta(meta)
 
 print(arrow_schema) # Could use this schema to read in data as arrow dataframe and cast it to the correct types
+```
+
+Another use for the arrow converter is to convert it back from an Arrow schema to our metadata. This is especially useful if you have nested data types that would be difficult to write out the full `STRUCT` / `LIST`. Instead you can let Arrow do that for you and then pass the agnostic metadata object into something like the Glue Converter to generate a schema for AWS Glue.
+
+```python
+import pyarrow as pa
+import pandas as pd
+
+from mojap_metadata.converters.arrow_converter import ArrowConverter
+
+data = {
+    "a": [0,1],
+    "b": [
+        {"cat": {"meow": True}, "dog": ["bone", "fish"]},
+        {"cat": {"meow": True}, "dog": ["bone", "fish"]},
+    ]
+}
+df = pd.DataFrame(data)
+arrow_df = pa.Table.from_pandas(df)
+ac = ArrowConverter()
+meta = ac.generate_to_meta(arrow_df.schema)
+
+print(meta.columns) # [{'name': 'a', 'type': 'int64'}, {'name': 'b', 'type': 'struct<cat:struct<meow:bool>, dog:list<string>>'}]
 ```
 
 Another example is the `GlueConverter` which takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.

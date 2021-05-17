@@ -1,5 +1,4 @@
 from typing import Any
-from attr import validate
 
 from jsonschema.exceptions import ValidationError
 import urllib.request
@@ -14,7 +13,7 @@ from mojap_metadata.metadata.metadata import (
     _unpack_complex_data_type,
     _table_schema,
     _get_type_category_pattern_dict_from_schema,
-    _schema_url
+    _schema_url,
 )
 
 
@@ -93,7 +92,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
         [{"name": "test", "type": "bool"}],
-        [{"name": "test", "type": "bool_"}],  ## DEPRECATED
+        [{"name": "test", "type": "bool_"}],
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
         [{"name": "test", "type": "int64"}],
@@ -302,6 +301,8 @@ def test_parse_and_split(text, char, expected):
         ("string", "string"),
         ("struct<num:int64>", {"struct": {"num": "int64"}}),
         ("list_<int64>", {"list_": "int64"}),
+        ("list<int64>", {"list": "int64"}),
+        ("list<list_<int64>>", {"list": {"list_": "int64"}}),
         ("list_<list_<int64>>", {"list_": {"list_": "int64"}}),
         ("large_list<int64>", {"large_list": "int64"}),
         ("large_list<large_list<int64>>", {"large_list": {"large_list": "int64"}}),
@@ -409,15 +410,15 @@ def test_spec_matches_public_schema():
 
 def test_type_category_mapping():
     expected = {
-        'null': r'^null$',
-        'integer': r'^u?int(8|16|32|64)$',
-        'float': r'^float(16|32|64)$|^decimal128\(\d+,\d+\)$',
-        'string': r'^string$|^large_string$|^utf8$|^large_utf8$',
-        'timestamp': r'^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$',  # noqa
-        'binary': r'^binary(\([0-9]+\))?$|^large_binary$',
-        'boolean': r'^bool$|^bool_$',
-        'list': r'^large_list<.+>$|^list_<.+>$|^list<.+>$',
-        'struct': r'^map_<.+>$|^struct<.+>$'
+        "null": r"^null$",
+        "integer": r"^u?int(8|16|32|64)$",
+        "float": r"^float(16|32|64)$|^decimal128\(\d+,\d+\)$",
+        "string": r"^string$|^large_string$|^utf8$|^large_utf8$",
+        "timestamp": r"^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$",  # noqa
+        "binary": r"^binary(\([0-9]+\))?$|^large_binary$",
+        "boolean": r"^bool$|^bool_$",
+        "list": r"^large_list<.+>$|^list_<.+>$|^list<.+>$",
+        "struct": r"^map_<.+>$|^struct<.+>$",
     }
     actual = _get_type_category_pattern_dict_from_schema()
     assert expected == actual
@@ -477,11 +478,13 @@ def test_set_col_type_category_from_types(col_input: Any, expected_cat: str):
 
 
 def test_basic_column_functions():
-    meta = Metadata(columns=[
-        {"name": "a", "type": "int8"},
-        {"name": "b", "type": "string"},
-        {"name": "c", "type": "date32"},
-    ])
+    meta = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+        ]
+    )
     assert meta.column_names == ["a", "b", "c"]
 
     meta.update_column({"name": "a", "type": "int64"})
@@ -520,11 +523,11 @@ def test_column_and_partition_functionality():
     meta.partitions = ["b"]
     assert meta.column_names == ["a", "b", "c"]
 
-    meta.force_partition_order = "first"
+    meta.force_partition_order = "start"
     meta.partitions = ["c", "b"]
     assert meta.column_names == ["c", "b", "a"]
 
-    meta.force_partition_order = "last"
+    meta.force_partition_order = "end"
     assert meta.column_names == ["a", "c", "b"]
 
     meta.remove_column("c")

@@ -14,10 +14,7 @@ from mojap_metadata.converters.etl_manager_converter import (
 from etl_manager.meta import TableMeta
 
 
-@pytest.mark.parametrize(
-    argnames="meta_type",
-    argvalues=valid_types
-)
+@pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
 def test_converter_accepts_type(meta_type):
     """
     If new type is added to tests.valid_types then it may fail this test
@@ -27,10 +24,7 @@ def test_converter_accepts_type(meta_type):
     """
     emc = EtlManagerConverter()
     emc.options.ignore_warnings = True
-    unsupported_types = [
-        k for k, v in _default_type_converter.items()
-        if v[0] is None
-    ]
+    unsupported_types = [k for k, v in _default_type_converter.items() if v[0] is None]
     unsupported_types = tuple(unsupported_types)
     if not meta_type.startswith(unsupported_types):
         _ = emc.convert_col_type(meta_type)

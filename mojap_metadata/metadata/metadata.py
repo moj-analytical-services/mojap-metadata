@@ -1,17 +1,14 @@
-import collections
 import re
 import json
-from _pytest.python_api import raises
-from six import integer_types
+
 import yaml
 import warnings
 from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
-from collections import OrderedDict
 
-from typing import OrderedDict, Union, List, Callable
+from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json"  # noqa
@@ -224,10 +221,10 @@ class Metadata:
 
     @force_partition_order.setter
     def force_partition_order(self, order: str):
-        if order is not None and order not in ["first", "last"]:
+        if order is not None and order not in ["start", "end"]:
             raise ValueError(
                 "force_partition_order can only be set to None, "
-                f'"first" or "last". Given {order}'
+                f'"start" or "end". Given {order}'
             )
         else:
             self._force_partition_order = order
@@ -236,18 +233,22 @@ class Metadata:
     def reorder_cols_based_on_partition_order(self):
         """
         Reorders columns if metadata data has columns, partitions
-        and has force_partition_order set to "first" or "last".
+        and has force_partition_order set to "start" or "end".
         """
         if self.force_partition_order and self.partitions and self.columns:
-            non_partitions = [c for c in self.columns if c["name"] not in self.partitions]
+            non_partitions = [
+                c for c in self.columns if c["name"] not in self.partitions
+            ]
             partitions = [c for c in self.columns if c["name"] in self.partitions]
 
             # Ensure partitions listed in column match partition order
-            partitions = sorted(partitions, key=lambda x: self.partitions.index(x["name"]))
+            partitions = sorted(
+                partitions, key=lambda x: self.partitions.index(x["name"])
+            )
 
             # Set private property to avoild recursive calling
             # no validation takes place as no data is added (just reordered)
-            if self.force_partition_order == "first":
+            if self.force_partition_order == "start":
                 self._data["columns"] = partitions + non_partitions
             else:
                 self._data["columns"] = non_partitions + partitions

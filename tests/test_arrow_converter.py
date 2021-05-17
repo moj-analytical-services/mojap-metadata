@@ -11,10 +11,7 @@ import pyarrow as pa
 from mojap_metadata.converters import BaseConverterOptions
 
 
-@pytest.mark.parametrize(
-    argnames="meta_type",
-    argvalues=valid_types
-)
+@pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
 def test_converter_accepts_type(meta_type):
     """
     If new type is added to tests.valid_types then it may fail this test
@@ -61,6 +58,8 @@ def test_converter_accepts_type(meta_type):
         ("binary(128)", pa.binary(128)),
         ("large_binary", pa.large_binary()),
         ("struct<num:int64>", pa.struct([("num", pa.int64())])),
+        ("list<int64>", pa.list_(pa.int64())),
+        ("list_<list<int64>>", pa.list_(pa.list_(pa.int64()))),
         ("list_<int64>", pa.list_(pa.int64())),
         ("list_<list_<int64>>", pa.list_(pa.list_(pa.int64()))),
         ("large_list<int64>", pa.large_list(pa.int64())),
@@ -106,6 +105,23 @@ def test_meta_to_arrow_type(meta_type, arrow_type):
     assert_meta_col_conversion(
         ArrowConverter, meta_type, arrow_type, expect_raises=None
     )
+    # Test round trip
+    ac = ArrowConverter()
+    round_trip_meta_type = ac.reverse_convert_col_type(arrow_type)
+    # reverse always returns non-underscored aliases for bool and list
+    meta_type = meta_type.replace("bool_", "bool")
+    meta_type = meta_type.replace("list_", "list")
+
+    # utf8 and string are the same
+    # pa.string().equals(pa.utf8()) # True
+    # So reverse conversion sets pa.utf8() to "string"
+    meta_type = meta_type.replace("utf8", "string")
+
+    # finally remove any whitespace
+    meta_type = "".join(meta_type.split())
+    round_trip_meta_type = "".join(round_trip_meta_type.split())
+
+    assert meta_type == round_trip_meta_type
 
 
 def test_generate_from_meta():
@@ -149,6 +165,68 @@ def test_generate_from_meta():
     schema_str2 = schema_str1 + "\nmy_timestamp: timestamp[s]"
     assert schema1.to_string() == schema_str1
     assert schema2.to_string() == schema_str2
+
+
+def test_generate_to_meta():
+
+    struct = pa.struct(
+        [
+            ("x", pa.timestamp("s")),
+            (
+                "y",
+                pa.struct(
+                    [
+                        ("f1", pa.int32()),
+                        ("f2", pa.string()),
+                        ("f3", pa.decimal128(3, 5)),
+                    ]
+                ),
+            ),
+        ]
+    )
+
+    example_schema = pa.schema(
+        [
+            pa.field("a", pa.int64()),
+            pa.field("b", pa.string()),
+            pa.field("c", struct),
+            pa.field("d", pa.list_(pa.int64())),
+        ]
+    )
+
+    expected_name_type = (
+        ("a", "int64"),
+        ("b", "string"),
+        ("c", "struct<"),
+        ("d", "list<"),
+    )
+
+    ac = ArrowConverter()
+    meta1 = ac.generate_to_meta(arrow_schema=example_schema)
+
+    assert isinstance(meta1, Metadata)
+
+    checks = [
+        c["name"] == e[0] and c["type"].startswith(e[1])
+        for c, e in zip(meta1.columns, expected_name_type)
+    ]
+    assert all(checks)
+
+    meta2 = ac.generate_to_meta(
+        arrow_schema=example_schema,
+        meta_init_dict={"name": "test", "file_format": "parquet"},
+    )
+    assert isinstance(meta2, Metadata)
+    assert meta2.name == "test"
+    assert meta2.file_format == "parquet"
+    assert meta1.columns == meta2.columns
+
+    # Check warning is raised on columns being overwritten
+    with pytest.warns(UserWarning):
+        _ = ac.generate_to_meta(
+            arrow_schema=example_schema,
+            meta_init_dict={"columns": [{"name": "stuff", "type": "string"}]},
+        )
 
 
 @pytest.mark.parametrize(
