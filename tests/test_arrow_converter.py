@@ -158,13 +158,33 @@ def test_generate_from_meta():
     assert isinstance(schema1, pa.Schema)
     assert isinstance(schema2, pa.Schema)
 
-    schema_str1 = (
-        "my_int: int64 not null\nmy_double: double\n"
-        "my_date: date64[ms]\nmy_decimal: decimal(10, 2)"
-    )
-    schema_str2 = schema_str1 + "\nmy_timestamp: timestamp[s]"
-    assert schema1.to_string() == schema_str1
-    assert schema2.to_string() == schema_str2
+    expected_names = [
+        "my_int",
+        "my_double",
+        "my_date",
+        "my_decimal"
+    ]
+    expected_types = [
+        pa.int64(), pa.float64(), pa.date64(), pa.decimal128(10, 2)
+    ]
+    assert schema1.names == expected_names
+
+    checks1 = [a.equals(e) for a, e in zip(schema1.types, expected_types)]
+    assert all(checks1)
+
+    # Do schema2 assertions
+    expected_names.append("my_timestamp")
+    expected_types.append(pa.timestamp("s"))
+
+    assert schema2.names == expected_names
+
+    checks2 = [a.equals(e) for a, e in zip(schema2.types, expected_types)]
+    assert all(checks2)
+
+    # Also check specific type properties
+    assert schema2.field("my_decimal").type.precision == 10
+    assert schema2.field("my_decimal").type.scale == 2
+    assert schema2.field("my_timestamp").type.unit == "s"
 
 
 def test_generate_to_meta():
