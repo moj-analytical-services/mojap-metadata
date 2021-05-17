@@ -13,7 +13,7 @@ from mojap_metadata.metadata.metadata import (
     _unpack_complex_data_type,
     _table_schema,
     _get_type_category_pattern_dict_from_schema,
-    _schema_url
+    _schema_url,
 )
 
 
@@ -91,6 +91,7 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "binary"}],
         [{"name": "test", "type_category": "boolean"}],
         [{"name": "test", "type": "int8"}],
+        [{"name": "test", "type": "bool"}],
         [{"name": "test", "type": "bool_"}],
         [{"name": "test", "type": "int16"}],
         [{"name": "test", "type": "int32"}],
@@ -127,17 +128,18 @@ def test_columns_validation_error(col_input: Any):
         [{"name": "test", "type_category": "timestamp", "type": "timestamp(ms)"}],
         [{"name": "test", "type_category": "binary", "type": "binary(128)"}],
         [{"name": "test", "type_category": "binary", "type": "binary"}],
+        [{"name": "test", "type_category": "boolean", "type": "bool"}],
         [{"name": "test", "type_category": "boolean", "type": "bool_"}],
         [{"name": "test", "type": "struct<num:int64>"}],
-        [{"name": "test", "type": "list_<int64>"}],
-        [{"name": "test", "type": "list_<list_<int64>>"}],
+        [{"name": "test", "type": "list<int64>"}],
+        [{"name": "test", "type": "list<list_<int64>>"}],
         [{"name": "test", "type": "large_list<int64>"}],
         [{"name": "test", "type": "large_list<large_list<int64>>"}],
         [{"name": "test", "type": "struct<num:int64,newnum:int64>"}],
         [{"name": "test", "type": "struct<num:int64,arr:list_<int64>>"}],
         [{"name": "test", "type": "list_<struct<num:int64,desc:string>>"}],
         [{"name": "test", "type": "struct<num:int64,desc:string>"}],
-        [{"name": "test", "type": "list_<decimal128(38,0)>"}],
+        [{"name": "test", "type": "list<decimal128(38,0)>"}],
         [{"name": "test", "type": "large_list<decimal128(38,0)>"}],
     ],
 )
@@ -224,13 +226,6 @@ def test_to_dict():
     }
 
 
-# content of test_tmpdir.py
-def test_create_file(tmpdir):
-    p = tmpdir.mkdir("sub").join("hello.txt")
-    p.write("content")
-    assert p.read() == "content"
-
-
 @pytest.mark.parametrize(argnames="writer", argvalues=["json", "yaml"])
 def test_to_from_json_yaml(tmpdir, writer):
     path_file = tmpdir.mkdir("test_outputs").join("meta.{writer}")
@@ -299,6 +294,8 @@ def test_parse_and_split(text, char, expected):
         ("string", "string"),
         ("struct<num:int64>", {"struct": {"num": "int64"}}),
         ("list_<int64>", {"list_": "int64"}),
+        ("list<int64>", {"list": "int64"}),
+        ("list<list_<int64>>", {"list": {"list_": "int64"}}),
         ("list_<list_<int64>>", {"list_": {"list_": "int64"}}),
         ("large_list<int64>", {"large_list": "int64"}),
         ("large_list<large_list<int64>>", {"large_list": {"large_list": "int64"}}),
@@ -393,24 +390,28 @@ def test_set_col_types_from_type_category():
 
 
 def test_spec_matches_public_schema():
+    msg = (
+        "You will need to update the public schema here: "
+        "https://github.com/moj-analytical-services/metadata_schema/"
+    )
     m = Metadata()
     with urllib.request.urlopen(m._data["$schema"]) as url:
         public_schema = json.loads(url.read().decode())
 
-    assert public_schema == _table_schema
+    assert public_schema == _table_schema, msg
 
 
 def test_type_category_mapping():
     expected = {
-        'null': r'^null$',
-        'integer': r'^u?int(8|16|32|64)$',
-        'float': r'^float(16|32|64)$|^decimal128\(\d+,\d+\)$',
-        'string': r'^string$|^large_string$|^utf8$|^large_utf8$',
-        'timestamp': r'^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$',  # noqa
-        'binary': r'^binary(\([0-9]+\))?$|^large_binary$',
-        'boolean': r'^bool_$',
-        'list': r'^large_list<.+>$|^list_<.+>$',
-        'struct': r'^map_<.+>$|^struct<.+>$'
+        "null": r"^null$",
+        "integer": r"^u?int(8|16|32|64)$",
+        "float": r"^float(16|32|64)$|^decimal128\(\d+,\d+\)$",
+        "string": r"^string$|^large_string$|^utf8$|^large_utf8$",
+        "timestamp": r"^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$",  # noqa
+        "binary": r"^binary(\([0-9]+\))?$|^large_binary$",
+        "boolean": r"^bool$|^bool_$",
+        "list": r"^large_list<.+>$|^list_<.+>$|^list<.+>$",
+        "struct": r"^map_<.+>$|^struct<.+>$",
     }
     actual = _get_type_category_pattern_dict_from_schema()
     assert expected == actual
@@ -467,3 +468,69 @@ def test_set_col_type_category_from_types(col_input: Any, expected_cat: str):
     meta = Metadata(columns=col_input)
     meta.set_col_type_category_from_types()
     assert meta.columns[0]["type_category"] == expected_cat
+
+
+def test_basic_column_functions():
+    meta = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+        ]
+    )
+    assert meta.column_names == ["a", "b", "c"]
+
+    meta.update_column({"name": "a", "type": "int64"})
+    assert meta.columns[0]["type"] == "int64"
+
+    meta.update_column({"name": "d", "type": "string"})
+    assert meta.column_names == ["a", "b", "c", "d"]
+
+    meta.remove_column("d")
+    assert meta.column_names == ["a", "b", "c"]
+
+    with pytest.raises(ValidationError):
+        meta.update_column({"name": "d", "type": "error"})
+
+    with pytest.raises(ValueError):
+        meta.remove_column("e")
+
+
+def test_column_and_partition_functionality():
+    meta = Metadata()
+    assert meta.columns == []
+
+    cols = [
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ]
+
+    meta.columns = cols
+    assert meta.column_names == ["a", "b", "c"]
+
+    assert meta.partitions == []
+    assert meta.force_partition_order is None
+
+    # force_partition_order is None so no change to order
+    meta.partitions = ["b"]
+    assert meta.column_names == ["a", "b", "c"]
+
+    meta.force_partition_order = "start"
+    meta.partitions = ["c", "b"]
+    assert meta.column_names == ["c", "b", "a"]
+
+    meta.force_partition_order = "end"
+    assert meta.column_names == ["a", "c", "b"]
+
+    meta.remove_column("c")
+    assert meta.partitions == ["b"]
+
+    with pytest.raises(ValueError):
+        meta.force_partition_order = "error"
+
+    with pytest.raises(ValueError):
+        meta.partitions = ["c", "d"]
+
+    with pytest.raises(ValueError):
+        meta.columns = [{"name": "a", "type": "int8"}]

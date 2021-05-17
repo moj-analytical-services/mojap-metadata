@@ -72,7 +72,7 @@ An example of a basic metadata schema:
 - **columns:** List of objects where each object descibes a column in your table. Each column object must have at least a `name` and a (`type` or `type_description`).
 
     - **name:** String denoting the name of the column.
-    - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with.
+    - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with. _Note: In our naming convention for types we allow `bool` (which is equivalent to `bool_`) and `list` (which is equivalent to `list_`)._
     - **type_category:** These group different sets of `type` properties into a single superset. These are: `integer`, `float`, `string`, `timestamp`, `bool`, `list`, `struct`. For example we class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. It allows users to give more generic types if your data is not coming from a system or output with strict types (i.e. data exported from Excel or an unknown origin). The Metadata class has default type values for each given `type_category`. See the `default_type_category_lookup` attribute of the `Metadata` class to see said defaults. This field is required if `type` is not set.
     - **description:** Description of the column.
     - **enum:** List of what values that column can take. _(Same as the standardised json schema keyword)._
@@ -113,6 +113,61 @@ meta3.name = "new_table"
 meta3.to_json("path/to/new_metadata_schema.json")
 ```
 
+## Added Class methods and properties
+
+The metadata class has some methods and properties that are not part of the schema but helps organise and manage the schema.
+
+### Column Methods
+
+The class has multiple methods to alter the columns list.
+
+- `column_names`: Get a list of column names
+- `update_column`: If column with name matches replace it otherwise add it to the end
+- `remove_column`: Remove column that matches the given name. Note if a name in the `partitions` property matches that name then it is also removed.
+
+```python
+    meta = Metadata(columns=[
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ])
+    meta.column_names # ["a", "b", "c"]
+
+    # 
+    meta.update_column({"name": "a", "type": "int64"})
+    meta.columns[0]["type"] # "int64"
+
+    meta.update_column({"name": "d", "type": "string"})
+    meta.column_names # ["a", "b", "c", "d"]
+
+    meta.remove_column("d")
+    assert meta.column_names == ["a", "b", "c"]
+```
+
+### force_partition_order Property
+
+By default this is set to None. However can be set to `"start"` or `"end"`. When set to None the Metadata Class will not track column order relative to partitions.
+
+> Note: For Athena we normally set partitions at the end.
+
+```python
+meta = Metadata(columns=[
+        {"name": "a", "type": "int8"},
+        {"name": "b", "type": "string"},
+        {"name": "c", "type": "date32"},
+    ])
+
+meta.partitions = ["b"]
+meta.column_names # ["a", "b", "c"]
+```
+
+If set to `"start"` or `"end"` then any changes to partitions will affect the column order.
+
+```python
+meta.force_partition_order = "start"
+meta.column_names # ["b", "a" ,"c"]
+```
+
 <hr>
 
 # Converters
@@ -142,6 +197,29 @@ ac = ArrowConverter()
 arrow_schema = ac.generate_from_meta(meta)
 
 print(arrow_schema) # Could use this schema to read in data as arrow dataframe and cast it to the correct types
+```
+
+Another use for the arrow converter is to convert it back from an Arrow schema to our metadata. This is especially useful if you have nested data types that would be difficult to write out the full `STRUCT` / `LIST`. Instead you can let Arrow do that for you and then pass the agnostic metadata object into something like the Glue Converter to generate a schema for AWS Glue.
+
+```python
+import pyarrow as pa
+import pandas as pd
+
+from mojap_metadata.converters.arrow_converter import ArrowConverter
+
+data = {
+    "a": [0,1],
+    "b": [
+        {"cat": {"meow": True}, "dog": ["bone", "fish"]},
+        {"cat": {"meow": True}, "dog": ["bone", "fish"]},
+    ]
+}
+df = pd.DataFrame(data)
+arrow_df = pa.Table.from_pandas(df)
+ac = ArrowConverter()
+meta = ac.generate_to_meta(arrow_df.schema)
+
+print(meta.columns) # [{'name': 'a', 'type': 'int64'}, {'name': 'b', 'type': 'struct<cat:struct<meow:bool>, dog:list<string>>'}]
 ```
 
 Another example is the `GlueConverter` which takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.

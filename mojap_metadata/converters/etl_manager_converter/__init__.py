@@ -18,6 +18,8 @@ from etl_manager.meta import TableMeta
 # if glue_type is Null then we have no way to safely
 # convert it
 _default_type_converter = {
+    "null": (None, False),
+    "bool": ("boolean", True),
     "bool_": ("boolean", True),
     "int8": ("int", False),
     "int16": ("int", False),
@@ -49,6 +51,7 @@ _default_type_converter = {
     "binary": ("binary", True),
     "large_binary": ("binary", True),
     "list_": ("array", True),
+    "list": ("array", True),
     "large_list": ("array", True),
     "struct": ("struct", True),
 }
@@ -63,9 +66,9 @@ _reverse_default_type_converter = {
     "date": ("date32", True),
     "datetime": ("timestamp(s)", True),
     "binary": ("binary", True),
-    "boolean": ("bool_", True),
+    "boolean": ("bool", True),
     "struct": ("struct", True),
-    "array": ("list_", True),
+    "array": ("list", True),
 }
 
 
