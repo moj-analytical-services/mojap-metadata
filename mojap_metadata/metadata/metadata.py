@@ -77,8 +77,8 @@ def _parse_and_split(text: str, char: str) -> List[str]:
 
     yield text[start + 1 :].strip()
 
-
-def _get_first_level(text: str) -> str:
+# ISSUE IS IN HERE
+def _get_first_level_x(text: str) -> str:
     """Returns everything in first set of <>"""
     start = 0
     end = len(text)
@@ -93,7 +93,27 @@ def _get_first_level(text: str) -> str:
 
     return text[start:end]
 
+def _get_first_level(text: str) -> str:
+    """Returns everything in first set of <>"""
 
+    bracket_counter = 0
+    found_first_bracket = False
+
+    for i, c in enumerate(text):
+        if c == "<":
+            bracket_counter += 1
+            if not found_first_bracket:
+                start = i + 1
+                found_first_bracket = True
+        elif c == ">":
+            bracket_counter -= 1
+            if bracket_counter == 0:
+                end = i
+                break
+
+    return text[start:end]
+
+# ISSUE IN HERE
 def _unpack_complex_data_type(data_type: str) -> Union[str, dict]:
     """Recursive function that jumps into complex
     data types and returns complex types as a dict.
