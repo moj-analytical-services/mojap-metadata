@@ -77,6 +77,7 @@ def _parse_and_split(text: str, char: str) -> List[str]:
 
     yield text[start + 1 :].strip()
 
+
 # ISSUE IS IN HERE
 def _get_first_level_x(text: str) -> str:
     """Returns everything in first set of <>"""
@@ -92,6 +93,7 @@ def _get_first_level_x(text: str) -> str:
             break
 
     return text[start:end]
+
 
 def _get_first_level(text: str) -> str:
     """Returns everything in first set of <>"""
@@ -112,6 +114,7 @@ def _get_first_level(text: str) -> str:
                 break
 
     return text[start:end]
+
 
 # ISSUE IN HERE
 def _unpack_complex_data_type(data_type: str) -> Union[str, dict]:
