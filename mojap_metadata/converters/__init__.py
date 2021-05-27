@@ -65,7 +65,7 @@ def _flatten_and_convert_complex_data_type(
                     v, converter_fun, complex_dtype_names
                 )
                 fields.append(f"{k}:{new_v}")
-
+                del new_v
         return ", ".join(fields)
 
 
