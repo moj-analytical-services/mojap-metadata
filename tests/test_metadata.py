@@ -282,6 +282,11 @@ def test_get_first_level(t, e):
             ":",
             ["a", 'timestamp["s", +07:30], b', "decimal128(3,5)"],
         ),
+        (
+            "k1:list<string>, k2:decimal128(0, 38), k3:struct<a:int64, b:int64>",
+            ",",
+            ["k1:list<string>", "k2:decimal128(0, 38)", "k3:struct<a:int64, b:int64>"],
+        )
     ],
 )
 def test_parse_and_split(text, char, expected):

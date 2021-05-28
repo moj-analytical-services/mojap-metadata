@@ -69,7 +69,7 @@ def _parse_and_split(text: str, char: str) -> List[str]:
         elif s == "<":
             in_parentheses[2] += 1
         elif s == ">":
-            in_parentheses[2] += 1
+            in_parentheses[2] -= 1
 
         if s == char and not any([bool(p) for p in in_parentheses]):
             yield text[start + 1 : i].strip()

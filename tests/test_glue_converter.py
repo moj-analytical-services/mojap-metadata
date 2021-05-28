@@ -87,6 +87,11 @@ def test_converter_accepts_type(meta_type):
             "struct<a:timestamp, b:struct<f1:int, f2:string, f3:decimal(3,5)>>",
             None,
         ),
+        (
+            "struct<k1:list<string>, k2:string, k3:string, k4:string, k5:list<string>, k6:string>", # noqa
+            "struct<k1:array<string>, k2:string, k3:string, k4:string, k5:array<string>, k6:string>", # noqa
+            None
+        )
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
