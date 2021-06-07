@@ -28,6 +28,7 @@ def _flatten_and_convert_complex_data_type(
     data_type: Union[dict, str],
     converter_fun: Callable,
     complex_dtype_names: Tuple[str] = None,
+    field_sep: str = ", ",
 ) -> str:
     """Recursive function to flattern a complex datatype in a dictionary
     format i.e. output from (from Metadata.unpack_complex_data_type).
@@ -57,16 +58,16 @@ def _flatten_and_convert_complex_data_type(
         for k, v in data_type.items():
             if k in complex_dtype_names:
                 inner_data_type = _flatten_and_convert_complex_data_type(
-                    v, converter_fun, complex_dtype_names
+                    v, converter_fun, complex_dtype_names, field_sep=field_sep
                 )
                 return f"{converter_fun(k)}<{inner_data_type}>"
             else:
                 new_v = _flatten_and_convert_complex_data_type(
-                    v, converter_fun, complex_dtype_names
+                    v, converter_fun, complex_dtype_names, field_sep=field_sep
                 )
                 fields.append(f"{k}:{new_v}")
                 del new_v
-        return ", ".join(fields)
+        return field_sep.join(fields)
 
 
 @dataclass

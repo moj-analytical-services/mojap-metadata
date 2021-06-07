@@ -222,7 +222,7 @@ class GlueConverter(BaseConverter):
         data_type = _unpack_complex_data_type(coltype)
 
         return _flatten_and_convert_complex_data_type(
-            data_type, self.convert_basic_col_type
+            data_type, self.convert_basic_col_type, field_sep=","
         )
 
     def convert_basic_col_type(self, coltype: str) -> str:
