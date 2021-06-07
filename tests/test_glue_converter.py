@@ -84,7 +84,7 @@ def test_converter_accepts_type(meta_type):
         ("struct<num:int64,desc:string>", "struct<num:bigint,desc:string>", None),
         ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
         (
-            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>",
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>", # noqa
             "struct<a:timestamp,b:struct<f1:int,f2:string,f3:decimal(3,5)>>",
             None,
         ),
