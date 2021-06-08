@@ -69,7 +69,7 @@ def _parse_and_split(text: str, char: str) -> List[str]:
         elif s == "<":
             in_parentheses[2] += 1
         elif s == ">":
-            in_parentheses[2] += 1
+            in_parentheses[2] -= 1
 
         if s == char and not any([bool(p) for p in in_parentheses]):
             yield text[start + 1 : i].strip()
@@ -80,16 +80,24 @@ def _parse_and_split(text: str, char: str) -> List[str]:
 
 def _get_first_level(text: str) -> str:
     """Returns everything in first set of <>"""
-    start = 0
-    end = len(text)
+    bracket_counter = 0
+    start = -1
+    end = -1
+    found_first_bracket = False
     for i, c in enumerate(text):
         if c == "<":
-            start = i + 1
-            break
-    for i, c in enumerate(reversed(text)):
-        if c == ">":
-            end = len(text) - (i + 1)
-            break
+            bracket_counter += 1
+            if not found_first_bracket:
+                start = i + 1
+                found_first_bracket = True
+        elif c == ">":
+            bracket_counter -= 1
+            if bracket_counter == 0:
+                end = i
+                break
+
+    if start == -1 or end == -1:
+        raise ValueError(f"No closed brackets found in: {text}")
 
     return text[start:end]
 
