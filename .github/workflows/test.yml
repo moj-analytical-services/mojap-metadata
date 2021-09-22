@@ -28,4 +28,6 @@ jobs:
         pip install poetry
         poetry config virtualenvs.create false \
           && poetry install --extras "arrow etl-manager" --no-interaction --no-ansi
+    - name: Run Tests
+      run: |
         pytest tests/ -vv
