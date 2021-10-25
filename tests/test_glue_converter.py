@@ -129,7 +129,9 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
 
     # DO DICT TEST
     spec = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
-    spec_default_opts = gc_default_opts.generate_from_meta(md,)
+    spec_default_opts = gc_default_opts.generate_from_meta(
+        md,
+    )
     assert spec == spec_default_opts
 
     with open(f"tests/data/glue_converter/{expected_file_name}.json") as f:
@@ -150,9 +152,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         ),
     ],
 )
-def test_meta_property_inection_glue_converter(
-    gc_kwargs: dict, add_to_meta: dict
-):
+def test_meta_property_inection_glue_converter(gc_kwargs: dict, add_to_meta: dict):
     """
     This will test the two optional metadata properties "table_location" and
     "database_name" and that the glue converter correctly converts to a glue schema in 3

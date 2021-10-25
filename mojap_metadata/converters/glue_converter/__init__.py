@@ -315,7 +315,10 @@ class GlueConverter(BaseConverter):
 
     @_inject_properties_factory("metadata", ["database_name", "table_location"])
     def generate_from_meta(
-        self, metadata: Metadata, database_name: str = None, table_location: str = None,
+        self,
+        metadata: Metadata,
+        database_name: str = None,
+        table_location: str = None,
     ) -> dict:
         """Generates the Hive DDL from our metadata
 
