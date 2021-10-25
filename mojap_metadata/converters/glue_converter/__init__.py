@@ -23,6 +23,16 @@ logger = logging_setup()
 
 # decorator for replacing arguemnts with object properties
 def _inject_properties_factory(obj_name: str, props: List[str]):
+    """
+    Using this as a decorator will replace kwargs with object properties if they don't
+    exist as kwargs already.
+    args:
+    - obj_name
+        the name of the argument in the function that contains properties to sub in as
+        kwargs
+    - props
+        a list of property names that must match the kwarg names
+    """
     def _inject_properties(func):
         def wrapper(*args, **kwargs):
             # get the args

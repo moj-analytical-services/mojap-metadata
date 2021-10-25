@@ -539,3 +539,15 @@ def test_column_and_partition_functionality():
 
     with pytest.raises(ValueError):
         meta.columns = [{"name": "a", "type": "int8"}]
+
+@pytest.mark.parametrize(
+    "patch_out,fake_input",
+    [
+        ("from_json", "not_a_real_file.json"),
+        ("from_yaml", "not_a_real_yaml.yaml"),
+        ("from_dict", {}),
+    ]
+)
+def test_inferred_input(monkeypatch, patch_out, fake_input):
+    monkeypatch.setattr(Metadata, patch_out, lambda x: True)
+    assert Metadata.from_infer(fake_input)
