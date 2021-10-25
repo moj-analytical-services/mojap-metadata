@@ -369,6 +369,14 @@
             "title": "Columns used to partition the table",
             "default": []
         },
+        "database_name": {
+            "type": "string",
+            "title": "name of the glue database to make the data in"
+        },
+        "table_location": {
+            "type": "string",
+            "title": "s3 folder path of the data"
+        },
         "columns": {
             "type": "array",
             "title": "The columns in the table. An array of objects",

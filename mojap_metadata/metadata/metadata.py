@@ -182,6 +182,8 @@ class Metadata:
     file_format = MetadataProperty()
     sensitive = MetadataProperty()
     primary_key = MetadataProperty()
+    database_name = MetadataProperty()
+    table_location = MetadataProperty()
 
     def __init__(
         self,

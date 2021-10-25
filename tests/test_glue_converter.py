@@ -1,7 +1,7 @@
 import pytest
 import json
 
-from tests.helper import assert_meta_col_conversion, valid_types
+from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
@@ -110,28 +110,7 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
     ],
 )
 def test_generate_from_meta(spec_name, serde_name, expected_file_name):
-    md = Metadata.from_dict(
-        {
-            "name": "test_table",
-            "file_format": spec_name,
-            "columns": [
-                {
-                    "name": "my_int",
-                    "type": "int64",
-                    "description": "This is an integer",
-                },
-                {"name": "my_double", "type": "float64"},
-                {"name": "my_date", "type": "date64"},
-                {"name": "my_decimal", "type": "decimal128(10,2)"},
-                {
-                    "name": "my_timestamp",
-                    "type": "timestamp(s)",
-                    "description": "Partition column",
-                },
-            ],
-            "partitions": ["my_timestamp"],
-        }
-    )
+    md = get_meta(spec_name, {})
 
     gc = GlueConverter()
     if spec_name == "csv":
@@ -159,3 +138,39 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         expected_spec = json.load(f)
 
     assert spec == expected_spec
+
+@pytest.mark.parametrize(
+    "gc_kwargs,add_to_meta",
+    [
+        (
+            {}, {"table_location": "s3://bucket/meta/", "database_name": "meta"}
+        ),
+        (
+            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, {}
+        ),
+        (
+            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, 
+            {"table_location": "s3://bucket/meta/", "database_name": "meta"}
+        )
+    ]
+)
+def test_meta_property_inection_glue_converter_no_kwargs(
+    gc_kwargs: dict, add_to_meta: dict
+):
+    """
+    This will test the two optional metadata properties "table_location" and 
+    "database_name" and that the glue converter correctly converts to a glue schema in 3
+    states: either present, both present
+    """
+    gc = GlueConverter()
+    # get the metadata with any additional properties
+    md = get_meta("csv", add_to_meta)
+    # convert it
+    boto_dict = gc.generate_from_meta(md, **gc_kwargs)
+    # get the correct dictionary to assert
+    expected_in_boto_dict = gc_kwargs if gc_kwargs else add_to_meta
+    # assert
+    assert expected_in_boto_dict == {
+        "table_location": boto_dict["TableInput"]["StorageDescriptor"]["Location"], 
+        "database_name": boto_dict["DatabaseName"]
+    }
