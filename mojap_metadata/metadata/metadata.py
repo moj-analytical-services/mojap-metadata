@@ -8,7 +8,7 @@ import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
-from typing import Type, Union, List, Callable
+from typing import Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.2.0.json"  # noqa

@@ -3,7 +3,6 @@ import json
 
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 
-from mojap_metadata import Metadata
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueConverterOptions,
@@ -153,7 +152,7 @@ def test_meta_property_inection_glue_converter_no_kwargs(
     gc_kwargs: dict, add_to_meta: dict
 ):
     """
-    This will test the two optional metadata properties "table_location" and 
+    This will test the two optional metadata properties "table_location" and
     "database_name" and that the glue converter correctly converts to a glue schema in 3
     states: either present, both present
     """
