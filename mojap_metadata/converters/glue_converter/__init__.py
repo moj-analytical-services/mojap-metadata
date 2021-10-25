@@ -395,7 +395,6 @@ class GlueConverter(BaseConverter):
 class GlueTable:
 
     gc = GlueConverter()
-    glue_client = boto3.client("glue")
 
     @classmethod
     def generate_from_meta(
@@ -405,6 +404,7 @@ class GlueTable:
         table_location: str = None,
         run_msck_repair=False,
     ):
+        glue_client = boto3.client("glue")
 
         metadata = Metadata.from_infer(metadata)
 
@@ -412,7 +412,7 @@ class GlueTable:
             metadata, database_name=database_name, table_location=table_location
         )
         delete_table_if_exists(database=database_name, table=metadata.name)
-        cls.glue_client.create_table(**boto_dict)
+        glue_client.create_table(**boto_dict)
         if not run_msck_repair and metadata.partitions:
             logger.info(
                 "partitions are present in the metadata, but msck repair table not run"

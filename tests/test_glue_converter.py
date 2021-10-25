@@ -1,3 +1,4 @@
+import os
 import pytest
 import json
 
@@ -149,7 +150,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         ),
     ],
 )
-def test_meta_property_inection_glue_converter_no_kwargs(
+def test_meta_property_inection_glue_converter(
     gc_kwargs: dict, add_to_meta: dict
 ):
     """
