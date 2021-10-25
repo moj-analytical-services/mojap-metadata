@@ -8,7 +8,7 @@ import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
 
-from typing import Union, List, Callable
+from typing import Type, Union, List, Callable
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.2.0.json"  # noqa
@@ -176,6 +176,19 @@ class Metadata:
         with open(filename, "r") as f:
             obj = yaml.safe_load(f, **kwargs)
             return cls.from_dict(obj)
+
+    @classmethod
+    def from_infer(cls, inp, **kwargs) -> object:
+        if isinstance(inp, str) and inp.lower().endswith("json"):
+            return cls.from_json(inp, **kwargs)
+        elif isinstance(inp, str) and inp.lower().endswith("yaml"):
+            return cls.from_yaml(inp, **kwargs)
+        elif isinstance(inp, dict):
+            return cls.from_dict(inp)
+        elif isinstance(inp, cls):
+            return inp
+        else:
+            raise TypeError("input type not recognised")
 
     name = MetadataProperty()
     description = MetadataProperty()

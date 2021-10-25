@@ -389,9 +389,12 @@ class GlueTable:
 
     @classmethod
     def generate_from_meta(
-        cls, metadata: Metadata, database_name: str = None,
+        cls, metadata: Union[Metadata, str, dict], database_name: str = None,
         table_location: str = None, run_msck_repair = False
     ):
+
+        metadata = Metadata.from_infer(metadata)
+
         boto_dict = cls.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
