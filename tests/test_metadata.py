@@ -286,7 +286,7 @@ def test_get_first_level(t, e):
             "k1:list<string>, k2:decimal128(0, 38), k3:struct<a:int64, b:int64>",
             ",",
             ["k1:list<string>", "k2:decimal128(0, 38)", "k3:struct<a:int64, b:int64>"],
-        )
+        ),
     ],
 )
 def test_parse_and_split(text, char, expected):
@@ -320,10 +320,7 @@ def test_parse_and_split(text, char, expected):
             "struct<num:int64,desc:string>",
             {"struct": {"num": "int64", "desc": "string"}},
         ),
-        (
-            "list_<decimal128(38,0)>",
-            {"list_": "decimal128(38,0)"},
-        ),
+        ("list_<decimal128(38,0)>", {"list_": "decimal128(38,0)"},),
         (
             "struct<a:timestamp[s], b:struct<f1:int32, f2:string, f3:decimal128(3,5)>>",
             {
@@ -540,13 +537,14 @@ def test_column_and_partition_functionality():
     with pytest.raises(ValueError):
         meta.columns = [{"name": "a", "type": "int8"}]
 
+
 @pytest.mark.parametrize(
     "patch_out,fake_input",
     [
         ("from_json", "not_a_real_file.json"),
         ("from_yaml", "not_a_real_yaml.yaml"),
         ("from_dict", {}),
-    ]
+    ],
 )
 def test_inferred_input(monkeypatch, patch_out, fake_input):
     monkeypatch.setattr(Metadata, patch_out, lambda x: True)

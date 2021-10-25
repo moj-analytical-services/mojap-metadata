@@ -84,15 +84,15 @@ def test_converter_accepts_type(meta_type):
         ("struct<num:int64,desc:string>", "struct<num:bigint,desc:string>", None),
         ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
         (
-            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>", # noqa
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>",  # noqa
             "struct<a:timestamp,b:struct<f1:int,f2:string,f3:decimal(3,5)>>",
             None,
         ),
         (
-            "struct<k1:list<string>, k2:string, k3:string, k4:string, k5:list<string>, k6:string>", # noqa
-            "struct<k1:array<string>,k2:string,k3:string,k4:string,k5:array<string>,k6:string>", # noqa
-            None
-        )
+            "struct<k1:list<string>, k2:string, k3:string, k4:string, k5:list<string>, k6:string>",  # noqa
+            "struct<k1:array<string>,k2:string,k3:string,k4:string,k5:array<string>,k6:string>",  # noqa
+            None,
+        ),
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
@@ -129,9 +129,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
 
     # DO DICT TEST
     spec = gc.generate_from_meta(md, database_name="test_db", table_location=table_path)
-    spec_default_opts = gc_default_opts.generate_from_meta(
-        md,
-    )
+    spec_default_opts = gc_default_opts.generate_from_meta(md,)
     assert spec == spec_default_opts
 
     with open(f"tests/data/glue_converter/{expected_file_name}.json") as f:
@@ -139,20 +137,17 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
 
     assert spec == expected_spec
 
+
 @pytest.mark.parametrize(
     "gc_kwargs,add_to_meta",
     [
+        ({}, {"table_location": "s3://bucket/meta/", "database_name": "meta"}),
+        ({"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, {}),
         (
-            {}, {"table_location": "s3://bucket/meta/", "database_name": "meta"}
+            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"},
+            {"table_location": "s3://bucket/meta/", "database_name": "meta"},
         ),
-        (
-            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, {}
-        ),
-        (
-            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, 
-            {"table_location": "s3://bucket/meta/", "database_name": "meta"}
-        )
-    ]
+    ],
 )
 def test_meta_property_inection_glue_converter_no_kwargs(
     gc_kwargs: dict, add_to_meta: dict
@@ -171,6 +166,6 @@ def test_meta_property_inection_glue_converter_no_kwargs(
     expected_in_boto_dict = gc_kwargs if gc_kwargs else add_to_meta
     # assert
     assert expected_in_boto_dict == {
-        "table_location": boto_dict["TableInput"]["StorageDescriptor"]["Location"], 
-        "database_name": boto_dict["DatabaseName"]
+        "table_location": boto_dict["TableInput"]["StorageDescriptor"]["Location"],
+        "database_name": boto_dict["DatabaseName"],
     }

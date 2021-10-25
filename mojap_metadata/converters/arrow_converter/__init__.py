@@ -242,9 +242,7 @@ class ArrowConverter(BaseConverter):
         return getattr(pa, attr_name)(*values)
 
     def generate_from_meta(
-        self,
-        metadata: Metadata,
-        drop_partitions: bool = True,
+        self, metadata: Metadata, drop_partitions: bool = True,
     ) -> pa.Schema:
         """Generates an arrow schema from our metadata
 

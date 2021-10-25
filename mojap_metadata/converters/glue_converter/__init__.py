@@ -33,6 +33,7 @@ def _inject_properties_factory(obj_name: str, props: List[str]):
     - props
         a list of property names that must match the kwarg names
     """
+
     def _inject_properties(func):
         def wrapper(*args, **kwargs):
             # get the args
@@ -40,7 +41,7 @@ def _inject_properties_factory(obj_name: str, props: List[str]):
             argmap = sig.bind_partial(*args, **kwargs).arguments
             # get the metadata object
             obj = argmap.get(obj_name)
-            for prop in props: # 
+            for prop in props:  #
                 # get property from kwargs. if present in both, warn user
                 if kwargs.get(prop) is not None and getattr(obj, prop) is not None:
                     logger.info(
@@ -52,7 +53,9 @@ def _inject_properties_factory(obj_name: str, props: List[str]):
                 elif kwargs.get(prop) is None and getattr(obj, prop) is not None:
                     kwargs[prop] = getattr(obj, prop)
             return func(*args, **kwargs)
+
         return wrapper
+
     return _inject_properties
 
 
@@ -312,10 +315,7 @@ class GlueConverter(BaseConverter):
 
     @_inject_properties_factory("metadata", ["database_name", "table_location"])
     def generate_from_meta(
-        self,
-        metadata: Metadata,
-        database_name: str = None,
-        table_location: str = None,
+        self, metadata: Metadata, database_name: str = None, table_location: str = None,
     ) -> dict:
         """Generates the Hive DDL from our metadata
 
@@ -399,8 +399,11 @@ class GlueTable:
 
     @classmethod
     def generate_from_meta(
-        cls, metadata: Union[Metadata, str, dict], database_name: str = None,
-        table_location: str = None, run_msck_repair = False
+        cls,
+        metadata: Union[Metadata, str, dict],
+        database_name: str = None,
+        table_location: str = None,
+        run_msck_repair=False,
     ):
 
         metadata = Metadata.from_infer(metadata)

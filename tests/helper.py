@@ -103,6 +103,7 @@ def assert_meta_col_conversion(
             fail_info = "Warnings raised when expected no warning on these conversions"
             pytest.fail(fail_info)
 
+
 def get_meta(ff: str, additional_params: dict):
     md = Metadata.from_dict(
         {
@@ -124,7 +125,7 @@ def get_meta(ff: str, additional_params: dict):
                 },
             ],
             "partitions": ["my_timestamp"],
-            **additional_params
+            **additional_params,
         }
     )
 

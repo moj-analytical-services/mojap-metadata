@@ -3,6 +3,7 @@ import io
 
 loggers = {}
 
+
 def logging_setup() -> logging.Logger:
 
     global loggers
