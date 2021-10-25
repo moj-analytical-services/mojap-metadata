@@ -2,7 +2,7 @@ import pytest
 import json
 
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
-
+from moto import mock_glue
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueConverterOptions,
@@ -137,6 +137,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     assert spec == expected_spec
 
 
+@mock_glue
 @pytest.mark.parametrize(
     "gc_kwargs,add_to_meta",
     [
