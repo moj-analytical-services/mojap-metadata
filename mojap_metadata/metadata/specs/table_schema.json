@@ -371,11 +371,11 @@
         },
         "database_name": {
             "type": "string",
-            "title": "name of the glue database to make the data in"
+            "title": "name of the database the data is in"
         },
         "table_location": {
             "type": "string",
-            "title": "s3 folder path of the data"
+            "title": "folder path of the data"
         },
         "columns": {
             "type": "array",

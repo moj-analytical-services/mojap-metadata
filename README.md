@@ -80,7 +80,7 @@ An example of a basic metadata schema:
     - **minLength / maxLength:** The minimum and maximum length of the string (for string type_categories only). _(Same as the standardised json schema keyword)._
     - **minimum / maximum:** The minumum and maximum value a numerical type can take (for integer and float type_categories only).
 - **partitions:** List of what columns in your dataset are partitions.
-- **table_location:** the location in s3 of the table. This is optional and primarily for overlaying schemas.
+- **table_location:** the location in of the table. This is optional and primarily for overlaying schemas.
 - **database_name:**  the name of the database this table belongs to. Optional as well for the same reason as table_location.
 
 #### Additional Schema Parameters

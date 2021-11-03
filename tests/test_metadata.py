@@ -24,6 +24,8 @@ from mojap_metadata.metadata.metadata import (
         ("description", "", "test", 0),
         ("file_format", "", "test", 0),
         ("sensitive", False, True, 0),
+        ("database_name", None, "a_database", 0),
+        ("table_location", None, "a_path/to/data/", 0)
     ],
 )
 def test_basic_attributes(
