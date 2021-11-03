@@ -26,7 +26,7 @@ moto = "^2.2.11"
 [tool.poetry.extras]
 arrow = ["pyarrow"]
 etl-manager = ["etl-manager"]
-pybtools = ["pydbtools"]
+pydbtools = ["pydbtools"]
 
 [build-system]
 requires = ["poetry>=0.12"]

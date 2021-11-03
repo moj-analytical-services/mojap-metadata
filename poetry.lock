@@ -941,12 +941,12 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [extras]
 arrow = ["pyarrow"]
 etl-manager = ["etl-manager"]
-pybtools = ["pydbtools"]
+pydbtools = ["pydbtools"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.10"
-content-hash = "c7ff49b4cf54afed9761fb743ac565e0c196cddd9578f1da5c09c6e6e430941f"
+content-hash = "e2a643fec94a2cdec5481f458d9b29ed6e7387b521e67a5ed5a105ab6e7e1d16"
 
 [metadata.files]
 asn1crypto = [
