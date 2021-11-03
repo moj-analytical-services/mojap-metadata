@@ -551,6 +551,12 @@ def test_column_and_partition_functionality():
         ("from_dict", {}),
     ],
 )
-def test_inferred_input(monkeypatch, patch_out, fake_input):
+def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
     monkeypatch.setattr(Metadata, patch_out, lambda x: True)
     assert Metadata.from_infer(fake_input)
+
+
+@pytest.mark.parametrize("fake_input", [0, 0.0, [], (), ])
+def test_inferred_input_fails(fake_input):
+    with pytest.raises(TypeError):
+        Metadata.from_infer(fake_input)

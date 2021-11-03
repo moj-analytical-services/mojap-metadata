@@ -109,7 +109,7 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
     ],
 )
 def test_generate_from_meta(spec_name, serde_name, expected_file_name):
-    md = get_meta(spec_name, {})
+    md = get_meta(spec_name)
 
     gc = GlueConverter()
     if spec_name == "csv":

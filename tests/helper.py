@@ -1,5 +1,5 @@
 import pytest
-from typing import Any
+from typing import Any, Optional
 from mojap_metadata import Metadata
 
 valid_types = (
@@ -104,7 +104,8 @@ def assert_meta_col_conversion(
             pytest.fail(fail_info)
 
 
-def get_meta(ff: str, additional_params: dict):
+def get_meta(ff: str, additional_params: Optional[dict] = None):
+    additional_params = {} if not additional_params else additional_params
     md = Metadata.from_dict(
         {
             "name": "test_table",

@@ -160,6 +160,13 @@ class MetadataProperty:
 class Metadata:
     @classmethod
     def from_dict(cls, d: dict) -> object:
+        """
+        generates Metadata object from a dictioanary representation of metadata
+        args:
+            d: metadata that adheres to the metadata schema
+        returns:
+            Metadata object
+        """
         m = cls()
         m._init_data_with_default_key_values(d)
         m.validate()
@@ -167,18 +174,42 @@ class Metadata:
 
     @classmethod
     def from_json(cls, filename, **kwargs) -> object:
+        """
+        generates Metadata object from a string path to a json metadata formatted file
+        args:
+            filename: path to the metadata json file
+        returns:
+            Metadata object
+        """
         with open(filename, "r") as f:
             obj = json.load(f, **kwargs)
             return cls.from_dict(obj)
 
     @classmethod
     def from_yaml(cls, filename, **kwargs) -> object:
+        """
+        generates Metadata object from a string path to a yaml metadata formatted file
+        args:
+            filename: path to the metadata yaml file
+        returns:
+            Metadata object
+        """
         with open(filename, "r") as f:
             obj = yaml.safe_load(f, **kwargs)
             return cls.from_dict(obj)
 
     @classmethod
     def from_infer(cls, inp, **kwargs) -> object:
+        """
+        generates Metadata object from and infers the format of the metadata input and
+        uses one of the above class methods to load. If passed a Metadata object, will
+        return that unchanged.
+        args:
+            inp: input that is either a string path to a yaml or json file, a dictionary
+            or a Metadata object
+        returns:
+            Metadata object
+        """
         if isinstance(inp, str) and inp.lower().endswith("json"):
             return cls.from_json(inp, **kwargs)
         elif isinstance(inp, str) and inp.lower().endswith("yaml"):
