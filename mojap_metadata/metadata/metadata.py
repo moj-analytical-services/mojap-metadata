@@ -188,7 +188,7 @@ class Metadata:
         elif isinstance(inp, cls):
             return inp
         else:
-            raise TypeError("input type not recognised")
+            raise TypeError("input type not recognised: {type(inp)}")
 
     name = MetadataProperty()
     description = MetadataProperty()
