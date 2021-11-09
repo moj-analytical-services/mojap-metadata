@@ -81,7 +81,7 @@ An example of a basic metadata schema:
     - **minimum / maximum:** The minumum and maximum value a numerical type can take (for integer and float type_categories only).
 - **partitions:** List of what columns in your dataset are partitions.
 - **table_location:** the location of the table. This is a string that can represent a file path, directory, url, etc.
-- **database_name:**  the name of the database this table belongs to
+- **database_name:**  the name of the database this table belongs to.
 
 #### Additional Schema Parameters
 
