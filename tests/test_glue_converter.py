@@ -9,7 +9,6 @@ from mojap_metadata.converters.glue_converter import (
     GlueConverterOptions,
     _default_type_converter,
 )
-from mojap_metadata.converters import BaseConverterOptions
 
 
 @pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
@@ -182,9 +181,8 @@ def test_gluetable_generate_from_meta(glue_client):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     # ignore the warnings as I don't want to run msck repair table
-    options = BaseConverterOptions
-    options.ignore_warnings = True
-    gt = GlueTable(options)
+    gt = GlueTable()
+    gt.options.ignore_warnings = True
     gt.generate_from_meta(meta)
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
@@ -198,8 +196,6 @@ def test_gluetable_msck_error(glue_client):
     )
 
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-    options = BaseConverterOptions
-    options.ignore_warnings = False
-    gt = GlueTable(options)
+    gt = GlueTable()
     with pytest.raises(ValueError):
         gt.generate_from_meta(meta)

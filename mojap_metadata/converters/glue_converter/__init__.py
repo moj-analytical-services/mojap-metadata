@@ -357,8 +357,10 @@ class GlueConverter(BaseConverter):
 
 
 class GlueTable(BaseConverter):
-    def __init__(self, glue_converter_options: GlueConverterOptions):
+    def __init__(self, glue_converter_options: GlueConverterOptions = None):
         super().__init__(None)
+        if glue_converter_options is None:
+            glue_converter_options = GlueConverterOptions()
         self.gc = GlueConverter(glue_converter_options)
 
     def generate_from_meta(
