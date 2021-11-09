@@ -8,7 +8,6 @@ from awswrangler.catalog import delete_table_if_exists
 from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import (
     BaseConverter,
-    BaseConverterOptions,
     _flatten_and_convert_complex_data_type,
 )
 import warnings
