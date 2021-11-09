@@ -1,11 +1,11 @@
 import pytest
 import json
 
-from tests.helper import assert_meta_col_conversion, valid_types
-
-from mojap_metadata import Metadata
+from tests.helper import assert_meta_col_conversion, valid_types, get_meta
+from moto import mock_glue
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
+    GlueTable,
     GlueConverterOptions,
     _default_type_converter,
 )
@@ -84,15 +84,15 @@ def test_converter_accepts_type(meta_type):
         ("struct<num:int64,desc:string>", "struct<num:bigint,desc:string>", None),
         ("list_<decimal128(38,0)>", "array<decimal(38,0)>", None),
         (
-            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>", # noqa
+            "struct<a:timestamp(s),b:struct<f1: int32, f2: string, f3:decimal128(3,5)>>",  # noqa
             "struct<a:timestamp,b:struct<f1:int,f2:string,f3:decimal(3,5)>>",
             None,
         ),
         (
-            "struct<k1:list<string>, k2:string, k3:string, k4:string, k5:list<string>, k6:string>", # noqa
-            "struct<k1:array<string>,k2:string,k3:string,k4:string,k5:array<string>,k6:string>", # noqa
-            None
-        )
+            "struct<k1:list<string>, k2:string, k3:string, k4:string, k5:list<string>, k6:string>",  # noqa
+            "struct<k1:array<string>,k2:string,k3:string,k4:string,k5:array<string>,k6:string>",  # noqa
+            None,
+        ),
     ],
 )
 def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
@@ -110,28 +110,7 @@ def test_meta_to_glue_type(meta_type, glue_type, expect_raises):
     ],
 )
 def test_generate_from_meta(spec_name, serde_name, expected_file_name):
-    md = Metadata.from_dict(
-        {
-            "name": "test_table",
-            "file_format": spec_name,
-            "columns": [
-                {
-                    "name": "my_int",
-                    "type": "int64",
-                    "description": "This is an integer",
-                },
-                {"name": "my_double", "type": "float64"},
-                {"name": "my_date", "type": "date64"},
-                {"name": "my_decimal", "type": "decimal128(10,2)"},
-                {
-                    "name": "my_timestamp",
-                    "type": "timestamp(s)",
-                    "description": "Partition column",
-                },
-            ],
-            "partitions": ["my_timestamp"],
-        }
-    )
+    md = get_meta(spec_name)
 
     gc = GlueConverter()
     if spec_name == "csv":
@@ -159,3 +138,64 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         expected_spec = json.load(f)
 
     assert spec == expected_spec
+
+
+@mock_glue
+@pytest.mark.parametrize(
+    "gc_kwargs,add_to_meta",
+    [
+        ({}, {"table_location": "s3://bucket/meta/", "database_name": "meta"}),
+        ({"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"}, {}),
+        (
+            {"table_location": "s3://bucket/kwarg/", "database_name": "kwarg"},
+            {"table_location": "s3://bucket/meta/", "database_name": "meta"},
+        ),
+    ],
+)
+def test_meta_or_kwarg_location_and_name(gc_kwargs: dict, add_to_meta: dict):
+    """
+    This will test the two optional metadata properties "table_location" and
+    "database_name" and that the glue converter correctly converts to a glue schema in 3
+    states: either present, both present
+    """
+    gc = GlueConverter()
+    # get the metadata with any additional properties
+    md = get_meta("csv", add_to_meta)
+    # convert it
+    boto_dict = gc.generate_from_meta(md, **gc_kwargs)
+    # get the correct dictionary to assert
+    expected_in_boto_dict = gc_kwargs if gc_kwargs else add_to_meta
+    # assert
+    assert expected_in_boto_dict == {
+        "table_location": boto_dict["TableInput"]["StorageDescriptor"]["Location"],
+        "database_name": boto_dict["DatabaseName"],
+    }
+
+
+def test_gluetable_generate_from_meta(glue_client):
+    meta = get_meta(
+        "csv",
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
+    )
+
+    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
+
+    # ignore the warnings as I don't want to run msck repair table
+    gt = GlueTable()
+    gt.options.ignore_warnings = True
+    gt.generate_from_meta(meta)
+
+    table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
+    assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+def test_gluetable_msck_warnings(glue_client):
+    meta = get_meta(
+        "csv",
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
+    )
+
+    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
+    gt = GlueTable()
+    with pytest.warns(Warning):
+        gt.generate_from_meta(meta)

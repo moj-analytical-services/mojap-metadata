@@ -369,6 +369,14 @@
             "title": "Columns used to partition the table",
             "default": []
         },
+        "database_name": {
+            "type": "string",
+            "title": "Name of the database the table belongs to."
+        },
+        "table_location": {
+            "type": "string",
+            "title": "Path to your data can be a folder path, filepath or URL."
+        },
         "columns": {
             "type": "array",
             "title": "The columns in the table. An array of objects",

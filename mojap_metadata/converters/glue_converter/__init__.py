@@ -1,8 +1,10 @@
 import os
 import json
+import boto3
 
+import pydbtools as pydb
 from typing import Tuple, List, Union
-
+from awswrangler.catalog import delete_table_if_exists
 from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import (
     BaseConverter,
@@ -12,6 +14,7 @@ import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
+
 
 # Format generictype: (glue_type, is_fully_supported)
 # If not fully supported we decide on best option
@@ -292,6 +295,11 @@ class GlueConverter(BaseConverter):
             dict: for Glue API
         """
 
+        # set database_name to metadata.database_name if none
+        database_name = database_name if database_name else metadata.database_name
+        # do the same with table_location
+        table_location = table_location if table_location else metadata.table_location
+
         ff = metadata.file_format
         if ff.startswith("csv"):
             opts = self.options.csv
@@ -343,6 +351,72 @@ class GlueConverter(BaseConverter):
             partitions=partition_cols,
         )
         return spec
+
+    def generate_to_meta(self, glue_schema: Union[dict, str]):
+        raise NotImplementedError()
+
+
+class GlueTable(BaseConverter):
+    def __init__(self, glue_converter_options: GlueConverterOptions = None):
+        super().__init__(None)
+        self.gc = GlueConverter(glue_converter_options)
+
+    def generate_from_meta(
+        self,
+        metadata: Union[Metadata, str, dict],
+        database_name: str = None,
+        table_location: str = None,
+        run_msck_repair=False,
+    ):
+        """
+        Creates a glue table from metadata
+        arguments:
+            - metadata: Metadata object, string path, or dictionary metadata.
+            - database_name (optional): name of the glue database the table is to be
+            created in. can also be a property of the metadata.
+            - table_location (optional): the s3 location of the table. can also be a
+            property of the metadata.
+            - run_msck_repair (optional): run msck repair table on the created table,
+            should be set to True for tables with partitions.
+        Raises:
+            - ValueError if run_msck_repair table is False, metadata has partitions, and
+            options.ignore_warnings is set to False
+        """
+
+        # set database_name to metadata.database_name if none
+        database_name = database_name if database_name else metadata.database_name
+        # do the same with table_location
+        table_location = table_location if table_location else metadata.table_location
+
+        glue_client = boto3.client(
+            "glue",
+            region_name=os.getenv(
+                "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "eu-west-1")
+            ),
+        )
+        metadata = Metadata.from_infer(metadata)
+        boto_dict = self.gc.generate_from_meta(
+            metadata, database_name=database_name, table_location=table_location
+        )
+        delete_table_if_exists(database=database_name, table=metadata.name)
+        glue_client.create_table(**boto_dict)
+
+        if (
+            not run_msck_repair
+            and metadata.partitions
+            and not self.options.ignore_warnings
+        ):
+            w = (
+                "metadata has partitions and run_msck_reapair is set to false. To "
+                "To supress these warnings set this converters "
+                "options.ignore_warnings = True"
+            )
+            warnings.warn(w)
+        elif run_msck_repair:
+            pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
+
+    def generate_to_meta(self, database_name: str, table_name: str) -> Metadata:
+        raise NotImplementedError("awaitng generate_to_meta in GlueConverter")
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:

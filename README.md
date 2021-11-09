@@ -76,10 +76,12 @@ An example of a basic metadata schema:
     - **type_category:** These group different sets of `type` properties into a single superset. These are: `integer`, `float`, `string`, `timestamp`, `bool`, `list`, `struct`. For example we class `int8, int16, int32, int64, uint8, uint16, uint32, uint64` as `integer`. It allows users to give more generic types if your data is not coming from a system or output with strict types (i.e. data exported from Excel or an unknown origin). The Metadata class has default type values for each given `type_category`. See the `default_type_category_lookup` attribute of the `Metadata` class to see said defaults. This field is required if `type` is not set.
     - **description:** Description of the column.
     - **enum:** List of what values that column can take. _(Same as the standardised json schema keyword)._
-    - **pattern**: Regex pattern that value has to to match (for string type_categories only). _(Same as the standardised json schema keyword)._
-    - **minLength / maxLength**: The minimum and maximum length of the string (for string type_categories only). _(Same as the standardised json schema keyword)._
-    - **minimum / maximum**: The minumum and maximum value a numerical type can take (for integer and float type_categories only).
-- **partitions**: List of what columns in your dataset are partitions.
+    - **pattern:** Regex pattern that value has to to match (for string type_categories only). _(Same as the standardised json schema keyword)._
+    - **minLength / maxLength:** The minimum and maximum length of the string (for string type_categories only). _(Same as the standardised json schema keyword)._
+    - **minimum / maximum:** The minumum and maximum value a numerical type can take (for integer and float type_categories only).
+- **partitions:** List of what columns in your dataset are partitions.
+- **table_location:** the location of the table. This is a string that can represent a file path, directory, url, etc.
+- **database_name:**  the name of the database this table belongs to.
 
 #### Additional Schema Parameters
 
@@ -167,6 +169,8 @@ If set to `"start"` or `"end"` then any changes to partitions will affect the co
 meta.force_partition_order = "start"
 meta.column_names # ["b", "a" ,"c"]
 ```
+
+### Generating Metdata objects
 
 <hr>
 
@@ -257,6 +261,12 @@ All converter classes are sub classes of the `mojap_metadata.converters.BaseConv
 - **generate_to_meta:** (function) takes Any object (normally another schema for another system or package) and returns our Metadata object. (i.e. the reverse of generate_from_meta).
 
 - **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
+
+included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
+- **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
+    - _metadata:_ the metadata object, dict, or string path that is to be overlaid
+    - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
+    - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
 
 
 ## Further Usage

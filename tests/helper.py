@@ -1,5 +1,6 @@
 import pytest
-from typing import Any
+from typing import Any, Optional
+from mojap_metadata import Metadata
 
 valid_types = (
     "null",
@@ -101,3 +102,32 @@ def assert_meta_col_conversion(
         if len(record) != 0:
             fail_info = "Warnings raised when expected no warning on these conversions"
             pytest.fail(fail_info)
+
+
+def get_meta(ff: str, additional_params: Optional[dict] = None):
+    additional_params = {} if not additional_params else additional_params
+    md = Metadata.from_dict(
+        {
+            "name": "test_table",
+            "file_format": ff,
+            "columns": [
+                {
+                    "name": "my_int",
+                    "type": "int64",
+                    "description": "This is an integer",
+                },
+                {"name": "my_double", "type": "float64"},
+                {"name": "my_date", "type": "date64"},
+                {"name": "my_decimal", "type": "decimal128(10,2)"},
+                {
+                    "name": "my_timestamp",
+                    "type": "timestamp(s)",
+                    "description": "Partition column",
+                },
+            ],
+            "partitions": ["my_timestamp"],
+            **additional_params,
+        }
+    )
+
+    return md

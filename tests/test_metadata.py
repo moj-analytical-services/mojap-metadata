@@ -24,6 +24,8 @@ from mojap_metadata.metadata.metadata import (
         ("description", "", "test", 0),
         ("file_format", "", "test", 0),
         ("sensitive", False, True, 0),
+        ("database_name", None, "a_database", 0),
+        ("table_location", None, "a_path/to/data/", 0),
     ],
 )
 def test_basic_attributes(
@@ -286,7 +288,7 @@ def test_get_first_level(t, e):
             "k1:list<string>, k2:decimal128(0, 38), k3:struct<a:int64, b:int64>",
             ",",
             ["k1:list<string>", "k2:decimal128(0, 38)", "k3:struct<a:int64, b:int64>"],
-        )
+        ),
     ],
 )
 def test_parse_and_split(text, char, expected):
@@ -539,3 +541,30 @@ def test_column_and_partition_functionality():
 
     with pytest.raises(ValueError):
         meta.columns = [{"name": "a", "type": "int8"}]
+
+
+@pytest.mark.parametrize(
+    "patch_out,fake_input",
+    [
+        ("from_json", "not_a_real_file.json"),
+        ("from_yaml", "not_a_real_yaml.yaml"),
+        ("from_dict", {}),
+    ],
+)
+def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
+    monkeypatch.setattr(Metadata, patch_out, lambda x: True)
+    assert Metadata.from_infer(fake_input)
+
+
+@pytest.mark.parametrize(
+    "fake_input",
+    [
+        0,
+        0.0,
+        [],
+        (),
+    ],
+)
+def test_inferred_input_fails(fake_input):
+    with pytest.raises(TypeError):
+        Metadata.from_infer(fake_input)
