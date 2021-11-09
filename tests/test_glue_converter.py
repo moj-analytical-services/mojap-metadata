@@ -189,7 +189,7 @@ def test_gluetable_generate_from_meta(glue_client):
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-def test_gluetable_msck_error(glue_client):
+def test_gluetable_msck_warnings(glue_client):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
@@ -197,5 +197,5 @@ def test_gluetable_msck_error(glue_client):
 
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
-    with pytest.raises(ValueError):
+    with pytest.warns(Warning):
         gt.generate_from_meta(meta)

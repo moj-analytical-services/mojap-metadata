@@ -408,12 +408,12 @@ class GlueTable(BaseConverter):
             and metadata.partitions
             and not self.options.ignore_warnings
         ):
-            error_msg = (
+            w = (
                 "metadata has partitions and run_msck_reapair is set to false. To "
                 "To supress these warnings set this converters "
                 "options.ignore_warnings = True"
             )
-            raise ValueError(error_msg)
+            warnings.warn(w)
         elif run_msck_repair:
             pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
 
