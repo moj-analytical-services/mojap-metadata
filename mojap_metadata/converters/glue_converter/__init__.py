@@ -358,7 +358,6 @@ class GlueConverter(BaseConverter):
 
 
 class GlueTable(BaseConverter):
-
     def __init__(self, glue_converter_options: GlueConverterOptions):
         super().__init__(None)
         self.gc = GlueConverter(glue_converter_options)
@@ -378,7 +377,7 @@ class GlueTable(BaseConverter):
             created in. can also be a property of the metadata.
             - table_location (optional): the s3 location of the table. can also be a
             property of the metadata.
-            - run_msck_repair (optional): run msck repair table on the created table, 
+            - run_msck_repair (optional): run msck repair table on the created table,
             should be set to True for tables with partitions.
         Raises:
             - ValueError if run_msck_repair table is False, metadata has partitions, and
