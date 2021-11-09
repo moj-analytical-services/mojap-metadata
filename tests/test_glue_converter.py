@@ -198,6 +198,8 @@ def test_gluetable_msck_error(glue_client):
     )
 
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-    gt = GlueTable()
+    options = BaseConverterOptions
+    options.ignore_warnings = False
+    gt = GlueTable(options)
     with pytest.raises(ValueError):
         gt.generate_from_meta(meta)
