@@ -1,7 +1,5 @@
-from typing import List
 import pytest
 import json
-import boto3
 
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue

@@ -1,4 +1,3 @@
-from logging import error
 import os
 import json
 import boto3
