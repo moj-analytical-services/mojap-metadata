@@ -178,7 +178,7 @@ def test_meta_or_kwarg_location_and_name(gc_kwargs: dict, add_to_meta: dict):
 def test_gluetable_generate_from_meta(glue_client):
     meta = get_meta(
         "csv",
-        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"}
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
@@ -196,7 +196,7 @@ def test_gluetable_generate_from_meta(glue_client):
 def test_gluetable_msck_error(glue_client):
     meta = get_meta(
         "csv",
-        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"}
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})

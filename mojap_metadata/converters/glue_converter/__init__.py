@@ -370,7 +370,7 @@ class GlueTable(BaseConverter):
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair = False,
+        run_msck_repair=False,
     ):
 
         # set database_name to metadata.database_name if none
@@ -379,9 +379,10 @@ class GlueTable(BaseConverter):
         table_location = table_location if table_location else metadata.table_location
 
         glue_client = boto3.client(
-            "glue", region_name=os.getenv(
+            "glue",
+            region_name=os.getenv(
                 "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "eu-west-1")
-            )
+            ),
         )
         metadata = Metadata.from_infer(metadata)
         boto_dict = self.gc.generate_from_meta(
@@ -390,7 +391,11 @@ class GlueTable(BaseConverter):
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
 
-        if not run_msck_repair and metadata.partitions and not self.options.ignore_warnings:
+        if (
+            not run_msck_repair
+            and metadata.partitions
+            and not self.options.ignore_warnings
+        ):
             error_msg = (
                 "metadata has partitions and run_msck_reapair is set to false. To "
                 "To supress these warnings set this converters "

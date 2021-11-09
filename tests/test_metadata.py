@@ -25,7 +25,7 @@ from mojap_metadata.metadata.metadata import (
         ("file_format", "", "test", 0),
         ("sensitive", False, True, 0),
         ("database_name", None, "a_database", 0),
-        ("table_location", None, "a_path/to/data/", 0)
+        ("table_location", None, "a_path/to/data/", 0),
     ],
 )
 def test_basic_attributes(
@@ -556,7 +556,15 @@ def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
     assert Metadata.from_infer(fake_input)
 
 
-@pytest.mark.parametrize("fake_input", [0, 0.0, [], (), ])
+@pytest.mark.parametrize(
+    "fake_input",
+    [
+        0,
+        0.0,
+        [],
+        (),
+    ],
+)
 def test_inferred_input_fails(fake_input):
     with pytest.raises(TypeError):
         Metadata.from_infer(fake_input)

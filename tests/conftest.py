@@ -4,6 +4,7 @@ import pytest
 
 from moto import mock_glue
 
+
 @pytest.fixture(scope="function")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
@@ -13,7 +14,7 @@ def aws_credentials():
         "AWS_SECURITY_TOKEN",
         "AWS_SESSION_TOKEN",
         "AWS_REGION",
-        "AWS_DEFAULT_REGION"
+        "AWS_DEFAULT_REGION",
     ]
     for menv in mocked_envs:
         os.environ[menv] = "testing"
