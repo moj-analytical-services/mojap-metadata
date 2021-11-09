@@ -80,8 +80,8 @@ An example of a basic metadata schema:
     - **minLength / maxLength:** The minimum and maximum length of the string (for string type_categories only). _(Same as the standardised json schema keyword)._
     - **minimum / maximum:** The minumum and maximum value a numerical type can take (for integer and float type_categories only).
 - **partitions:** List of what columns in your dataset are partitions.
-- **table_location:** the location in of the table. This is optional and primarily for overlaying schemas.
-- **database_name:**  the name of the database this table belongs to. Optional as well for the same reason as table_location.
+- **table_location:** the location of the table. This is a string that can represent a file path, directory, url, etc. (optional)
+- **database_name:**  the name of the database this table belongs to (optional)
 
 #### Additional Schema Parameters
 
@@ -169,6 +169,8 @@ If set to `"start"` or `"end"` then any changes to partitions will affect the co
 meta.force_partition_order = "start"
 meta.column_names # ["b", "a" ,"c"]
 ```
+
+### Generating Metdata objects
 
 <hr>
 
@@ -260,10 +262,10 @@ All converter classes are sub classes of the `mojap_metadata.converters.BaseConv
 
 - **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
 
-included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has two methods:
+included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
 - **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
     - _metadata:_ the metadata object, dict, or string path that is to be overlaid
-    - _table_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
+    - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
     - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
 
 

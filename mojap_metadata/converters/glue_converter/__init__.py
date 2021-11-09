@@ -359,10 +359,9 @@ class GlueConverter(BaseConverter):
 
 class GlueTable(BaseConverter):
 
-    gc = GlueConverter()
-
-    def __init__(self, options: BaseConverterOptions = BaseConverterOptions):
-        super().__init__(options)
+    def __init__(self, glue_converter_options: GlueConverterOptions):
+        super().__init__(None)
+        self.gc = GlueConverter(glue_converter_options)
 
     def generate_from_meta(
         self,
@@ -371,6 +370,20 @@ class GlueTable(BaseConverter):
         table_location: str = None,
         run_msck_repair=False,
     ):
+        """
+        Creates a glue table from metadata
+        arguments:
+            - metadata: Metadata object, string path, or dictionary metadata.
+            - database_name (optional): name of the glue database the table is to be
+            created in. can also be a property of the metadata.
+            - table_location (optional): the s3 location of the table. can also be a
+            property of the metadata.
+            - run_msck_repair (optional): run msck repair table on the created table, 
+            should be set to True for tables with partitions.
+        Raises:
+            - ValueError if run_msck_repair table is False, metadata has partitions, and
+            options.ignore_warnings is set to False
+        """
 
         # set database_name to metadata.database_name if none
         database_name = database_name if database_name else metadata.database_name
