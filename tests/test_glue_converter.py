@@ -1,13 +1,17 @@
+from typing import List
 import pytest
 import json
+import boto3
 
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
+    GlueTable,
     GlueConverterOptions,
     _default_type_converter,
 )
+from mojap_metadata.converters import BaseConverterOptions
 
 
 @pytest.mark.parametrize(argnames="meta_type", argvalues=valid_types)
@@ -151,7 +155,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
         ),
     ],
 )
-def test_meta_property_inection_glue_converter(gc_kwargs: dict, add_to_meta: dict):
+def test_meta_or_kwarg_location_and_name(gc_kwargs: dict, add_to_meta: dict):
     """
     This will test the two optional metadata properties "table_location" and
     "database_name" and that the glue converter correctly converts to a glue schema in 3
@@ -169,3 +173,33 @@ def test_meta_property_inection_glue_converter(gc_kwargs: dict, add_to_meta: dic
         "table_location": boto_dict["TableInput"]["StorageDescriptor"]["Location"],
         "database_name": boto_dict["DatabaseName"],
     }
+
+
+def test_gluetable_generate_from_meta(glue_client):
+    meta = get_meta(
+        "csv",
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"}
+    )
+
+    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
+
+    # ignore the warnings as I don't want to run msck repair table
+    options = BaseConverterOptions
+    options.ignore_warnings = True
+    gt = GlueTable(options)
+    gt.generate_from_meta(meta)
+
+    table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
+    assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+def test_gluetable_msck_error(glue_client):
+    meta = get_meta(
+        "csv",
+        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"}
+    )
+
+    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
+    gt = GlueTable()
+    with pytest.raises(ValueError):
+        gt.generate_from_meta(meta)

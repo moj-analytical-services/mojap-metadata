@@ -1,5 +1,5 @@
+from logging import error
 import os
-import inspect
 import json
 import boto3
 
@@ -9,54 +9,13 @@ from awswrangler.catalog import delete_table_if_exists
 from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
 from mojap_metadata.converters import (
     BaseConverter,
+    BaseConverterOptions,
     _flatten_and_convert_complex_data_type,
 )
 import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
-from mojap_metadata.logging_functions import logging_setup
-
-
-logger = logging_setup()
-
-
-# decorator for replacing arguemnts with object properties
-def _inject_properties_factory(obj_name: str, props: List[str]):
-    """
-    Using this as a decorator will replace kwargs with object properties if they don't
-    exist as kwargs already.
-    args:
-    - obj_name
-        the name of the argument in the function that contains properties to sub in as
-        kwargs
-    - props
-        a list of property names that must match the kwarg names
-    """
-
-    def _inject_properties(func):
-        def wrapper(*args, **kwargs):
-            # get the args
-            sig = inspect.signature(func)
-            argmap = sig.bind_partial(*args, **kwargs).arguments
-            # get the metadata object
-            obj = argmap.get(obj_name)
-            for prop in props:  #
-                # get property from kwargs. if present in both, warn user
-                if kwargs.get(prop) is not None and getattr(obj, prop) is not None:
-                    logger.info(
-                        f"{prop} in kwargs and present in {obj_name}. using kwarg. "
-                        f"specified in kwargs: '{kwargs.get(prop)}' "
-                        f"specified in {obj_name}: '{getattr(obj, prop)}'"
-                    )
-                # if it isn't present in kwargs, populate it from the metadata
-                elif kwargs.get(prop) is None and getattr(obj, prop) is not None:
-                    kwargs[prop] = getattr(obj, prop)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return _inject_properties
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -313,7 +272,6 @@ class GlueConverter(BaseConverter):
                     cols[-1]["Comment"] = c["description"]
         return cols, partitions
 
-    @_inject_properties_factory("metadata", ["database_name", "table_location"])
     def generate_from_meta(
         self,
         metadata: Metadata,
@@ -338,6 +296,11 @@ class GlueConverter(BaseConverter):
         Returns:
             dict: for Glue API
         """
+
+        # set database_name to metadata.database_name if none
+        database_name = database_name if database_name else metadata.database_name
+        # do the same with table_location
+        table_location = table_location if table_location else metadata.table_location
 
         ff = metadata.file_format
         if ff.startswith("csv"):
@@ -391,42 +354,53 @@ class GlueConverter(BaseConverter):
         )
         return spec
 
-    def generate_to_meta():
+    def generate_to_meta(self, glue_schema: Union[dict, str]):
         raise NotImplementedError()
 
 
-class GlueTable:
+class GlueTable(BaseConverter):
 
     gc = GlueConverter()
 
-    @classmethod
+    def __init__(self, options: BaseConverterOptions = BaseConverterOptions):
+        super().__init__(options)
+
     def generate_from_meta(
-        cls,
+        self,
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair=False,
+        run_msck_repair = False,
     ):
-        glue_client = boto3.client("glue")
 
+        # set database_name to metadata.database_name if none
+        database_name = database_name if database_name else metadata.database_name
+        # do the same with table_location
+        table_location = table_location if table_location else metadata.table_location
+
+        glue_client = boto3.client(
+            "glue", region_name=os.getenv(
+                "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "eu-west-1")
+            )
+        )
         metadata = Metadata.from_infer(metadata)
-
-        boto_dict = cls.gc.generate_from_meta(
+        boto_dict = self.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
-        if not run_msck_repair and metadata.partitions:
-            logger.info(
-                "partitions are present in the metadata, but msck repair table not run"
-            )
-        elif run_msck_repair:
-            # get the correct database_name
-            db_name = database_name if database_name else metadata.database_name
-            pydb.read_sql_query(f"msck repair table {db_name}.{metadata.name}")
 
-    @classmethod
-    def generate_to_meta(cls, database_name: str, table_name: str) -> Metadata:
+        if not run_msck_repair and metadata.partitions and not self.options.ignore_warnings:
+            error_msg = (
+                "metadata has partitions and run_msck_reapair is set to false. To "
+                "To supress these warnings set this converters "
+                "options.ignore_warnings = True"
+            )
+            raise ValueError(error_msg)
+        elif run_msck_repair:
+            pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
+
+    def generate_to_meta(self, database_name: str, table_name: str) -> Metadata:
         raise NotImplementedError("awaitng generate_to_meta in GlueConverter")
 
 
