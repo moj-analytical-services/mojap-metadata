@@ -568,3 +568,16 @@ def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
 def test_inferred_input_fails(fake_input):
     with pytest.raises(TypeError):
         Metadata.from_infer(fake_input)
+
+
+@pytest.mark.parametrize(
+    "meta_col",
+    [
+        [{"name": "i", "type": "string"}],
+        [{"name": "i", "type_category": "string"}],
+    ],
+)
+def test_type_and_type_cat_always_available(meta_col):
+    # get the metadata
+    meta = Metadata(columns=meta_col)
+    assert "type" in meta.get_column("i") and "type_category" in meta.get_column("i")
