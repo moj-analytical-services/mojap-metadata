@@ -577,7 +577,31 @@ def test_inferred_input_fails(fake_input):
         [{"name": "i", "type_category": "string"}],
     ],
 )
-def test_type_and_type_cat_always_available(meta_col):
+def test_type_and_type_cat_always_available_from_init(meta_col):
     # get the metadata
     meta = Metadata(columns=meta_col)
+    assert "type" in meta.get_column("i") and "type_category" in meta.get_column("i")
+
+
+@pytest.mark.parametrize(
+    "meta_dict",
+    [
+        {
+            "$schema": _schema_url,
+            "name": "test",
+            "description": "test",
+            "file_format": "test",
+            "columns": [{"name": "i", "type": "null"}],
+        },
+        {
+            "$schema": _schema_url,
+            "name": "test",
+            "description": "test",
+            "file_format": "test",
+            "columns": [{"name": "i", "type_category": "null"}],
+        }
+    ]
+)
+def test_type_and_type_cat_always_available_from_dict(meta_dict):
+    meta = Metadata.from_dict(meta_dict)
     assert "type" in meta.get_column("i") and "type_category" in meta.get_column("i")

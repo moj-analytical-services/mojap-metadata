@@ -1,5 +1,6 @@
 import re
 import json
+from jsonschema.validators import validate
 
 import yaml
 import warnings
@@ -267,8 +268,7 @@ class Metadata:
         }
 
         self.force_partition_order = force_partition_order
-        self.set_col_types_from_type_category()
-        self.set_col_type_category_from_types()
+        self.validate()
 
     @property
     def force_partition_order(self):
@@ -401,6 +401,8 @@ class Metadata:
         jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
+        self.set_col_types_from_type_category(validate=False)
+        self.set_col_type_category_from_types()
 
     def _validate_list_attribute(self, attribute: str, columns: list) -> None:
         if not isinstance(columns, list):
@@ -457,7 +459,9 @@ class Metadata:
                         col["type_category"] = type_cat
                         break
 
-    def set_col_types_from_type_category(self, type_category_lookup: Callable = None):
+    def set_col_types_from_type_category(
+        self, type_category_lookup: Callable = None, validate = True
+    ):
         """Set any missing type attribute for each column
         based on the type_category attribute.
 
@@ -502,5 +506,5 @@ class Metadata:
                 if new_type is None:
                     raise ValueError(f"No type returned for col: {col}")
                 col["type"] = new_type
-
-        self.validate()
+        if validate:
+            self.validate()
