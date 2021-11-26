@@ -401,8 +401,6 @@ class Metadata:
         jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
-        self.set_col_types_from_type_category()
-        self.set_col_type_category_from_types()
 
     def _validate_list_attribute(self, attribute: str, columns: list) -> None:
         if not isinstance(columns, list):
