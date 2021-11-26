@@ -1,6 +1,5 @@
 import re
 import json
-from jsonschema.validators import validate
 
 import yaml
 import warnings
