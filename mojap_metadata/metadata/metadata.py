@@ -266,8 +266,9 @@ class Metadata:
             "struct": "struct<null>",
         }
 
-        self.validate()
         self.force_partition_order = force_partition_order
+        self.set_col_types_from_type_category()
+        self.set_col_type_category_from_types()
 
     @property
     def force_partition_order(self):
