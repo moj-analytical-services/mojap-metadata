@@ -501,5 +501,5 @@ class Metadata:
                 if new_type is None:
                     raise ValueError(f"No type returned for col: {col}")
                 col["type"] = new_type
-                
+
         self.validate()
