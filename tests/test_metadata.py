@@ -212,7 +212,7 @@ def test_to_dict():
         description="test",
         file_format="test",
         sensitive=False,
-        columns=[{"name": "test", "type": "null", "type_category": "null"}],
+        columns=[{"name": "test", "type": "null"}],
         primary_key=["test"],
         partitions=["test"],
     )
@@ -222,7 +222,7 @@ def test_to_dict():
         "description": "test",
         "file_format": "test",
         "sensitive": False,
-        "columns": [{"name": "test", "type": "null", "type_category": "null"}],
+        "columns": [{"name": "test", "type": "null"}],
         "primary_key": ["test"],
         "partitions": ["test"],
     }

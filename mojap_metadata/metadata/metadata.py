@@ -266,8 +266,8 @@ class Metadata:
             "struct": "struct<null>",
         }
 
-        self.force_partition_order = force_partition_order
         self.validate()
+        self.force_partition_order = force_partition_order
 
     @property
     def force_partition_order(self):
