@@ -3,9 +3,8 @@ import pandas as pd
 
 
 from mojap_metadata.extractors import postgres_metadata as m
-from sqlalchemy.types import *
+from sqlalchemy.types import Integer, Float, String, DateTime, Date
 from pathlib import Path
-
 
 TEST_ROOT = Path(__file__).resolve().parent
 
@@ -47,7 +46,7 @@ class TestPostgressExtractorClass:
 
             # Sample comment for column for testing
             engine.connect().execute(
-                f"""COMMENT ON COLUMN public.postgres_table1.my_int IS 'This is the int column';COMMIT;"""
+                """COMMENT ON COLUMN public.postgres_table1.my_int IS 'This is the int column';COMMIT;"""
             )
 
     def test_connection(self, postgres_connection):
