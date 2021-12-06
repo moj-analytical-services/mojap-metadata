@@ -1,6 +1,6 @@
-def list_schemas(conn):
+def list_schemas(connection):
     """List non-system schemas in a database."""
-    response = conn.execute(
+    response = connection.execute(
         """
         SELECT schema_name
         FROM information_schema.schemata
@@ -16,10 +16,10 @@ def list_schemas(conn):
     return [r[0] for r in response if r[0] not in system_schemas]
 
 
-def list_tables(conn, schema="public"):
+def list_tables(connection, schema="public"):
     """List tables in a database."""
     # WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'
-    response = conn.execute(
+    response = connection.execute(
         f"""
         SELECT tablename
         FROM pg_catalog.pg_tables
@@ -29,9 +29,9 @@ def list_tables(conn, schema="public"):
     return [r[0] for r in response]
 
 
-def list_dbs(conn):
-    """List databases from a connection."""
-    response = conn.execute(
+def list_dbs(connection):
+    """List databases from a connectionection."""
+    response = connection.execute(
         """
         SELECT datname
         FROM pg_database
@@ -40,9 +40,9 @@ def list_dbs(conn):
     return [r[0] for r in response]
 
 
-def list_meta_data(conn, table_name, schema) -> list:
-
-    response = conn.execute(
+def list_meta_data(connection, table_name, schema) -> list:
+    """List metadata  for  table in a particular schema"""
+    response = connection.execute(
         f""" SELECT
              cols.column_name, cols.data_type, cols.is_nullable, 
              col_description((table_schema||'.'||table_name)::regclass::oid, ordinal_position) as column_comment

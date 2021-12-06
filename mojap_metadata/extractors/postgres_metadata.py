@@ -5,6 +5,15 @@ import mojap_metadata.extractors.postgres_functions as pg
 
 
 def convert_to_mojap_type(ct: str) -> str:
+    """Converts our postgress datatypes to mojap-metadata types
+
+    Args:
+        ct (str): str representation of postgres column types
+
+    Returns:
+        str: String representation of our metadata column types
+    """
+
     if ct in ["int8", "bigint"]:
         t = "int64"
     elif ct in ["int2", "int4", "integer", "smallint"]:
@@ -25,11 +34,22 @@ def convert_to_mojap_type(ct: str) -> str:
         t = "timestamp(ms)"
     else:
         t = "string"
+        # warning
 
     return t
 
 
 def get_object_meta(connection, table, schema) -> Metadata:
+    """Extracts metadata from table and converts to mojap metadata format
+
+    Args:
+        connection: Database connection
+        table: table name
+        schema: schema name
+
+    Returns:
+        Metadata: Metadata object
+    """
 
     rows = pg.list_meta_data(connection, table, schema)
     columns = []
@@ -53,10 +73,20 @@ def get_object_meta(connection, table, schema) -> Metadata:
 
 
 def get_object_meta_for_all_tables(connection):
+    """Extracts metadata from all the schema and tables and returns a list
+        of Metadata objects
 
+    Args:
+        connection: Database connection with database details specified in connection
+
+    Returns:
+        Metadata: Metadata object
+    """
     meta_list_per_schema = defaultdict(list)
 
-    schema_names = pg.list_schemas(connection)
+    schema_names = pg.list_schemas(
+        connection
+    )  # database name will be passed on in the connection
 
     for schema in sorted(schema_names):
         table_names = pg.list_tables(connection, schema)

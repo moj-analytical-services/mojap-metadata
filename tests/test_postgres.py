@@ -3,8 +3,8 @@ import pandas as pd
 
 
 from mojap_metadata.extractors import postgres_metadata as m
-from pathlib import Path
 from sqlalchemy.types import *
+from pathlib import Path
 
 
 TEST_ROOT = Path(__file__).resolve().parent
@@ -38,7 +38,7 @@ class TestDBClass:
             }
             tabledf.to_sql(
                 filename,
-                postgres_connection[0],
+                engine,
                 if_exists="replace",
                 index=False,
                 dtype=dtypedict,
@@ -51,7 +51,8 @@ class TestDBClass:
 
     def test_connection(self, postgres_connection):
         pgsql = postgres_connection[1]
-        assert postgres_connection[0] is not None
+        engine = postgres_connection[0]
+        assert engine is not None
         assert ("system is ready to accept connections") in pgsql.read_bootlog()
 
     def test_dsn_and_url(self, postgres_connection):
@@ -67,18 +68,17 @@ class TestDBClass:
         assert pgsql.url() == "postgresql://postgres@127.0.0.1:5433/test"
 
     def test_meta_data_object_list(self, postgres_connection):
-        conn = postgres_connection[0].connect()
+        engine = postgres_connection[0].connect()
         self.load_data(postgres_connection)
-        output = m.get_object_meta_for_all_tables(conn)
+        output = m.get_object_meta_for_all_tables(engine)
 
         for i in output.items():
-            print(i)
             assert len(i[1]) == 2
             assert i[0] == "schema: public"
 
     def test_meta_data_object(self, postgres_connection):
-        conn = postgres_connection[0].connect()
-        meta = m.get_object_meta(conn, "postgres_table1", "public")
+        engine = postgres_connection[0].connect()
+        meta = m.get_object_meta(engine, "postgres_table1", "public")
         assert len(meta.columns) == 9
         assert meta.columns[0]["description"] == "This is the int column"
         assert meta.column_names == [
@@ -94,7 +94,6 @@ class TestDBClass:
         ]
 
 
-# Update read me file
-
 # Add comments  to function
-# Add datatype  whilw creating table
+# Add datatype  while creating table
+# Two data table - is it needed

@@ -37,11 +37,7 @@ def glue_client(aws_credentials):
 @pytest.fixture(scope="session")
 def postgres_connection():
 
-    DROP_DB = "DROP DATABASE %s WITH (FORCE);"
-
-    psql = testing.postgresql.Postgresql(
-        port=5433
-    )  # Whats the use  of this. Can we not have a sample dummy dict
+    psql = testing.postgresql.Postgresql(port=5433)
     info = psql.dsn()
 
     connection = psycopg2.connect(
@@ -53,10 +49,6 @@ def postgres_connection():
     )
     connection.autocommit = True
     engine = create_engine(psql.url())
-    yield engine, psql, connection
-
-    # connection.autocommit = True
-    # connection.cursor().execute("TRUNCATE TABLE public.postgres_table1")
-    # connection.cursor().execute("TRUNCATE TABLE public.postgres_table2")
+    yield engine, psql, connection  # Allows us to close down envs on exit
     psql = psql.stop()
     connection.close()
