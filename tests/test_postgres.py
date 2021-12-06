@@ -10,13 +10,14 @@ from pathlib import Path
 TEST_ROOT = Path(__file__).resolve().parent
 
 
-class TestDBClass:
+class TestPostgressExtractorClass:
     # @pytest.fixture(scope="module", autouse=True)
     def load_data(self, postgres_connection):
 
         path = TEST_ROOT / "data/postgres_extractor"
         files = sorted(Path.glob(path, "postgres*.csv"))
         engine = postgres_connection[0]
+
         for file in files:
             # Read file
             tabledf = pd.read_csv(str(file), index_col=None)
@@ -78,7 +79,9 @@ class TestDBClass:
 
     def test_meta_data_object(self, postgres_connection):
         engine = postgres_connection[0].connect()
+        self.load_data(postgres_connection)
         meta = m.get_object_meta(engine, "postgres_table1", "public")
+
         assert len(meta.columns) == 9
         assert meta.columns[0]["description"] == "This is the int column"
         assert meta.column_names == [
@@ -92,8 +95,3 @@ class TestDBClass:
             "my_date",
             "primary_key",
         ]
-
-
-# Add comments  to function
-# Add datatype  while creating table
-# Two data table - is it needed
