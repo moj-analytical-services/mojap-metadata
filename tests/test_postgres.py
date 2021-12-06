@@ -1,4 +1,3 @@
-import pytest
 import pandas as pd
 
 
@@ -46,7 +45,8 @@ class TestPostgressExtractorClass:
 
             # Sample comment for column for testing
             engine.connect().execute(
-                """COMMENT ON COLUMN public.postgres_table1.my_int IS 'This is the int column';COMMIT;"""
+                """COMMENT ON COLUMN public.postgres_table1.my_int"""
+                """ IS 'This is the int column';COMMIT;"""
             )
 
     def test_connection(self, postgres_connection):
