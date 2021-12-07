@@ -1,4 +1,3 @@
-import warnings
 from collections import defaultdict
 
 
@@ -57,7 +56,7 @@ class PostgresConverter(BaseConverter):
 
         output = (
             "string"
-            if self._default_type_converter.get(col_type) == None
+            if self._default_type_converter.get(col_type) is None
             else self._default_type_converter.get(col_type)
         )
         return output
