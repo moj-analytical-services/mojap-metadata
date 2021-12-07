@@ -61,7 +61,7 @@ def get_object_meta(connection, table, schema) -> Metadata:
             {
                 "name": col[0].lower(),
                 "type": column_type,
-                "description": None if str(col[3]) == None else str(col[3]),
+                "description": None if str(col[3]) is None else str(col[3]),
                 "nullable": True if col[2] == "YES" else False,
             }
         )
