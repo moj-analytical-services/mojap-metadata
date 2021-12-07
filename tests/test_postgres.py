@@ -9,7 +9,6 @@ from pathlib import Path
 TEST_ROOT = Path(__file__).resolve().parent
 
 
-# @pytest.fixture(scope="module", autouse=True)
 def load_data(postgres_connection):
 
     path = TEST_ROOT / "data/postgres_extractor"
