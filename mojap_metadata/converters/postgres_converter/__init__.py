@@ -8,6 +8,33 @@ from mojap_metadata import Metadata
 import mojap_metadata.converters.postgres_converter.postgres_functions as pg
 from mojap_metadata.converters import BaseConverter
 
+_default_type_converter = {
+    "int8": "int8",
+    "int16": "int16",
+    "int32": "int32",
+    "int64": "int64",
+    "bigint": "int64",
+    "int2": "int32",
+    "int4": "int32",
+    "integer": "int32",
+    "smallint": "int32",
+    "numeric": "float64",
+    "double precision": "float64",
+    "text": "string",
+    "uuid": "string",
+    "character": "string",
+    "tsvector": "string",
+    "jsonb": "string",
+    "varchar": "string",
+    "bpchar": "string",
+    "date": "date64",
+    "boolean": "bool",
+    "timestamptz": "timestamp(ms)",
+    "timestamp": "timestamp(ms)",
+    "datetime": "timestamp(ms)",
+    "bool": "bool",
+}
+
 
 class PostgresConverter(BaseConverter):
     def __init__(self):
@@ -16,8 +43,9 @@ class PostgresConverter(BaseConverter):
         """
 
         super().__init__()
+        self._default_type_converter = _default_type_converter
 
-    def convert_to_mojap_type(self, ct: str) -> str:
+    def convert_to_mojap_type(self, col_type: str) -> str:
         """Converts our postgress datatypes to mojap-metadata types
 
         Args:
@@ -27,31 +55,12 @@ class PostgresConverter(BaseConverter):
             str: String representation of our metadata column types
         """
 
-        if ct in ["int8", "bigint"]:
-            t = "int64"
-        elif ct in ["int2", "int4", "integer", "smallint"]:
-            t = "int32"
-        elif ct.startswith("numeric") or ct.startswith("double precision"):
-            t = "float64"
-        elif (
-            ct in ["text", "uuid", "character", "tsvector", "jsonb"]
-            or ct.startswith("varchar")
-            or ct.startswith("bpchar")
-        ):
-            t = "string"
-        elif ct == "date":
-            t = "date64"
-        elif ct in ["bool", "boolean"]:
-            t = "bool_"
-        elif ct in ["timestamptz", "timestamp", "datetime"] or ct.startswith(
-            "timestamp"
-        ):
-            t = "timestamp(ms)"
-        else:
-            t = "string"
-            warnings.warn(f"Unknown col type {ct}")
-
-        return t
+        output = (
+            "string"
+            if self._default_type_converter.get(col_type) == None
+            else self._default_type_converter.get(col_type)
+        )
+        return output
 
     def get_object_meta(
         self, connection: sqlalchemy.engine, table: str, schema: str

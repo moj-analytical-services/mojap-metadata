@@ -108,7 +108,7 @@ def test_meta_data_object(postgres_connection):
 @pytest.mark.parametrize(
     "inputtype,expected",
     [
-        ("int8", "int64"),
+        ("int8", "int8"),
         ("integer", "int32"),
         ("numeric", "float64"),
         ("double precision", "float64"),
@@ -120,7 +120,7 @@ def test_meta_data_object(postgres_connection):
         ("varchar", "string"),
         ("bpchar", "string"),
         ("date", "date64"),
-        ("bool", "bool_"),
+        ("bool", "bool"),
         ("datetime", "timestamp(ms)"),
         ("tt", "string"),
     ],
