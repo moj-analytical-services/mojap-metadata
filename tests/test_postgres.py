@@ -2,7 +2,7 @@ import pandas as pd
 
 
 from mojap_metadata.extractors import postgres_metadata as m
-from sqlalchemy.types import Integer, Float, String, DateTime, Date
+from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
 
 TEST_ROOT = Path(__file__).resolve().parent
@@ -28,13 +28,14 @@ class TestPostgressExtractorClass:
                 "my_int": Integer,
                 "my_float": Float,
                 "my_decimal": Float,
-                "my_bool": String,
+                "my_bool": Boolean,
                 "my_website": String,
                 "my_email": String,
                 "my_datetime": DateTime,
                 "my_date": Date,
                 "primary_key": Integer,
             }
+
             tabledf.to_sql(
                 filename,
                 engine,
