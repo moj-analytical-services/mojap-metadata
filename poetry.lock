@@ -1035,7 +1035,7 @@ postgres = ["psycopg2", "testing.postgresql", "SQLAlchemy"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.10"
-content-hash = "8da749442c150207c102c611e6bdd80f759d99118fd34591e2ae60df4b28fc6c"
+content-hash = "eed8f02c5f565a337f06636a4940987904fcf0d2f8ea2d5bce472eee4eb3b91e"
 
 [metadata.files]
 asn1crypto = [
