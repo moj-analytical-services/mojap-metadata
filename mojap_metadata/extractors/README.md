@@ -1,7 +1,3 @@
-# File guide
-**connect.py** contains `create_postgres_connection`, which returns an Postgres database connection
-
-**metadata.py** contains functions for getting metadata from tables, plus wrapper functions for running the whole extraction process
 
 # File guide
 **connect.py** contains `create_postgres_connection`, which returns an Postgres database connection

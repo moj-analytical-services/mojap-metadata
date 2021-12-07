@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 
 from mojap_metadata import Metadata
@@ -34,7 +35,7 @@ def convert_to_mojap_type(ct: str) -> str:
         t = "timestamp(ms)"
     else:
         t = "string"
-        # warning
+        warnings.warn(f"Unknown col type {ct}")
 
     return t
 
