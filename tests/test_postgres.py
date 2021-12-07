@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 
-from mojap_metadata.extractors import postgres_metadata as m
+from mojap_metadata.converters.postgres_converter import PostgresConverter
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
 
@@ -73,7 +73,9 @@ def test_dsn_and_url(postgres_connection):
 def test_meta_data_object_list(postgres_connection):
     engine = postgres_connection[0].connect()
     load_data(postgres_connection)
-    output = m.get_object_meta_for_all_tables(engine)
+
+    pc = PostgresConverter()
+    output = pc.generate_from_meta(engine)
 
     for i in output.items():
         assert len(i[1]) == 2
@@ -82,9 +84,12 @@ def test_meta_data_object_list(postgres_connection):
 
 def test_meta_data_object(postgres_connection):
     engine = postgres_connection[0].connect()
+
     load_data(postgres_connection)
-    meta = m.get_object_meta(engine, "postgres_table1", "public")
-    print(meta.columns)
+
+    pc = PostgresConverter()
+    meta = pc.get_object_meta(engine, "postgres_table1", "public")
+
     assert len(meta.columns) == 9
     assert meta.columns[0]["description"] == "This is the int column"
     assert meta.column_names == [
@@ -121,5 +126,6 @@ def test_meta_data_object(postgres_connection):
     ],
 )
 def test_convert_to_mojap_type(inputtype: str, expected: str):
-    actual = m.convert_to_mojap_type(inputtype)
+    pc = PostgresConverter()
+    actual = pc.convert_to_mojap_type(inputtype)
     assert actual == expected
