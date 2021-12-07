@@ -1,4 +1,3 @@
-from typing import List
 import warnings
 from collections import defaultdict
 from typing import Union
@@ -85,8 +84,8 @@ class PostgresConverter(BaseConverter):
         return meta_output
 
     def generate_from_meta(self, connection):
-        """Extracts metadata from all the schema and tables and returns a list
-        of Metadata objects
+        """Extracts metadata for all the schema and tables and returns a list
+        of Metadata
 
         Args:
             connection: Database connection with database details specified in connection
