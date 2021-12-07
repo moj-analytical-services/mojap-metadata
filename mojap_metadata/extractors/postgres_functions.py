@@ -44,7 +44,7 @@ def list_meta_data(connection, table_name, schema) -> list:
     """List metadata  for  table in a particular schema"""
     response = connection.execute(
         f""" SELECT
-            cols.column_name, cols.data_type, cols.is_nullable, 
+            cols.column_name, cols.data_type, cols.is_nullable,
             col_description((table_schema||'.'||table_name)::regclass::oid,
             ordinal_position) as column_comment
             FROM information_schema.columns cols
