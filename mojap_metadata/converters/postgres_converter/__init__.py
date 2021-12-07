@@ -88,7 +88,7 @@ class PostgresConverter(BaseConverter):
         of Metadata
 
         Args:
-            connection: Database connection with database details specified in connection
+            connection: Database connection with database details
 
         Returns:
             Metadata: Metadata object
