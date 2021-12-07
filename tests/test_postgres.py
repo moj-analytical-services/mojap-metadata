@@ -80,7 +80,7 @@ class TestPostgressExtractorClass:
         engine = postgres_connection[0].connect()
         self.load_data(postgres_connection)
         meta = m.get_object_meta(engine, "postgres_table1", "public")
-
+        print(meta.columns)
         assert len(meta.columns) == 9
         assert meta.columns[0]["description"] == "This is the int column"
         assert meta.column_names == [
