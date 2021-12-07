@@ -2,6 +2,8 @@ import warnings
 from collections import defaultdict
 from typing import Union
 
+import sqlalchemy
+
 from mojap_metadata import Metadata
 import mojap_metadata.converters.postgres_converter.postgres_functions as pg
 from mojap_metadata.converters import BaseConverter
@@ -51,7 +53,9 @@ class PostgresConverter(BaseConverter):
 
         return t
 
-    def get_object_meta(self, connection, table, schema) -> Metadata:
+    def get_object_meta(
+        self, connection: sqlalchemy.engine, table: str, schema: str
+    ) -> Metadata:
         """Extracts metadata from table and converts to mojap metadata format
 
         Args:
@@ -83,7 +87,7 @@ class PostgresConverter(BaseConverter):
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_from_meta(self, connection):
+    def generate_from_meta(self, connection: sqlalchemy.engine) -> defaultdict(list):
         """Extracts metadata for all the schema and tables and returns a list
         of Metadata
 
@@ -107,6 +111,3 @@ class PostgresConverter(BaseConverter):
                 meta_list_per_schema[f"schema: {schema}"].append(meta_output)
 
         return meta_list_per_schema
-
-    def generate_to_meta(self, glue_schema: Union[dict, str]):
-        raise NotImplementedError()

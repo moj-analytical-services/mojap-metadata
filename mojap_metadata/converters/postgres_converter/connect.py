@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 
 
-def create_postgres_connection(db_settings, database_name="postgres"):
+def create_postgres_connection(db_settings: dict, database_name: str = "postgres"):
     """Create SQL Alchemy engine for a postgres database.
 
     Get connection details from file specified in config.json

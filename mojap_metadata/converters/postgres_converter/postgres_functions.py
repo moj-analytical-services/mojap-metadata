@@ -1,4 +1,7 @@
-def list_schemas(connection):
+import sqlalchemy
+
+
+def list_schemas(connection: sqlalchemy.create_engine):
     """List non-system schemas in a database."""
     response = connection.execute(
         """
@@ -16,7 +19,7 @@ def list_schemas(connection):
     return [r[0] for r in response if r[0] not in system_schemas]
 
 
-def list_tables(connection, schema="public"):
+def list_tables(connection: sqlalchemy.create_engine, schema: str = "public"):
     """List tables in a database."""
     # WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'
     response = connection.execute(
@@ -29,7 +32,7 @@ def list_tables(connection, schema="public"):
     return [r[0] for r in response]
 
 
-def list_dbs(connection):
+def list_dbs(connection: sqlalchemy.create_engine):
     """List databases from a connectionection."""
     response = connection.execute(
         """
@@ -40,7 +43,9 @@ def list_dbs(connection):
     return [r[0] for r in response]
 
 
-def list_meta_data(connection, table_name, schema) -> list:
+def list_meta_data(
+    connection: sqlalchemy.create_engine, table_name: str, schema: str
+) -> list:
     """List metadata  for  table in a particular schema"""
     response = connection.execute(
         f""" SELECT
