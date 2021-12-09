@@ -1,7 +1,6 @@
 import pandas as pd
 import pytest
 
-
 from mojap_metadata.converters.postgres_converter import PostgresConverter
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
@@ -49,6 +48,12 @@ def load_data(postgres_connection):
             """ IS 'This is the int column';COMMIT;"""
         )
 
+        # Sample NULLABLE column for testing
+        engine.connect().execute(
+            """ ALTER TABLE public.postgres_table1 ALTER """
+            """ COLUMN primary_key SET NOT NULL;COMMIT;"""
+        )
+
 
 def test_connection(postgres_connection):
     pgsql = postgres_connection[1]
@@ -83,16 +88,85 @@ def test_meta_data_object_list(postgres_connection):
 
 
 def test_meta_data_object(postgres_connection):
+
+    expected = {
+        "name": "postgres_table1",
+        "columns": [
+            {
+                "name": "my_int",
+                "type": "int32",
+                "description": "This is the int column",
+                "nullable": True,
+            },
+            {
+                "name": "my_float",
+                "type": "float64",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_decimal",
+                "type": "float64",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_bool",
+                "type": "bool",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_website",
+                "type": "string",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_email",
+                "type": "string",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_datetime",
+                "type": "string",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "my_date",
+                "type": "date64",
+                "description": "None",
+                "nullable": True,
+            },
+            {
+                "name": "primary_key",
+                "type": "int32",
+                "description": "None",
+                "nullable": False,
+            },
+        ],
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.3.0.json",
+        "description": "",
+        "file_format": "",
+        "sensitive": False,
+        "primary_key": [],
+        "partitions": [],
+    }
+
     engine = postgres_connection[0].connect()
 
     load_data(postgres_connection)
 
     pc = PostgresConverter()
-    meta = pc.get_object_meta(engine, "postgres_table1", "public")
+    meta_output = pc.get_object_meta(engine, "postgres_table1", "public")
 
-    assert len(meta.columns) == 9
-    assert meta.columns[0]["description"] == "This is the int column"
-    assert meta.column_names == [
+    assert expected == meta_output.to_dict()
+
+    assert len(meta_output.columns) == 9
+    assert meta_output.columns[0]["description"] == "This is the int column"
+    assert meta_output.column_names == [
         "my_int",
         "my_float",
         "my_decimal",

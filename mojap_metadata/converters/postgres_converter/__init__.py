@@ -1,6 +1,4 @@
-from collections import defaultdict
-
-
+from typing import DefaultDict
 import sqlalchemy
 
 from mojap_metadata import Metadata
@@ -62,7 +60,7 @@ class PostgresConverter(BaseConverter):
         return output
 
     def get_object_meta(
-        self, connection: sqlalchemy.engine, table: str, schema: str
+        self, connection: sqlalchemy.engine.Engine, table: str, schema: str
     ) -> Metadata:
         """Extracts metadata from table and converts to mojap metadata format
 
@@ -95,7 +93,9 @@ class PostgresConverter(BaseConverter):
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_from_meta(self, connection: sqlalchemy.engine) -> defaultdict(list):
+    def generate_from_meta(
+        self, connection: sqlalchemy.engine.Engine
+    ) -> DefaultDict(list):
         """Extracts metadata for all the schema and tables and returns a list
         of Metadata
 
@@ -105,7 +105,7 @@ class PostgresConverter(BaseConverter):
         Returns:
             Metadata: Metadata object
         """
-        meta_list_per_schema = defaultdict(list)
+        meta_list_per_schema = DefaultDict(list)
 
         schema_names = pg.list_schemas(
             connection
