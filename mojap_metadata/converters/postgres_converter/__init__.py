@@ -93,9 +93,7 @@ class PostgresConverter(BaseConverter):
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_from_meta(
-        self, connection: sqlalchemy.engine.Engine
-    ) -> DefaultDict(list):
+    def generate_from_meta(self, connection: sqlalchemy.engine.Engine) -> dict():
         """Extracts metadata for all the schema and tables and returns a list
         of Metadata
 

@@ -282,3 +282,16 @@ pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-servi
 ```
 
 This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed).
+
+## Postgres Converter
+
+Postgres Converter provides the following functionality
+
+1. Conenction to postgres database
+2. Extract the metadata from the tables
+3. Convert the extracted ouptut into Metadata object 
+
+- **get_object_meta** (function) takes the table name, schema name then the extracts the metadata from postgres database and 
+converts into Metadata object 
+
+- **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
