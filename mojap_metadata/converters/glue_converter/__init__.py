@@ -12,7 +12,6 @@ from mojap_metadata.converters import (
     BaseConverter,
     _flatten_and_convert_complex_data_type,
 )
-import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
@@ -447,7 +446,7 @@ class GlueTable(BaseConverter):
             # convert type and check if it's fully supported.
             # decimals are special
             if col["Type"].startswith("decimal"):
-                regex = re.compile("decimal(\(\d+,\d+\))")
+                regex = re.compile(r"decimal(\(\d+,\d+\))")
                 bracket_numbers = regex.match(col["Type"]).groups()[0]
                 col_type, full_support = f"decimal128{bracket_numbers}", False
             else:
