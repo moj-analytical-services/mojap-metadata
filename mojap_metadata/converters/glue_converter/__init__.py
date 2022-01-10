@@ -1,6 +1,7 @@
 import boto3
 import os
 import json
+import re
 import warnings
 
 import pydbtools as pydb
@@ -60,7 +61,7 @@ _default_type_converter = {
     "struct": ("struct", True),
 }
 
-_glue_to_mojap_default_type_converter = {
+_glue_to_mojap_type_converter = {
     "boolean": ("bool", True),
     "tinyint": ("int8", True),
     "smallint": ("int16", False),
@@ -443,21 +444,24 @@ class GlueTable(BaseConverter):
         mojap_meta_cols = []
 
         for col in columns:
-            # convert type and check if it's fully supported
-            col_type, full_support = _glue_to_mojap_default_type_converter[col["Type"]]
+            # convert type and check if it's fully supported.
+            # decimals are special
+            if col["Type"].startswith("decimal"):
+                regex = re.compile("decimal(\(\d+,\d+\))")
+                bracket_numbers = regex.match(col["Type"]).groups()[0]
+                col_type, full_support = f"decimal128{bracket_numbers}", False
+            else:
+                col_type, full_support = _glue_to_mojap_type_converter[col["Type"]]
             if not full_support:
                 warnings.warn(
                     f"type {col_type} not fully supported, "
                     "likely due to multiple conversion options"
                 )
             # create the column in mojap meta format
-            mojap_meta_cols.append(
-                {
-                    "name": col["Name"],
-                    "type": col_type, 
-                    "description": col.get("Comment", "")
-                }
-            )
+            meta_col = {"name": col["Name"], "type": col_type, }
+            if col.get("Comment"):
+                meta_col["description"] = col.get("Comment")
+            mojap_meta_cols.append(meta_col)
         
         # check if there are partitions
         partitions = resp["Table"].get("PartitionKeys")
@@ -465,7 +469,7 @@ class GlueTable(BaseConverter):
         if partitions:
             for col in partitions:
                 # convert parition type
-                col_type, full_support = _glue_to_mojap_default_type_converter[col["Type"]]
+                col_type, full_support = _glue_to_mojap_type_converter[col["Type"]]
                 if not full_support:
                     warnings.warn(
                         f"type {col_type} not fully supported, "
