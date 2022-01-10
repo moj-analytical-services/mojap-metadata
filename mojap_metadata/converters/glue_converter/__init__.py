@@ -458,11 +458,14 @@ class GlueTable(BaseConverter):
                     "likely due to multiple conversion options"
                 )
             # create the column in mojap meta format
-            meta_col = {"name": col["Name"], "type": col_type, }
+            meta_col = {
+                "name": col["Name"],
+                "type": col_type,
+            }
             if col.get("Comment"):
                 meta_col["description"] = col.get("Comment")
             mojap_meta_cols.append(meta_col)
-        
+
         # check if there are partitions
         partitions = resp["Table"].get("PartitionKeys")
         part_cols = []
@@ -479,19 +482,15 @@ class GlueTable(BaseConverter):
                 mojap_meta_cols.append(
                     {
                         "name": col["Name"],
-                        "type": col_type, 
-                        "description": col.get("Comment", "")
+                        "type": col_type,
+                        "description": col.get("Comment", ""),
                     }
                 )
                 # capture the name
                 part_cols.append(col["Name"])
 
         # make a metadata object
-        meta = Metadata(
-            name=table,
-            columns=mojap_meta_cols,
-            partitions=part_cols
-        )
+        meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
 
         # get the file format if possible
         ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")

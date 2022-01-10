@@ -207,16 +207,15 @@ def test_gluetable_generate_to_meta(glue_client):
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
-    # create the mock table and generate the meta from the mock table 
+    # create the mock table and generate the meta from the mock table
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
         gt = GlueTable()
         gt.generate_from_meta(meta)
         meta_generated = gt.generate_to_meta("cool_database", "test_table")
-    
+
     # check that all the column types and partitions are correctly generated
     gen_cols_match = meta_generated.columns == meta.columns
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
-    
