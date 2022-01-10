@@ -1,6 +1,7 @@
+import boto3
 import os
 import json
-import boto3
+import warnings
 
 import pydbtools as pydb
 from typing import Tuple, List, Union
@@ -57,6 +58,26 @@ _default_type_converter = {
     "list_": ("array", True),
     "large_list": ("array", True),
     "struct": ("struct", True),
+}
+
+_glue_to_mojap_default_type_converter = {
+    "boolean": ("bool", True),
+    "tinyint": ("int8", True),
+    "smallint": ("int16", False),
+    "int": ("int32", False),
+    "integer": ("int32", False),
+    "bigint": ("int64", False),
+    "double": ("float64", True),
+    "float": ("float32", False),
+    "decimal": ("decima128", True),
+    "char": ("string", True),
+    "varchar": ("string", True),
+    "string": ("string", True),
+    "binary": ("larg_binary", False),
+    "date": ("date64", False),
+    "timestamp": ("timestamp(ms)", False),
+    "array": ("large_list", False),
+    "struct": ("struct", False),
 }
 
 
@@ -352,9 +373,6 @@ class GlueConverter(BaseConverter):
         )
         return spec
 
-    def generate_to_meta(self, glue_schema: Union[dict, str]):
-        raise NotImplementedError()
-
 
 class GlueTable(BaseConverter):
     def __init__(self, glue_converter_options: GlueConverterOptions = None):
@@ -415,8 +433,70 @@ class GlueTable(BaseConverter):
         elif run_msck_repair:
             pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
 
-    def generate_to_meta(self, database_name: str, table_name: str) -> Metadata:
-        raise NotImplementedError("awaitng generate_to_meta in GlueConverter")
+    def generate_to_meta(self, database: str, table: str) -> Metadata:
+        # get the table information
+        glue_client = boto3.client("glue")
+        resp = glue_client.get_table(DatabaseName=database, Name=table)
+
+        # pull out just the columns
+        columns = resp["Table"]["StorageDescriptor"]["Columns"]
+        mojap_meta_cols = []
+
+        for col in columns:
+            # convert type and check if it's fully supported
+            col_type, full_support = _glue_to_mojap_default_type_converter[col["Type"]]
+            if not full_support:
+                warnings.warn(
+                    f"type {col_type} not fully supported, "
+                    "likely due to multiple conversion options"
+                )
+            # create the column in mojap meta format
+            mojap_meta_cols.append(
+                {
+                    "name": col["Name"],
+                    "type": col_type, 
+                    "description": col.get("Comment", "")
+                }
+            )
+        
+        # check if there are partitions
+        partitions = resp["Table"].get("PartitionKeys")
+        part_cols = []
+        if partitions:
+            for col in partitions:
+                # convert parition type
+                col_type, full_support = _glue_to_mojap_default_type_converter[col["Type"]]
+                if not full_support:
+                    warnings.warn(
+                        f"type {col_type} not fully supported, "
+                        "likely due to multiple conversion options"
+                    )
+                # add it to the main columns
+                mojap_meta_cols.append(
+                    {
+                        "name": col["Name"],
+                        "type": col_type, 
+                        "description": col.get("Comment", "")
+                    }
+                )
+                # capture the name
+                part_cols.append(col["Name"])
+
+        # make a metadata object
+        meta = Metadata(
+            name=table,
+            columns=mojap_meta_cols,
+            partitions=part_cols
+        )
+
+        # get the file format if possible
+        ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")
+        if not ff:
+            warnings.warn("unable to parse file format, please manually set")
+        else:
+            meta.file_format = ff.lower()
+
+        return meta
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
