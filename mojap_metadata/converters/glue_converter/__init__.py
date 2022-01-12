@@ -7,7 +7,11 @@ import warnings
 import pydbtools as pydb
 from typing import Tuple, List, Union
 from awswrangler.catalog import delete_table_if_exists
-from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
+from mojap_metadata.metadata.metadata import(
+    Metadata,
+    _unpack_complex_data_type,
+    _metadata_complex_dtype_names
+)
 from mojap_metadata.converters import (
     BaseConverter,
     _flatten_and_convert_complex_data_type,
@@ -379,12 +383,45 @@ class GlueTable(BaseConverter):
         super().__init__(None)
         self.gc = GlueConverter(glue_converter_options)
 
+    def convert_col_type(self, col_type: str) -> Tuple[str, bool]:
+        if col_type in _metadata_complex_dtype_names:
+            unpacked = _unpack_complex_data_type(col_type)
+            flattened_and_converted = _flatten_and_convert_complex_data_type(
+                unpacked, self.convert_col_type
+            )
+            return flattened_and_converted, False
+        elif col_type.startswith("decimal"):
+            regex = re.compile(r"decimal(\(\d+,\d+\))")
+            bracket_numbers = regex.match(col_type).groups()[0]
+            return f"decimal128{bracket_numbers}", False
+        else:
+            return _glue_to_mojap_type_converter[col_type]
+
+    def generate_columns(self, columns: List[dict]) -> List[dict]:
+        mojap_meta_cols = []
+        for col in columns:
+            col_type, full_support = self.convert_col_type(col["Type"])
+            if not full_support:
+                warnings.warn(
+                    f"type {col_type} not fully supported, "
+                    "likely due to multiple conversion options"
+                )
+            # create the column in mojap meta format
+            meta_col = {
+                "name": col["Name"],
+                "type": col_type,
+            }
+            if col.get("Comment"):
+                meta_col["description"] = col.get("Comment")
+            mojap_meta_cols.append(meta_col)
+        return mojap_meta_cols
+
     def generate_from_meta(
         self,
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair=False,
+        run_msck_repair = False,
     ):
         """
         Creates a glue table from metadata
@@ -440,53 +477,19 @@ class GlueTable(BaseConverter):
 
         # pull out just the columns
         columns = resp["Table"]["StorageDescriptor"]["Columns"]
-        mojap_meta_cols = []
 
-        for col in columns:
-            # convert type and check if it's fully supported.
-            # decimals are special
-            if col["Type"].startswith("decimal"):
-                regex = re.compile(r"decimal(\(\d+,\d+\))")
-                bracket_numbers = regex.match(col["Type"]).groups()[0]
-                col_type, full_support = f"decimal128{bracket_numbers}", False
-            else:
-                col_type, full_support = _glue_to_mojap_type_converter[col["Type"]]
-            if not full_support:
-                warnings.warn(
-                    f"type {col_type} not fully supported, "
-                    "likely due to multiple conversion options"
-                )
-            # create the column in mojap meta format
-            meta_col = {
-                "name": col["Name"],
-                "type": col_type,
-            }
-            if col.get("Comment"):
-                meta_col["description"] = col.get("Comment")
-            mojap_meta_cols.append(meta_col)
+        # convert the columns
+        mojap_meta_cols = self.generate_columns(columns)
 
-        # check if there are partitions
+        # check for partitions
         partitions = resp["Table"].get("PartitionKeys")
-        part_cols = []
         if partitions:
-            for col in partitions:
-                # convert parition type
-                col_type, full_support = _glue_to_mojap_type_converter[col["Type"]]
-                if not full_support:
-                    warnings.warn(
-                        f"type {col_type} not fully supported, "
-                        "likely due to multiple conversion options"
-                    )
-                # add it to the main columns
-                mojap_meta_cols.append(
-                    {
-                        "name": col["Name"],
-                        "type": col_type,
-                        "description": col.get("Comment", ""),
-                    }
-                )
-                # capture the name
-                part_cols.append(col["Name"])
+            # convert
+            part_cols_full = self.generate_columns(partitions)
+            # extend the mojap_meta_cols with the partiton cols
+            mojap_meta_cols.extend(part_cols_full)
+            part_cols = [p["name"] for p in part_cols_full]
+
 
         # make a metadata object
         meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
