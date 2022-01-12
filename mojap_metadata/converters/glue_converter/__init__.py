@@ -79,7 +79,7 @@ _glue_to_mojap_type_converter = {
     "string": ("string", True),
     "binary": ("larg_binary", False),
     "date": ("date64", False),
-    "timestamp": ("timestamp(ms)", False),
+    "timestamp": ("timestamp(s)", False),
     "array": ("large_list", False),
     "struct": ("struct", False),
 }
