@@ -23,6 +23,10 @@
                 {
                     "Name": "my_decimal",
                     "Type": "decimal(10,2)"
+                },
+                {
+                    "Name": "my_complex",
+                    "Type": "array<bigint>"
                 }
             ],
             "Location": "s3://bucket/test_table",

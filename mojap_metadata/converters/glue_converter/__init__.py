@@ -383,27 +383,32 @@ class GlueTable(BaseConverter):
         super().__init__(None)
         self.gc = GlueConverter(glue_converter_options)
 
-    def convert_col_type(self, col_type: str) -> Tuple[str, bool]:
-        if col_type in _metadata_complex_dtype_names:
-            unpacked = _unpack_complex_data_type(col_type)
-            flattened_and_converted = _flatten_and_convert_complex_data_type(
-                unpacked, self.convert_col_type
-            )
-            return flattened_and_converted, False
-        elif col_type.startswith("decimal"):
+    def convert_basic_col_type(self, col_type: str):
+        if col_type.startswith("decimal"):
             regex = re.compile(r"decimal(\(\d+,\d+\))")
             bracket_numbers = regex.match(col_type).groups()[0]
-            return f"decimal128{bracket_numbers}", False
+            return f"decimal128{bracket_numbers}"
         else:
-            return _glue_to_mojap_type_converter[col_type]
+            return _glue_to_mojap_type_converter[col_type][0]
 
-    def generate_columns(self, columns: List[dict]) -> List[dict]:
+    def convert_col_type(self, col_type: str):
+        data_type = _unpack_complex_data_type(col_type)
+        return _flatten_and_convert_complex_data_type(
+            data_type, self.convert_basic_col_type, field_sep=","
+        )
+
+    def convert_columns(self, columns: List[dict]) -> List[dict]:
         mojap_meta_cols = []
         for col in columns:
-            col_type, full_support = self.convert_col_type(col["Type"])
+            col_type = self.convert_col_type(col["Type"])
+            if (col["Type"].startswith("decimal") or
+                col["Type"].startswith(_metadata_complex_dtype_names)):
+                full_support = False
+            else:
+                full_support = _glue_to_mojap_type_converter.get(col["Type"])[1]
             if not full_support:
                 warnings.warn(
-                    f"type {col_type} not fully supported, "
+                    f"type {col['Type']} not fully supported, "
                     "likely due to multiple conversion options"
                 )
             # create the column in mojap meta format
@@ -479,13 +484,13 @@ class GlueTable(BaseConverter):
         columns = resp["Table"]["StorageDescriptor"]["Columns"]
 
         # convert the columns
-        mojap_meta_cols = self.generate_columns(columns)
+        mojap_meta_cols = self.convert_columns(columns)
 
         # check for partitions
         partitions = resp["Table"].get("PartitionKeys")
         if partitions:
             # convert
-            part_cols_full = self.generate_columns(partitions)
+            part_cols_full = self.convert_columns(partitions)
             # extend the mojap_meta_cols with the partiton cols
             mojap_meta_cols.extend(part_cols_full)
             part_cols = [p["name"] for p in part_cols_full]
