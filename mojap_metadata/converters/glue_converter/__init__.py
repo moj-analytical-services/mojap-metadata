@@ -7,10 +7,10 @@ import warnings
 import pydbtools as pydb
 from typing import Tuple, List, Union
 from awswrangler.catalog import delete_table_if_exists
-from mojap_metadata.metadata.metadata import(
+from mojap_metadata.metadata.metadata import (
     Metadata,
     _unpack_complex_data_type,
-    _metadata_complex_dtype_names
+    _metadata_complex_dtype_names,
 )
 from mojap_metadata.converters import (
     BaseConverter,
@@ -421,7 +421,7 @@ class GlueTable(BaseConverter):
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair = False,
+        run_msck_repair=False,
     ):
         """
         Creates a glue table from metadata
@@ -489,7 +489,6 @@ class GlueTable(BaseConverter):
             # extend the mojap_meta_cols with the partiton cols
             mojap_meta_cols.extend(part_cols_full)
             part_cols = [p["name"] for p in part_cols_full]
-
 
         # make a metadata object
         meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
