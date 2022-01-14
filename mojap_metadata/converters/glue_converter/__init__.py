@@ -474,7 +474,7 @@ class GlueTable(BaseConverter):
             )
             warnings.warn(w)
         elif run_msck_repair:
-            pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
+            pydb.read_sql_query(f"msck repair table `{database_name}`.`{metadata.name}`")
 
     def generate_to_meta(self, database: str, table: str) -> Metadata:
         # get the table information
