@@ -498,8 +498,10 @@ class GlueTable(BaseConverter):
             mojap_meta_cols.extend(part_cols_full)
             part_cols = [p["name"] for p in part_cols_full]
 
-        # make a metadata object
-        meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
+            # make a metadata object
+            meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
+        else:
+            meta = Metadata(name=table, columns=mojap_meta_cols)
 
         # get the file format if possible
         ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")
