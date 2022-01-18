@@ -504,10 +504,13 @@ class GlueTable(BaseConverter):
             meta = Metadata(name=table, columns=mojap_meta_cols)
 
         # get the file format if possible
-        ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")
-        if not ff:
+        try:
+            ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")
+        except KeyError:
             warnings.warn("unable to parse file format, please manually set")
-        else:
+            ff = None
+
+        if ff:
             meta.file_format = ff.lower()
 
         return meta
