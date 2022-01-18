@@ -17,7 +17,7 @@ _metadata_struct_dtype_names = ("struct",)
 _metadata_struct_dtype_names_bracket = tuple(
     [x + "<" for x in _metadata_struct_dtype_names]
 )
-_metadata_list_dtype_names = ("list", "list_", "large_list")
+_metadata_list_dtype_names = ("list", "list_", "large_list", "array")
 _metadata_list_dtype_names_bracket = tuple(
     [x + "<" for x in _metadata_list_dtype_names]
 )

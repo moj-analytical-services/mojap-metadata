@@ -23,6 +23,10 @@
                 {
                     "Name": "my_decimal",
                     "Type": "decimal(10,2)"
+                },
+                {
+                    "Name": "my_complex",
+                    "Type": "array<bigint>"
                 }
             ],
             "Location": "s3://bucket/test_table",
@@ -33,7 +37,7 @@
             "SerdeInfo": {
                 "SerializationLibrary": "org.openx.data.jsonserde.JsonSerDe",
                 "Parameters": {
-                    "paths": "my_int,my_double,my_date,my_decimal"
+                    "paths": "my_int,my_double,my_date,my_decimal,my_complex"
                 }
             },
             "BucketColumns": [],

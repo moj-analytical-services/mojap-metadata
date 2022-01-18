@@ -1,16 +1,21 @@
+import boto3
 import os
 import json
-import boto3
+import re
+import warnings
 
 import pydbtools as pydb
 from typing import Tuple, List, Union
 from awswrangler.catalog import delete_table_if_exists
-from mojap_metadata.metadata.metadata import Metadata, _unpack_complex_data_type
+from mojap_metadata.metadata.metadata import (
+    Metadata,
+    _unpack_complex_data_type,
+    _metadata_complex_dtype_names,
+)
 from mojap_metadata.converters import (
     BaseConverter,
     _flatten_and_convert_complex_data_type,
 )
-import warnings
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
@@ -57,6 +62,26 @@ _default_type_converter = {
     "list_": ("array", True),
     "large_list": ("array", True),
     "struct": ("struct", True),
+}
+
+_glue_to_mojap_type_converter = {
+    "boolean": ("bool", True),
+    "tinyint": ("int8", True),
+    "smallint": ("int16", False),
+    "int": ("int32", False),
+    "integer": ("int32", False),
+    "bigint": ("int64", False),
+    "double": ("float64", True),
+    "float": ("float32", False),
+    "decimal": ("decima128", True),
+    "char": ("string", True),
+    "varchar": ("string", True),
+    "string": ("string", True),
+    "binary": ("larg_binary", False),
+    "date": ("date64", False),
+    "timestamp": ("timestamp(s)", False),
+    "array": ("large_list", False),
+    "struct": ("struct", False),
 }
 
 
@@ -352,14 +377,50 @@ class GlueConverter(BaseConverter):
         )
         return spec
 
-    def generate_to_meta(self, glue_schema: Union[dict, str]):
-        raise NotImplementedError()
-
 
 class GlueTable(BaseConverter):
     def __init__(self, glue_converter_options: GlueConverterOptions = None):
         super().__init__(None)
         self.gc = GlueConverter(glue_converter_options)
+
+    def convert_basic_col_type(self, col_type: str):
+        if col_type.startswith("decimal"):
+            regex = re.compile(r"decimal(\(\d+,\d+\))")
+            bracket_numbers = regex.match(col_type).groups()[0]
+            return f"decimal128{bracket_numbers}"
+        else:
+            return _glue_to_mojap_type_converter[col_type][0]
+
+    def convert_col_type(self, col_type: str):
+        data_type = _unpack_complex_data_type(col_type)
+        return _flatten_and_convert_complex_data_type(
+            data_type, self.convert_basic_col_type, field_sep=","
+        )
+
+    def convert_columns(self, columns: List[dict]) -> List[dict]:
+        mojap_meta_cols = []
+        for col in columns:
+            col_type = self.convert_col_type(col["Type"])
+            if col["Type"].startswith("decimal") or col["Type"].startswith(
+                _metadata_complex_dtype_names
+            ):
+                full_support = False
+            else:
+                full_support = _glue_to_mojap_type_converter.get(col["Type"])[1]
+            if not full_support:
+                warnings.warn(
+                    f"type {col['Type']} not fully supported, "
+                    "likely due to multiple conversion options"
+                )
+            # create the column in mojap meta format
+            meta_col = {
+                "name": col["Name"],
+                "type": col_type,
+            }
+            if col.get("Comment"):
+                meta_col["description"] = col.get("Comment")
+            mojap_meta_cols.append(meta_col)
+        return mojap_meta_cols
 
     def generate_from_meta(
         self,
@@ -413,10 +474,46 @@ class GlueTable(BaseConverter):
             )
             warnings.warn(w)
         elif run_msck_repair:
-            pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
+            pydb.read_sql_query(
+                f"msck repair table `{database_name}`.`{metadata.name}`"
+            )
 
-    def generate_to_meta(self, database_name: str, table_name: str) -> Metadata:
-        raise NotImplementedError("awaitng generate_to_meta in GlueConverter")
+    def generate_to_meta(self, database: str, table: str) -> Metadata:
+        # get the table information
+        glue_client = boto3.client("glue")
+        resp = glue_client.get_table(DatabaseName=database, Name=table)
+
+        # pull out just the columns
+        columns = resp["Table"]["StorageDescriptor"]["Columns"]
+
+        # convert the columns
+        mojap_meta_cols = self.convert_columns(columns)
+
+        # check for partitions
+        partitions = resp["Table"].get("PartitionKeys")
+        if partitions:
+            # convert
+            part_cols_full = self.convert_columns(partitions)
+            # extend the mojap_meta_cols with the partiton cols
+            mojap_meta_cols.extend(part_cols_full)
+            part_cols = [p["name"] for p in part_cols_full]
+
+            # make a metadata object
+            meta = Metadata(name=table, columns=mojap_meta_cols, partitions=part_cols)
+        else:
+            meta = Metadata(name=table, columns=mojap_meta_cols)
+
+        # get the file format if possible
+        try:
+            ff = resp["Table"]["StorageDescriptor"]["Parameters"].get("classification")
+        except KeyError:
+            warnings.warn("unable to parse file format, please manually set")
+            ff = None
+
+        if ff:
+            meta.file_format = ff.lower()
+
+        return meta
 
 
 def _get_base_table_spec(spec_name: str, serde_name: str = None) -> dict:
