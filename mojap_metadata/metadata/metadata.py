@@ -424,17 +424,27 @@ class Metadata:
         with open(filepath, mode) as f:
             yaml.safe_dump(self.to_dict(), f)
 
-    def column_names_to_lower(self) -> dict:
-        self_lower = deepcopy(self)
-        for c in self_lower.columns:
-            c['name'] = c['name'].lower()
-        return self_lower
+    def column_names_to_lower(self, inplace=False) -> object:
+        if inplace:
+            for c in self.columns:
+                c['name'] = c['name'].lower()
+            return self
+        else:
+            self_lower = deepcopy(self)
+            for c in self_lower.columns:
+                c['name'] = c['name'].lower()
+            return self_lower
 
-    def column_names_to_upper(self) -> dict:
-        self_upper = deepcopy(self)
-        for c in self_upper.columns:
-            c['name'] = c['name'].upper()
-        return self_upper
+    def column_names_to_upper(self, inplace=False) -> object:
+        if inplace:
+            for c in self.columns:
+                c['name'] = c['name'].upper()
+            return self
+        else:
+            self_upper = deepcopy(self)
+            for c in self_upper.columns:
+                c['name'] = c['name'].upper()
+            return self_upper
 
     def unpack_complex_data_type(self, data_type: str) -> Union[str, dict]:
         """
