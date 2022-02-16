@@ -568,3 +568,73 @@ def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
 def test_inferred_input_fails(fake_input):
     with pytest.raises(TypeError):
         Metadata.from_infer(fake_input)
+
+
+def test_column_names_to_lower():
+    m = Metadata(
+        columns=[
+            {"name": "A", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "C", "type": "date32"},
+        ]
+    )
+    exp_m = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+        ]
+    )
+    # run test for inplace
+    m.column_names_to_lower(inplace=True)
+    assert type(m) == Metadata, "unexpected object"
+    assert m.column_names == exp_m.column_names, "unexpected column names"
+    assert [c['type'] for c in m.columns] == [
+        c['type'] for c in exp_m.columns
+    ], "unexpected column types"
+    assert m._data.keys() == exp_m._data.keys()
+
+    # run tests for not inplace
+    low = m.column_names_to_lower()
+    assert type(low) == Metadata, "unexpected object"
+    assert low.column_names == exp_m.column_names, "unexpected column names"
+    assert [c['type'] for c in exp_m.columns] == [
+        c['type'] for c in exp_m.columns
+    ], "unexpected column types"
+    assert low._data.keys() == exp_m._data.keys()
+
+
+def test_column_names_to_upper():
+    m = Metadata(
+        columns=[
+            {"name": "Aa_7", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "Cb", "type": "date32"},
+        ]
+    )
+    exp_m = Metadata(
+        columns=[
+            {"name": "AA_7", "type": "int8"},
+            {"name": "B", "type": "string"},
+            {"name": "CB", "type": "date32"},
+        ]
+
+    )
+
+    # run test for inplace
+    m.column_names_to_upper(inplace=True)
+    assert type(m) == Metadata, "unexpected object returned"
+    assert m.column_names == exp_m.column_names, "unexpected column names"
+    assert [c['type'] for c in m.columns] == [
+        c['type'] for c in exp_m.columns
+    ], "unexpected column types"
+    assert m._data.keys() == exp_m._data.keys()
+
+    # run test for not inplace
+    up = m.column_names_to_upper()
+    assert type(up) == Metadata, "unexpected object returned"
+    assert up.column_names == exp_m.column_names, "unexpected column names"
+    assert [c['type'] for c in up.columns] == [
+        c['type'] for c in exp_m.columns
+    ], "unexpected column types"
+    assert up._data.keys() == exp_m._data.keys()
