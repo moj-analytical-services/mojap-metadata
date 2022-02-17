@@ -424,7 +424,7 @@ class Metadata:
         with open(filepath, mode) as f:
             yaml.safe_dump(self.to_dict(), f)
 
-    def column_names_to_lower(self, inplace=False) -> object:
+    def column_names_to_lower(self, inplace: bool = False) -> Union[object, None]:
         if inplace:
             for c in self.columns:
                 c['name'] = c['name'].lower()
@@ -435,7 +435,7 @@ class Metadata:
                 c['name'] = c['name'].lower()
             return self_lower
 
-    def column_names_to_upper(self, inplace=False) -> object:
+    def column_names_to_upper(self, inplace: bool = False) -> Union[object, None]:
         if inplace:
             for c in self.columns:
                 c['name'] = c['name'].upper()
