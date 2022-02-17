@@ -424,6 +424,28 @@ class Metadata:
         with open(filepath, mode) as f:
             yaml.safe_dump(self.to_dict(), f)
 
+    def column_names_to_lower(self, inplace: bool = False) -> Union[object, None]:
+        if inplace:
+            for c in self.columns:
+                c['name'] = c['name'].lower()
+            return self
+        else:
+            self_lower = deepcopy(self)
+            for c in self_lower.columns:
+                c['name'] = c['name'].lower()
+            return self_lower
+
+    def column_names_to_upper(self, inplace: bool = False) -> Union[object, None]:
+        if inplace:
+            for c in self.columns:
+                c['name'] = c['name'].upper()
+            return self
+        else:
+            self_upper = deepcopy(self)
+            for c in self_upper.columns:
+                c['name'] = c['name'].upper()
+            return self_upper
+
     def unpack_complex_data_type(self, data_type: str) -> Union[str, dict]:
         """
         Takes the coltype definition as a string and parses it.
