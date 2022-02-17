@@ -17,6 +17,50 @@ from mojap_metadata.metadata.metadata import (
 )
 
 
+# test input and expected metadata for the Metadata.column_names_to_lower
+# and columns_names_to_upper tests
+@pytest.fixture(scope="function")
+def meta_input():
+    meta = Metadata(
+        columns=[
+            {"name": "A", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "C", "type": "date32"},
+            {"name": "D", "type": "date32"},
+            {"name": "e", "type": "date32"},
+        ]
+    )
+    return meta
+
+
+@pytest.fixture(scope="function")
+def expected_meta_out_lower():
+    meta = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+            {"name": "d", "type": "date32"},
+            {"name": "e", "type": "date32"},
+        ]
+    )
+    return meta
+
+
+@pytest.fixture(scope="function")
+def expected_meta_out_upper():
+    meta = Metadata(
+        columns=[
+            {"name": "A", "type": "int8"},
+            {"name": "B", "type": "string"},
+            {"name": "C", "type": "date32"},
+            {"name": "D", "type": "date32"},
+            {"name": "E", "type": "date32"},
+        ]
+    )
+    return meta
+
+
 @pytest.mark.parametrize(
     argnames="attribute,default_value,valid_value,invalid_value",
     argvalues=[
@@ -570,71 +614,103 @@ def test_inferred_input_fails(fake_input):
         Metadata.from_infer(fake_input)
 
 
-def test_column_names_to_lower():
-    m = Metadata(
-        columns=[
-            {"name": "A", "type": "int8"},
-            {"name": "b", "type": "string"},
-            {"name": "C", "type": "date32"},
+def _column_names_to_lower(inplace, in_meta):
+    if inplace:
+        in_meta.column_names_to_lower(inplace=True)
+        test_out = in_meta
+    else:
+        test_out = in_meta.column_names_to_lower()
+    return test_out
+
+
+def _column_names_to_upper(inplace, in_meta):
+    if inplace:
+        in_meta.column_names_to_upper(inplace=True)
+        test_out = in_meta
+    else:
+        test_out = in_meta.column_names_to_upper()
+    return test_out
+
+
+column_names_to_upper_and_lower_params = [
+    (False, _column_names_to_lower),
+    (True, _column_names_to_lower),
+    (False, _column_names_to_upper),
+    (True, _column_names_to_upper),
+]
+
+
+@pytest.mark.parametrize(
+    "inplace,func",
+    column_names_to_upper_and_lower_params
+)
+def test_type_returned_column_names_to_upper_or_lower(
+    inplace, func, meta_input,
+):
+    test_out = func(inplace, meta_input)
+
+    assert (
+        type(test_out) == Metadata
+    ), f"Non Metadata object returned, inplace={inplace}, calling {func.__name__}"
+
+
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_names_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
+
+    test_out = func(inplace, meta_input)
+
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
+
+    assert test_out.column_names == (
+        exp_out.column_names
+    ), f"unexpected columnn names, inplace={inplace}, calling {func.__name__}"
+
+
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_types_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
+
+    test_out = func(inplace, meta_input)
+
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
+
+    assert (
+        [c["type"] for c in test_out.columns] == [
+            c["type"] for c in exp_out.columns
         ]
-    )
-    exp_m = Metadata(
-        columns=[
-            {"name": "a", "type": "int8"},
-            {"name": "b", "type": "string"},
-            {"name": "c", "type": "date32"},
-        ]
-    )
-    # run test for inplace
-    m.column_names_to_lower(inplace=True)
-    assert type(m) == Metadata, "unexpected object"
-    assert m.column_names == exp_m.column_names, "unexpected column names"
-    assert [c['type'] for c in m.columns] == [
-        c['type'] for c in exp_m.columns
-    ], "unexpected column types"
-    assert m._data.keys() == exp_m._data.keys()
-
-    # run tests for not inplace
-    low = m.column_names_to_lower()
-    assert type(low) == Metadata, "unexpected object"
-    assert low.column_names == exp_m.column_names, "unexpected column names"
-    assert [c['type'] for c in exp_m.columns] == [
-        c['type'] for c in exp_m.columns
-    ], "unexpected column types"
-    assert low._data.keys() == exp_m._data.keys()
+    ), f"unexpected columnn types, inplace={inplace}, calling {func.__name__}"
 
 
-def test_column_names_to_upper():
-    m = Metadata(
-        columns=[
-            {"name": "Aa_7", "type": "int8"},
-            {"name": "b", "type": "string"},
-            {"name": "Cb", "type": "date32"},
-        ]
-    )
-    exp_m = Metadata(
-        columns=[
-            {"name": "AA_7", "type": "int8"},
-            {"name": "B", "type": "string"},
-            {"name": "CB", "type": "date32"},
-        ]
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_keys_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
 
-    )
+    test_out = func(inplace, meta_input)
 
-    # run test for inplace
-    m.column_names_to_upper(inplace=True)
-    assert type(m) == Metadata, "unexpected object returned"
-    assert m.column_names == exp_m.column_names, "unexpected column names"
-    assert [c['type'] for c in m.columns] == [
-        c['type'] for c in exp_m.columns
-    ], "unexpected column types"
-    assert m._data.keys() == exp_m._data.keys()
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
 
-    # run test for not inplace
-    up = m.column_names_to_upper()
-    assert type(up) == Metadata, "unexpected object returned"
-    assert up.column_names == exp_m.column_names, "unexpected column names"
-    assert [c['type'] for c in up.columns] == [
-        c['type'] for c in exp_m.columns
-    ], "unexpected column types"
-    assert up._data.keys() == exp_m._data.keys()
+    assert (
+        test_out._data.keys() == exp_out._data.keys()
+    ), f"unexpected key, inplace={inplace}, calling {func.__name__}"
