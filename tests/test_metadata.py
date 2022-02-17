@@ -17,50 +17,6 @@ from mojap_metadata.metadata.metadata import (
 )
 
 
-# test input and expected metadata for the Metadata.column_names_to_lower
-# and columns_names_to_upper tests
-@pytest.fixture(scope="function")
-def meta_input():
-    meta = Metadata(
-        columns=[
-            {"name": "A", "type": "int8"},
-            {"name": "b", "type": "string"},
-            {"name": "C", "type": "date32"},
-            {"name": "D", "type": "date32"},
-            {"name": "e", "type": "date32"},
-        ]
-    )
-    return meta
-
-
-@pytest.fixture(scope="function")
-def expected_meta_out_lower():
-    meta = Metadata(
-        columns=[
-            {"name": "a", "type": "int8"},
-            {"name": "b", "type": "string"},
-            {"name": "c", "type": "date32"},
-            {"name": "d", "type": "date32"},
-            {"name": "e", "type": "date32"},
-        ]
-    )
-    return meta
-
-
-@pytest.fixture(scope="function")
-def expected_meta_out_upper():
-    meta = Metadata(
-        columns=[
-            {"name": "A", "type": "int8"},
-            {"name": "B", "type": "string"},
-            {"name": "C", "type": "date32"},
-            {"name": "D", "type": "date32"},
-            {"name": "E", "type": "date32"},
-        ]
-    )
-    return meta
-
-
 @pytest.mark.parametrize(
     argnames="attribute,default_value,valid_value,invalid_value",
     argvalues=[
