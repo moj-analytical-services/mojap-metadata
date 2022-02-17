@@ -96,4 +96,3 @@ def expected_meta_out_upper():
         ]
     )
     return meta
-
