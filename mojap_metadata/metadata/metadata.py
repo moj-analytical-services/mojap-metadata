@@ -7,6 +7,7 @@ from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
+from collections import Counter
 
 from typing import Union, List, Callable
 
@@ -221,6 +222,47 @@ class Metadata:
         else:
             raise TypeError(f"input type not recognised: {type(inp)}")
 
+    @classmethod
+    def merge(cls, old, new, mismatch="priority", data={}) -> object:
+        """
+        Creates a new Metadata object by merging two others.
+        args:
+            old: Metadata object
+            new: Metadata object
+            mismatch: Determines behaviour when there is a mismatch of column
+                metadata, "priority" prioritises the details from the
+                new Metadata object, "error" throws an error
+            data: Metadata values for the merged Metadata object, overriding
+                existing values
+        returns:
+            Metadata object
+        """
+        m = deepcopy(old)
+        for k in data:
+            m._data[k] = data[k]
+
+        if mismatch == "error":
+            for k in [x for x in m._data.keys() if x != "columns" and x not in data]:
+                if m._data[k] != new._data[k]:
+                    raise ValueError(
+                        f"Merge error: values of {k} do not match,"
+                        f" {m._data[k]} != {new._data[k]}"
+                    )
+            cols_to_check = set(m.column_names) & set(new.column_names)
+            for c in cols_to_check:
+                m_i = m.column_names.index(c)
+                new_i = new.column_names.index(c)
+                if m.columns[m_i] != new.columns[new_i]:
+                    raise ValueError(
+                        f"Merge error: values of column {c} do not match,"
+                        f" {m.columns[m_i]} != {new.columns[new_i]}"
+                    )
+
+        for c in new.columns:
+            m.update_column(c)
+        m.validate()
+        return m
+
     name = MetadataProperty()
     description = MetadataProperty()
     file_format = MetadataProperty()
@@ -400,6 +442,7 @@ class Metadata:
         jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
+        self._validate_unique_column_names()
 
     def _validate_list_attribute(self, attribute: str, columns: list) -> None:
         if not isinstance(columns, list):
@@ -412,6 +455,14 @@ class Metadata:
             raise ValueError(f"'All elements of '{attribute}' must be in self.columns")
         if len(columns) != len(set(columns)):
             raise ValueError(f"'All elements of '{attribute}' must be unique")
+
+    def _validate_unique_column_names(self) -> None:
+        col_counts = Counter(self.column_names)
+        non_unique = [col for col in col_counts if col_counts[col] > 1]
+        if non_unique:
+            raise ValueError(
+                f"Columns must be uniquely named: repeats of {', '.join(non_unique)}"
+            )
 
     def to_dict(self) -> dict:
         return deepcopy(self._data)
