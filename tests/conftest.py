@@ -2,7 +2,7 @@ import boto3
 import os
 import pytest
 import psycopg2
-
+from mojap_metadata import Metadata
 from moto import mock_glue
 import testing.postgresql
 from sqlalchemy import create_engine
@@ -52,3 +52,47 @@ def postgres_connection():
     yield engine, psql, connection  # Allows us to close down envs on exit
     psql = psql.stop()
     connection.close()
+
+
+# test input and expected metadata for the Metadata.column_names_to_lower
+# and columns_names_to_upper tests
+@pytest.fixture(scope="function")
+def meta_input():
+    meta = Metadata(
+        columns=[
+            {"name": "A", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "C", "type": "date32"},
+            {"name": "D", "type": "date32"},
+            {"name": "e", "type": "date32"},
+        ]
+    )
+    return meta
+
+
+@pytest.fixture(scope="function")
+def expected_meta_out_lower():
+    meta = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+            {"name": "d", "type": "date32"},
+            {"name": "e", "type": "date32"},
+        ]
+    )
+    return meta
+
+
+@pytest.fixture(scope="function")
+def expected_meta_out_upper():
+    meta = Metadata(
+        columns=[
+            {"name": "A", "type": "int8"},
+            {"name": "B", "type": "string"},
+            {"name": "C", "type": "date32"},
+            {"name": "D", "type": "date32"},
+            {"name": "E", "type": "date32"},
+        ]
+    )
+    return meta

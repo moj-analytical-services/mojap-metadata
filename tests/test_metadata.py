@@ -674,3 +674,105 @@ def test_params_merge(m1, m2, expected_partitions):
 )
 def test_data_override_merge(m1, m2, data, expected_name):
     assert Metadata.merge(m1, m2, data=data).name == expected_name
+    
+
+def _column_names_to_lower(inplace, in_meta):
+    if inplace:
+        in_meta.column_names_to_lower(inplace=True)
+        test_out = in_meta
+    else:
+        test_out = in_meta.column_names_to_lower()
+    return test_out
+
+
+def _column_names_to_upper(inplace, in_meta):
+    if inplace:
+        in_meta.column_names_to_upper(inplace=True)
+        test_out = in_meta
+    else:
+        test_out = in_meta.column_names_to_upper()
+    return test_out
+
+
+column_names_to_upper_and_lower_params = [
+    (False, _column_names_to_lower),
+    (True, _column_names_to_lower),
+    (False, _column_names_to_upper),
+    (True, _column_names_to_upper),
+]
+
+
+@pytest.mark.parametrize(
+    "inplace,func",
+    column_names_to_upper_and_lower_params
+)
+def test_type_returned_column_names_to_upper_or_lower(
+    inplace, func, meta_input,
+):
+    test_out = func(inplace, meta_input)
+
+    assert (
+        type(test_out) == Metadata
+    ), f"Non Metadata object returned, inplace={inplace}, calling {func.__name__}"
+
+
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_names_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
+
+    test_out = func(inplace, meta_input)
+
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
+
+    assert test_out.column_names == (
+        exp_out.column_names
+    ), f"unexpected columnn names, inplace={inplace}, calling {func.__name__}"
+
+
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_types_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
+
+    test_out = func(inplace, meta_input)
+
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
+
+    assert (
+        [c["type"] for c in test_out.columns] == [
+            c["type"] for c in exp_out.columns
+        ]
+    ), f"unexpected columnn types, inplace={inplace}, calling {func.__name__}"
+
+
+@pytest.mark.parametrize(
+    "inplace, func",
+    column_names_to_upper_and_lower_params
+)
+def test_keys_column_names_to_upper_or_lower(
+    inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
+):
+
+    test_out = func(inplace, meta_input)
+
+    if "lower" in func.__name__:
+        exp_out = expected_meta_out_lower
+    else:
+        exp_out = expected_meta_out_upper
+
+    assert (
+        test_out._data.keys() == exp_out._data.keys()
+    ), f"unexpected key, inplace={inplace}, calling {func.__name__}"
