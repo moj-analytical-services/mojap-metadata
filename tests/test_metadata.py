@@ -568,3 +568,109 @@ def test_inferred_input_passes(monkeypatch, patch_out, fake_input):
 def test_inferred_input_fails(fake_input):
     with pytest.raises(TypeError):
         Metadata.from_infer(fake_input)
+
+
+merge_meta_test = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [{"name": "c1", "type": "int64"}, {"name": "c2", "type": "string"}],
+        "partitions": ["c1"],
+    }
+)
+
+merge_meta_diff_col_type = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [
+            {"name": "c3", "type": "string"},
+            {"name": "c1", "type": "int64"},
+            {"name": "c2", "type": "float64"},
+        ],
+        "partitions": ["c1"],
+    }
+)
+
+merge_meta_diff_partitions = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [
+            {"name": "c3", "type": "string"},
+            {"name": "c1", "type": "int64"},
+            {"name": "c2", "type": "string"},
+        ],
+        "partitions": ["c1", "c3"],
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "m1,m2",
+    [
+        (merge_meta_test, merge_meta_diff_col_type),
+        (merge_meta_test, merge_meta_diff_partitions),
+    ],
+)
+def test_merge_error_raised(m1, m2):
+    with pytest.raises(ValueError):
+        m = Metadata.merge(m1, m2, mismatch="error")
+
+
+@pytest.mark.parametrize(
+    "m1,m2,expected_cols",
+    [
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            [
+                {"name": "c1", "type": "int64"},
+                {"name": "c2", "type": "float64"},
+                {"name": "c3", "type": "string"},
+            ],
+        ),
+        (
+            merge_meta_test,
+            merge_meta_diff_partitions,
+            [
+                {"name": "c1", "type": "int64"},
+                {"name": "c2", "type": "string"},
+                {"name": "c3", "type": "string"},
+            ],
+        ),
+    ],
+)
+def test_cols_merge(m1, m2, expected_cols):
+    assert sorted(x.items() for x in Metadata.merge(m1, m2).columns) == sorted(
+        x.items() for x in expected_cols
+    )
+
+
+@pytest.mark.parametrize(
+    "m1,m2,expected_partitions",
+    [
+        (merge_meta_test, merge_meta_diff_partitions, ["c1", "c3"]),
+        (merge_meta_diff_partitions, merge_meta_test, ["c1"]),
+    ],
+)
+def test_params_merge(m1, m2, expected_partitions):
+    assert Metadata.merge(m1, m2).partitions == expected_partitions
+
+
+@pytest.mark.parametrize(
+    "m1,m2,data,expected_name",
+    [
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            {"name": "new_test_name"},
+            "new_test_name",
+        ),
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            {"description": "Test description"},
+            "merge_test",
+        ),
+    ],
+)
+def test_data_override_merge(m1, m2, data, expected_name):
+    assert Metadata.merge(m1, m2, data=data).name == expected_name

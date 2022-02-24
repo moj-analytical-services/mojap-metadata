@@ -242,7 +242,11 @@ class Metadata:
             m._data[k] = data[k]
 
         if mismatch == "error":
-            for k in [x for x in m._data.keys() if x != "columns" and x not in data]:
+            for k in [
+                x
+                for x in m._data
+                if x in new._data and x != "columns" and x not in data
+            ]:
                 if m._data[k] != new._data[k]:
                     raise ValueError(
                         f"Merge error: values of {k} do not match,"
@@ -258,8 +262,12 @@ class Metadata:
                         f" {m.columns[m_i]} != {new.columns[new_i]}"
                     )
 
+        # Update columns from new metadata
         for c in new.columns:
             m.update_column(c)
+        # Update the rest of the data from new metadata unless specified in params
+        for k in [x for x in new._data if x != "columns" and x not in data]:
+            m._data[k] = new._data[k]
         m.validate()
         return m
 
