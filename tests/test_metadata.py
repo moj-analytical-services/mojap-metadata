@@ -615,6 +615,47 @@ def test_merge_error_raised(m1, m2):
         Metadata.merge(m1, m2, mismatch="error")
 
 
+def test_merge_error_not_raised():
+    m1 = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c1", "type": "string"},
+                {"name": "c2", "type": "int64"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    m2 = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c2", "type": "int64"},
+                {"name": "c3", "type": "string"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    expected = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c1", "type": "string"},
+                {"name": "c2", "type": "int64"},
+                {"name": "c3", "type": "string"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    merged = Metadata.merge(m1, m2)
+    assert (
+        sorted(x.items() for x in merged.columns)
+        == sorted(x.items() for x in expected.columns)
+        and merged.name == expected.name
+        and sorted(merged.partitions) == sorted(expected.partitions)
+    )
+
+
 @pytest.mark.parametrize(
     "m1,m2,expected_cols",
     [
@@ -673,7 +714,20 @@ def test_params_merge(m1, m2, expected_partitions):
     ],
 )
 def test_data_override_merge(m1, m2, data, expected_name):
-    assert Metadata.merge(m1, m2, data=data).name == expected_name
+    assert Metadata.merge(m1, m2, data_override=data).name == expected_name
+
+
+def test_non_unique_column_names():
+    with pytest.raises(ValueError):
+        Metadata.from_infer(
+            {
+                "name": "non_unique_column_test",
+                "columns": [
+                    {"name": "c1", "type": "string"},
+                    {"name": "c1", "type": "int64"},
+                ],
+            }
+        )
 
 
 def _column_names_to_lower(inplace, in_meta):
