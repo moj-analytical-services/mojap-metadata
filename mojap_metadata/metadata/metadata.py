@@ -7,7 +7,6 @@ from copy import deepcopy
 import importlib.resources as pkg_resources
 import jsonschema
 from mojap_metadata.metadata import specs
-from collections import Counter
 
 from typing import Union, List, Callable
 
