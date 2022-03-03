@@ -173,7 +173,7 @@ class Metadata:
         return m
 
     @classmethod
-    def from_json(cls, filename, **kwargs) -> object:
+    def from_json(cls, filename: str, **kwargs) -> object:
         """
         generates Metadata object from a string path to a json metadata formatted file
         args:
@@ -186,7 +186,7 @@ class Metadata:
             return cls.from_dict(obj)
 
     @classmethod
-    def from_yaml(cls, filename, **kwargs) -> object:
+    def from_yaml(cls, filename: str, **kwargs) -> object:
         """
         generates Metadata object from a string path to a yaml metadata formatted file
         args:
@@ -199,11 +199,11 @@ class Metadata:
             return cls.from_dict(obj)
 
     @classmethod
-    def from_infer(cls, inp, **kwargs) -> object:
+    def from_infer(cls, inp: Union[str, dict, object], **kwargs) -> object:
         """
         generates Metadata object from and infers the format of the metadata input and
         uses one of the above class methods to load. If passed a Metadata object, will
-        return that unchanged.
+        return a copy.
         args:
             inp: input that is either a string path to a yaml or json file, a dictionary
             or a Metadata object
@@ -217,9 +217,73 @@ class Metadata:
         elif isinstance(inp, dict):
             return cls.from_dict(inp)
         elif isinstance(inp, cls):
-            return inp
+            return deepcopy(inp)
         else:
             raise TypeError(f"input type not recognised: {type(inp)}")
+
+    @classmethod
+    def merge(
+        cls,
+        old: Union[str, dict, object],
+        new: Union[str, dict, object],
+        mismatch: str = "priority",
+        data_override: Union[dict, None] = None,
+    ) -> object:
+        """
+        Creates a new Metadata object by merging two others.
+        args:
+            old: Metadata object
+            new: Metadata object
+            mismatch: Determines behaviour when there is a mismatch of column
+                metadata, "priority" prioritises the details from the
+                new Metadata object, "error" throws an error
+            data: Metadata values for the merged Metadata object, overriding
+                existing values
+        returns:
+            Metadata object
+        """
+        old_meta = cls.from_infer(old)
+        old_meta.set_col_types_from_type_category()
+        new_meta = cls.from_infer(new)
+        new_meta.set_col_types_from_type_category()
+
+        if data_override is None:
+            data_override = {}
+        for k in data_override:
+            old_meta._data[k] = data_override[k]
+
+        if mismatch == "error":
+            parameters_to_check = [
+                x
+                for x in old_meta._data
+                if x in new_meta._data and x != "columns" and x not in data_override
+            ]
+            for param in parameters_to_check:
+                if old_meta._data[param] != new_meta._data[param]:
+                    raise ValueError(
+                        f"Merge error: values of {param} do not match,"
+                        f" {old_meta._data[param]} != {new_meta._data[param]}"
+                    )
+            cols_to_check = set(old_meta.column_names) & set(new_meta.column_names)
+            for c in cols_to_check:
+                old_i = old_meta.column_names.index(c)
+                new_i = new_meta.column_names.index(c)
+                if old_meta.columns[old_i] != new_meta.columns[new_i]:
+                    raise ValueError(
+                        f"Merge error: values of column {c} do not match,"
+                        f" {old_meta.columns[old_i]} != {new_meta.columns[new_i]}"
+                    )
+
+        # Update columns from new metadata
+        for c in new_meta.columns:
+            old_meta.update_column(c)
+        # Update the rest of the data from new metadata unless specified in params
+        for param in [
+            x for x in new_meta._data if x != "columns" and x not in data_override
+        ]:
+            old_meta._data[param] = new_meta._data[param]
+        old_meta.validate()
+        return old_meta
 
     name = MetadataProperty()
     description = MetadataProperty()
@@ -400,6 +464,10 @@ class Metadata:
         jsonschema.validate(instance=self._data, schema=self._schema)
         self._validate_list_attribute(attribute="primary_key", columns=self.primary_key)
         self._validate_list_attribute(attribute="partitions", columns=self.partitions)
+        # Ensure unique column names
+        self._validate_list_attribute(
+            attribute="column name", columns=self.column_names
+        )
 
     def _validate_list_attribute(self, attribute: str, columns: list) -> None:
         if not isinstance(columns, list):
@@ -427,23 +495,23 @@ class Metadata:
     def column_names_to_lower(self, inplace: bool = False) -> Union[object, None]:
         if inplace:
             for c in self.columns:
-                c['name'] = c['name'].lower()
+                c["name"] = c["name"].lower()
             return self
         else:
             self_lower = deepcopy(self)
             for c in self_lower.columns:
-                c['name'] = c['name'].lower()
+                c["name"] = c["name"].lower()
             return self_lower
 
     def column_names_to_upper(self, inplace: bool = False) -> Union[object, None]:
         if inplace:
             for c in self.columns:
-                c['name'] = c['name'].upper()
+                c["name"] = c["name"].upper()
             return self
         else:
             self_upper = deepcopy(self)
             for c in self_upper.columns:
-                c['name'] = c['name'].upper()
+                c["name"] = c["name"].upper()
             return self_upper
 
     def unpack_complex_data_type(self, data_type: str) -> Union[str, dict]:

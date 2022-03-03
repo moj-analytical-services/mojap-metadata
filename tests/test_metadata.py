@@ -570,6 +570,166 @@ def test_inferred_input_fails(fake_input):
         Metadata.from_infer(fake_input)
 
 
+merge_meta_test = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [{"name": "c1", "type": "int64"}, {"name": "c2", "type": "string"}],
+        "partitions": ["c1"],
+    }
+)
+
+merge_meta_diff_col_type = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [
+            {"name": "c3", "type": "string"},
+            {"name": "c1", "type": "int64"},
+            {"name": "c2", "type": "float64"},
+        ],
+        "partitions": ["c1"],
+    }
+)
+
+merge_meta_diff_partitions = Metadata.from_dict(
+    {
+        "name": "merge_test",
+        "columns": [
+            {"name": "c3", "type": "string"},
+            {"name": "c1", "type": "int64"},
+            {"name": "c2", "type": "string"},
+        ],
+        "partitions": ["c1", "c3"],
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "m1,m2",
+    [
+        (merge_meta_test, merge_meta_diff_col_type),
+        (merge_meta_test, merge_meta_diff_partitions),
+    ],
+)
+def test_merge_error_raised(m1, m2):
+    with pytest.raises(ValueError):
+        Metadata.merge(m1, m2, mismatch="error")
+
+
+def test_merge_error_not_raised():
+    m1 = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c1", "type": "string"},
+                {"name": "c2", "type": "int64"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    m2 = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c2", "type": "int64"},
+                {"name": "c3", "type": "string"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    expected = Metadata.from_dict(
+        {
+            "name": "merge_test",
+            "columns": [
+                {"name": "c1", "type": "string"},
+                {"name": "c2", "type": "int64"},
+                {"name": "c3", "type": "string"},
+            ],
+            "partitions": ["c2"],
+        }
+    )
+    merged = Metadata.merge(m1, m2)
+    assert (
+        sorted(x.items() for x in merged.columns)
+        == sorted(x.items() for x in expected.columns)
+        and merged.name == expected.name
+        and sorted(merged.partitions) == sorted(expected.partitions)
+    )
+
+
+@pytest.mark.parametrize(
+    "m1,m2,expected_cols",
+    [
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            [
+                {"name": "c1", "type": "int64"},
+                {"name": "c2", "type": "float64"},
+                {"name": "c3", "type": "string"},
+            ],
+        ),
+        (
+            merge_meta_test,
+            merge_meta_diff_partitions,
+            [
+                {"name": "c1", "type": "int64"},
+                {"name": "c2", "type": "string"},
+                {"name": "c3", "type": "string"},
+            ],
+        ),
+    ],
+)
+def test_cols_merge(m1, m2, expected_cols):
+    assert sorted(x.items() for x in Metadata.merge(m1, m2).columns) == sorted(
+        x.items() for x in expected_cols
+    )
+
+
+@pytest.mark.parametrize(
+    "m1,m2,expected_partitions",
+    [
+        (merge_meta_test, merge_meta_diff_partitions, ["c1", "c3"]),
+        (merge_meta_diff_partitions, merge_meta_test, ["c1"]),
+    ],
+)
+def test_params_merge(m1, m2, expected_partitions):
+    assert Metadata.merge(m1, m2).partitions == expected_partitions
+
+
+@pytest.mark.parametrize(
+    "m1,m2,data,expected_name",
+    [
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            {"name": "new_test_name"},
+            "new_test_name",
+        ),
+        (
+            merge_meta_test,
+            merge_meta_diff_col_type,
+            {"description": "Test description"},
+            "merge_test",
+        ),
+    ],
+)
+def test_data_override_merge(m1, m2, data, expected_name):
+    assert Metadata.merge(m1, m2, data_override=data).name == expected_name
+
+
+def test_non_unique_column_names():
+    with pytest.raises(ValueError):
+        Metadata.from_infer(
+            {
+                "name": "non_unique_column_test",
+                "columns": [
+                    {"name": "c1", "type": "string"},
+                    {"name": "c1", "type": "int64"},
+                ],
+            }
+        )
+
+
 def _column_names_to_lower(inplace, in_meta):
     if inplace:
         in_meta.column_names_to_lower(inplace=True)
@@ -596,12 +756,11 @@ column_names_to_upper_and_lower_params = [
 ]
 
 
-@pytest.mark.parametrize(
-    "inplace,func",
-    column_names_to_upper_and_lower_params
-)
+@pytest.mark.parametrize("inplace,func", column_names_to_upper_and_lower_params)
 def test_type_returned_column_names_to_upper_or_lower(
-    inplace, func, meta_input,
+    inplace,
+    func,
+    meta_input,
 ):
     test_out = func(inplace, meta_input)
 
@@ -610,10 +769,7 @@ def test_type_returned_column_names_to_upper_or_lower(
     ), f"Non Metadata object returned, inplace={inplace}, calling {func.__name__}"
 
 
-@pytest.mark.parametrize(
-    "inplace, func",
-    column_names_to_upper_and_lower_params
-)
+@pytest.mark.parametrize("inplace, func", column_names_to_upper_and_lower_params)
 def test_names_column_names_to_upper_or_lower(
     inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
 ):
@@ -630,10 +786,7 @@ def test_names_column_names_to_upper_or_lower(
     ), f"unexpected columnn names, inplace={inplace}, calling {func.__name__}"
 
 
-@pytest.mark.parametrize(
-    "inplace, func",
-    column_names_to_upper_and_lower_params
-)
+@pytest.mark.parametrize("inplace, func", column_names_to_upper_and_lower_params)
 def test_types_column_names_to_upper_or_lower(
     inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
 ):
@@ -645,17 +798,12 @@ def test_types_column_names_to_upper_or_lower(
     else:
         exp_out = expected_meta_out_upper
 
-    assert (
-        [c["type"] for c in test_out.columns] == [
-            c["type"] for c in exp_out.columns
-        ]
-    ), f"unexpected columnn types, inplace={inplace}, calling {func.__name__}"
+    assert [c["type"] for c in test_out.columns] == [
+        c["type"] for c in exp_out.columns
+    ], f"unexpected columnn types, inplace={inplace}, calling {func.__name__}"
 
 
-@pytest.mark.parametrize(
-    "inplace, func",
-    column_names_to_upper_and_lower_params
-)
+@pytest.mark.parametrize("inplace, func", column_names_to_upper_and_lower_params)
 def test_keys_column_names_to_upper_or_lower(
     inplace, func, meta_input, expected_meta_out_lower, expected_meta_out_upper
 ):
