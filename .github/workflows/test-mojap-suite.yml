@@ -1,8 +1,10 @@
-env:
-  REPO_NAME: ${{ github.event.repository.name }} # name of repo calling the compoisite action
-  ORG_REPO: ${{ github.repository }} # org/name of repo calling the composite action
-  
+name: test mojap suite of package dependancies
+
 on: pull_request
+
+env:
+  REPO_NAME: ${{ github.event.repository.name }}
+  ORG_REPO: ${{ github.repository }}
   
 jobs:
   build:
