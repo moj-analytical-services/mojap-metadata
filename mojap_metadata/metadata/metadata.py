@@ -175,7 +175,9 @@ class Metadata:
         return m
 
     @classmethod
-    def from_json(cls, filename: str, encoding: str = "utf-8", *args, **kwargs) -> object:
+    def from_json(
+        cls, filename: str, encoding: str = "utf-8", *args, **kwargs
+    ) -> object:
         """
         generates Metadata object from a string path to a json metadata formatted file
         args:
@@ -188,11 +190,13 @@ class Metadata:
         else:
             with open(filename, "r") as f:
                 obj = json.load(f, **kwargs)
-        
+
         return cls.from_dict(obj)
 
     @classmethod
-    def from_yaml(cls, filename: str, encoding: str = "utf-8", *args, **kwargs) -> object:
+    def from_yaml(
+        cls, filename: str, encoding: str = "utf-8", *args, **kwargs
+    ) -> object:
         """
         generates Metadata object from a string path to a yaml metadata formatted file
         args:
@@ -205,7 +209,7 @@ class Metadata:
         else:
             with open(filename, "r") as f:
                 obj = yaml.safe_load(f, **kwargs)
-        
+
         return cls.from_dict(obj)
 
     @classmethod
