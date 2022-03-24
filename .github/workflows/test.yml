@@ -31,8 +31,3 @@ jobs:
     - name: Run Tests
       run: |
         pytest tests/ -vv
-    - name: check changes for conflicts with other mojap package dependencies
-      uses: moj-analytical-services/actions-mojap-package-depends@main
-      with:
-        org-repo: ${{ github.repository }}
-        repo: ${{ github.event.repository.name }}
