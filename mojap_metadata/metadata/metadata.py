@@ -1,14 +1,16 @@
-import re
 import json
-
-import yaml
-import warnings
-from copy import deepcopy
-import importlib.resources as pkg_resources
 import jsonschema
-from mojap_metadata.metadata import specs
+import re
+import warnings
+import yaml
 
+import importlib.resources as pkg_resources
+
+from copy import deepcopy
+from dataengineeringutils3.s3 import read_json_from_s3, read_yaml_from_s3
+from mojap_metadata.metadata import specs
 from typing import Union, List, Callable
+
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.3.0.json"  # noqa
@@ -173,7 +175,9 @@ class Metadata:
         return m
 
     @classmethod
-    def from_json(cls, filename: str, **kwargs) -> object:
+    def from_json(
+        cls, filename: str, encoding: str = "utf-8", *args, **kwargs
+    ) -> object:
         """
         generates Metadata object from a string path to a json metadata formatted file
         args:
@@ -181,12 +185,18 @@ class Metadata:
         returns:
             Metadata object
         """
-        with open(filename, "r") as f:
-            obj = json.load(f, **kwargs)
-            return cls.from_dict(obj)
+        if filename.startswith("s3://"):
+            obj = read_json_from_s3(filename, encoding, *args, **kwargs)
+        else:
+            with open(filename, "r") as f:
+                obj = json.load(f, **kwargs)
+
+        return cls.from_dict(obj)
 
     @classmethod
-    def from_yaml(cls, filename: str, **kwargs) -> object:
+    def from_yaml(
+        cls, filename: str, encoding: str = "utf-8", *args, **kwargs
+    ) -> object:
         """
         generates Metadata object from a string path to a yaml metadata formatted file
         args:
@@ -194,9 +204,13 @@ class Metadata:
         returns:
             Metadata object
         """
-        with open(filename, "r") as f:
-            obj = yaml.safe_load(f, **kwargs)
-            return cls.from_dict(obj)
+        if filename.startswith("s3://"):
+            obj = read_yaml_from_s3(filename, encoding, *args, **kwargs)
+        else:
+            with open(filename, "r") as f:
+                obj = yaml.safe_load(f, **kwargs)
+
+        return cls.from_dict(obj)
 
     @classmethod
     def from_infer(cls, inp: Union[str, dict, object], **kwargs) -> object:

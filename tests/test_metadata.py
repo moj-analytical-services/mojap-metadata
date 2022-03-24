@@ -1,12 +1,9 @@
-from typing import Any
+import json
+import pytest
+import urllib.request
 
 from jsonschema.exceptions import ValidationError
-import urllib.request
-import json
-
-import pytest
 from mojap_metadata import Metadata
-
 from mojap_metadata.metadata.metadata import (
     _parse_and_split,
     _get_first_level,
@@ -15,6 +12,7 @@ from mojap_metadata.metadata.metadata import (
     _get_type_category_pattern_dict_from_schema,
     _schema_url,
 )
+from typing import Any
 
 
 @pytest.mark.parametrize(
