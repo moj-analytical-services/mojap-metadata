@@ -31,7 +31,7 @@ jobs:
     - name: Run Tests
       run: |
         pytest tests/ -vv
-    - name: test mojap suit dependancies
+    - name: test mojap suite dependancies
       uses: moj-analytical-services/actions-mojap-package-depends@main
       with:
         org-repo: ${{ github.repository }}
