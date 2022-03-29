@@ -1,6 +1,8 @@
 import pytest
 import json
 
+import pydbtools as pydb
+
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue
 from mojap_metadata.converters.glue_converter import (
@@ -172,12 +174,13 @@ def test_meta_or_kwarg_location_and_name(gc_kwargs: dict, add_to_meta: dict):
     }
 
 
-def test_gluetable_generate_from_meta(glue_client):
+def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
-
+    
+    monkeypatch.setattr(pydb, "read_sql_query", lambda: None)
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     # ignore the warnings as I don't want to run msck repair table
@@ -189,24 +192,25 @@ def test_gluetable_generate_from_meta(glue_client):
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-def test_gluetable_msck_warnings(glue_client):
+def test_gluetable_msck_warnings(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
-
+    monkeypatch.setattr(pydb, "read_sql_query", lambda: None)
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
     with pytest.warns(Warning):
         gt.generate_from_meta(meta)
 
 
-def test_gluetable_generate_to_meta(glue_client):
+def test_gluetable_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
+    monkeypatch.setattr(pydb, "read_sql_query", lambda: None)
     # create the mock table and generate the meta from the mock table
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})

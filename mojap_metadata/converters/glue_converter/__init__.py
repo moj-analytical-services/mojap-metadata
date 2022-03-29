@@ -1,24 +1,29 @@
 import boto3
-import os
 import json
+import os
 import re
 import warnings
 
+import importlib.resources as pkg_resources
 import pydbtools as pydb
-from typing import Tuple, List, Union
-from awswrangler.catalog import delete_table_if_exists
+
+from awswrangler.catalog import (
+    delete_table_if_exists,
+    databases,
+    create_database,
+)
+from dataclasses import dataclass
+from mojap_metadata.converters import (
+    BaseConverter,
+    _flatten_and_convert_complex_data_type,
+)
 from mojap_metadata.metadata.metadata import (
     Metadata,
     _unpack_complex_data_type,
     _metadata_complex_dtype_names,
 )
-from mojap_metadata.converters import (
-    BaseConverter,
-    _flatten_and_convert_complex_data_type,
-)
-import importlib.resources as pkg_resources
-from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
+from typing import Tuple, List, Union
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -427,7 +432,7 @@ class GlueTable(BaseConverter):
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair=False,
+        run_msck_repair: bool = False,
     ):
         """
         Creates a glue table from metadata
@@ -459,6 +464,9 @@ class GlueTable(BaseConverter):
         boto_dict = self.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
+        # create database if it doesn't exist
+        pydb.read_sql_query(f"CREATE DATABASE IF NOT EXISTS {database_name};")
+        
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
 
