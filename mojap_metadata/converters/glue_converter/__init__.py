@@ -9,8 +9,6 @@ import pydbtools as pydb
 
 from awswrangler.catalog import (
     delete_table_if_exists,
-    databases,
-    create_database,
 )
 from dataclasses import dataclass
 from mojap_metadata.converters import (
@@ -466,7 +464,7 @@ class GlueTable(BaseConverter):
         )
         # create database if it doesn't exist
         pydb.read_sql_query(f"CREATE DATABASE IF NOT EXISTS {database_name};")
-        
+
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
 
