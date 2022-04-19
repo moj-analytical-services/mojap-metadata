@@ -463,7 +463,9 @@ class GlueTable(BaseConverter):
             metadata, database_name=database_name, table_location=table_location
         )
         # create database if it doesn't exist
-        pydb.start_query_execution_and_wait(f"CREATE DATABASE IF NOT EXISTS {database_name};")
+        pydb.start_query_execution_and_wait(
+            f"CREATE DATABASE IF NOT EXISTS {database_name};"
+        )
 
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
