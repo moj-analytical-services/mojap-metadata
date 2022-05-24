@@ -110,7 +110,7 @@ d = {
 meta2 = Metadata.from_dict(d)
 
 # Read / write to json
-meta3 = Metadata.read_json("path/to/metadata_schema.json")
+meta3 = Metadata.from_json("path/to/metadata_schema.json")
 meta3.name = "new_table"
 meta3.to_json("path/to/new_metadata_schema.json")
 ```
