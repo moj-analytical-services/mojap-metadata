@@ -244,7 +244,7 @@ d = {
 }
 meta = Metadata.from_dict(d)
 
-gc = ArrowConverter()
+gc = GlueConverter()
 boto_dict = gc.generate_from_meta(meta, )
 boto_dict = gc.generate_from_meta(meta, database_name="test_db", table_location="s3://bucket/test_db/test/")
 
