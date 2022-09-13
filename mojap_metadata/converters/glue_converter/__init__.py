@@ -403,6 +403,8 @@ class GlueTable(BaseConverter):
     def convert_columns(self, columns: List[dict]) -> List[dict]:
         mojap_meta_cols = []
         for col in columns:
+            if col["Type"].startswith("varchar"):
+                col["Type"] = "varchar"
             col_type = self.convert_col_type(col["Type"])
             if col["Type"].startswith("decimal") or col["Type"].startswith(
                 _metadata_complex_dtype_names
