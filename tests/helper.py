@@ -120,7 +120,6 @@ def get_meta(ff: str, additional_params: Optional[dict] = None):
                 {"name": "my_date", "type": "date64"},
                 {"name": "my_decimal", "type": "decimal128(10,2)"},
                 {"name": "my_complex", "type": "large_list<int64>"},
-                {"name": "my_varchar", "type": "varchar(10)"},
                 {
                     "name": "my_timestamp",
                     "type": "timestamp(s)",

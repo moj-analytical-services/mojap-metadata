@@ -388,9 +388,14 @@ class GlueTable(BaseConverter):
 
     def convert_basic_col_type(self, col_type: str):
         if col_type.startswith("decimal"):
-            regex = re.compile(r"decimal(\(\d+,\d+\))")
+            regex = re.compile(r"decimal(\(\d+,( |)\d+\)|\(\d+\))")
             bracket_numbers = regex.match(col_type).groups()[0]
+            # we want them to have a space between really, so
+            
             return f"decimal128{bracket_numbers}"
+        elif col_type.startswith(("char", "varchar")):
+            coltype_ = col_type.split("(", 1)[0]
+            return _glue_to_mojap_type_converter[coltype_][0]
         else:
             return _glue_to_mojap_type_converter[col_type][0]
 
@@ -403,8 +408,6 @@ class GlueTable(BaseConverter):
     def convert_columns(self, columns: List[dict]) -> List[dict]:
         mojap_meta_cols = []
         for col in columns:
-            if col["Type"].startswith("varchar"):
-                col["Type"] = "varchar"
             col_type = self.convert_col_type(col["Type"])
             if col["Type"].startswith("decimal") or col["Type"].startswith(
                 _metadata_complex_dtype_names
