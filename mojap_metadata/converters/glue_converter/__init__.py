@@ -407,12 +407,8 @@ class GlueTable(BaseConverter):
         mojap_meta_cols = []
         for col in columns:
             col_type = self.convert_col_type(col["Type"])
-            if col["Type"].startswith("decimal") or col["Type"].startswith(
-                _metadata_complex_dtype_names
-            ):
-                full_support = False
-            else:
-                full_support = _glue_to_mojap_type_converter.get(col["Type"])[1]
+            normalised_col_type = col_type.split("(")[0]
+            full_support = _glue_to_mojap_type_converter.get(normalised_col_type)[1]
             if not full_support:
                 warnings.warn(
                     f"type {col['Type']} not fully supported, "
