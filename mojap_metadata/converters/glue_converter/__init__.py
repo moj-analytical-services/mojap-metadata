@@ -406,8 +406,8 @@ class GlueTable(BaseConverter):
     def convert_columns(self, columns: List[dict]) -> List[dict]:
         mojap_meta_cols = []
         for col in columns:
-            col_type = self.convert_col_type(col["Type"])
-            normalised_col_type = col_type.split("(")[0]
+            mojap_col_type = self.convert_col_type(col["Type"])
+            normalised_col_type = col["Type"].split("(")[0]
             full_support = _glue_to_mojap_type_converter.get(normalised_col_type)[1]
             if not full_support:
                 warnings.warn(
@@ -417,7 +417,7 @@ class GlueTable(BaseConverter):
             # create the column in mojap meta format
             meta_col = {
                 "name": col["Name"],
-                "type": col_type,
+                "type": mojap_col_type,
             }
             if col.get("Comment"):
                 meta_col["description"] = col.get("Comment")
