@@ -390,8 +390,6 @@ class GlueTable(BaseConverter):
         if col_type.startswith("decimal"):
             regex = re.compile(r"decimal(\(\d+,( |)\d+\)|\(\d+\))")
             bracket_numbers = regex.match(col_type).groups()[0]
-            # we want them to have a space between really, so
-            
             return f"decimal128{bracket_numbers}"
         elif col_type.startswith(("char", "varchar")):
             coltype_ = col_type.split("(", 1)[0]
