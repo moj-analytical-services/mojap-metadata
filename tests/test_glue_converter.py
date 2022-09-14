@@ -244,8 +244,8 @@ def test_gluetable_generate_to_meta(glue_client, monkeypatch):
         ("binary", "larg_binary"),
         ("date", "date64"),
         ("timestamp", "timestamp(s)"),
-        ("array", "large_list"),
-        ("struct", "struct"),
+        ("array<integer>", "large_list<int32>"),
+        ("struct<name:varchar(10), age:integer>", "struct<name:string,age:int32>"),
     ]
 )
 def test_glue_to_mojap_exhaustive_conversion(glue_type: str, expected_mojap_type: str):

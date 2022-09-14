@@ -407,7 +407,10 @@ class GlueTable(BaseConverter):
         mojap_meta_cols = []
         for col in columns:
             mojap_col_type = self.convert_col_type(col["Type"])
-            normalised_col_type = col["Type"].split("(")[0]
+            if mojap_col_type.startswith(_metadata_complex_dtype_names):
+                normalised_col_type = col["Type"].split("<", 1)[0]
+            else:
+                normalised_col_type = col["Type"].split("(", 1)[0]
             full_support = _glue_to_mojap_type_converter.get(normalised_col_type)[1]
             if not full_support:
                 warnings.warn(
