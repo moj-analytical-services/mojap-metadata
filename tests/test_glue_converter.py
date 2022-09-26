@@ -223,3 +223,33 @@ def test_gluetable_generate_to_meta(glue_client, monkeypatch):
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
+
+
+@pytest.mark.parametrize(
+    "glue_type,expected_mojap_type",
+    [
+        ("boolean", "bool"),
+        ("tinyint", "int8"),
+        ("smallint", "int16"),
+        ("int", "int32"),
+        ("integer", "int32"),
+        ("bigint", "int64"),
+        ("double", "float64"),
+        ("float", "float32"),
+        ("decimal(15, 2)", "decimal128(15, 2)"),
+        ("decimal(15)", "decimal128(15)"),
+        ("char(2)", "string"),
+        ("varchar(10)", "string"),
+        ("string", "string"),
+        ("binary", "larg_binary"),
+        ("date", "date64"),
+        ("timestamp", "timestamp(s)"),
+        ("array<integer>", "large_list<int32>"),
+        ("struct<name:varchar(10), age:integer>", "struct<name:string,age:int32>"),
+    ]
+)
+def test_glue_to_mojap_exhaustive_conversion(glue_type: str, expected_mojap_type: str):
+    boto3_col = [{"Name": "cool_column", "Type": glue_type}]
+    gtc = GlueTable()
+    mojap_meta_cols = gtc.convert_columns(boto3_col)
+    assert mojap_meta_cols[0]["type"] == expected_mojap_type
