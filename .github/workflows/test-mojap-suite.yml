@@ -24,3 +24,5 @@ jobs:
         with:
           org-repo: ${{ env.ORG_REPO }}
           repo: ${{ env.REPO_NAME }}
+          use-poetry-extras: true
+          poetry-install-extras: "arrow glue"
