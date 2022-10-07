@@ -1,24 +1,27 @@
 import boto3
-import os
 import json
+import os
 import re
 import warnings
 
+import importlib.resources as pkg_resources
 import pydbtools as pydb
-from typing import Tuple, List, Union
-from awswrangler.catalog import delete_table_if_exists
+
+from awswrangler.catalog import (
+    delete_table_if_exists,
+)
+from dataclasses import dataclass
+from mojap_metadata.converters import (
+    BaseConverter,
+    _flatten_and_convert_complex_data_type,
+)
 from mojap_metadata.metadata.metadata import (
     Metadata,
     _unpack_complex_data_type,
     _metadata_complex_dtype_names,
 )
-from mojap_metadata.converters import (
-    BaseConverter,
-    _flatten_and_convert_complex_data_type,
-)
-import importlib.resources as pkg_resources
-from dataclasses import dataclass
 from mojap_metadata.converters.glue_converter import specs
+from typing import Tuple, List, Union
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -385,9 +388,12 @@ class GlueTable(BaseConverter):
 
     def convert_basic_col_type(self, col_type: str):
         if col_type.startswith("decimal"):
-            regex = re.compile(r"decimal(\(\d+,\d+\))")
+            regex = re.compile(r"decimal(\(\d+,( |)\d+\)|\(\d+\))")
             bracket_numbers = regex.match(col_type).groups()[0]
             return f"decimal128{bracket_numbers}"
+        elif col_type.startswith(("char", "varchar")):
+            coltype_ = col_type.split("(", 1)[0]
+            return _glue_to_mojap_type_converter[coltype_][0]
         else:
             return _glue_to_mojap_type_converter[col_type][0]
 
@@ -400,13 +406,12 @@ class GlueTable(BaseConverter):
     def convert_columns(self, columns: List[dict]) -> List[dict]:
         mojap_meta_cols = []
         for col in columns:
-            col_type = self.convert_col_type(col["Type"])
-            if col["Type"].startswith("decimal") or col["Type"].startswith(
-                _metadata_complex_dtype_names
-            ):
-                full_support = False
+            mojap_col_type = self.convert_col_type(col["Type"])
+            if mojap_col_type.startswith(_metadata_complex_dtype_names):
+                normalised_col_type = col["Type"].split("<", 1)[0]
             else:
-                full_support = _glue_to_mojap_type_converter.get(col["Type"])[1]
+                normalised_col_type = col["Type"].split("(", 1)[0]
+            full_support = _glue_to_mojap_type_converter.get(normalised_col_type)[1]
             if not full_support:
                 warnings.warn(
                     f"type {col['Type']} not fully supported, "
@@ -415,7 +420,7 @@ class GlueTable(BaseConverter):
             # create the column in mojap meta format
             meta_col = {
                 "name": col["Name"],
-                "type": col_type,
+                "type": mojap_col_type,
             }
             if col.get("Comment"):
                 meta_col["description"] = col.get("Comment")
@@ -427,7 +432,7 @@ class GlueTable(BaseConverter):
         metadata: Union[Metadata, str, dict],
         database_name: str = None,
         table_location: str = None,
-        run_msck_repair=False,
+        run_msck_repair: bool = False,
     ):
         """
         Creates a glue table from metadata
@@ -459,6 +464,11 @@ class GlueTable(BaseConverter):
         boto_dict = self.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
+        # create database if it doesn't exist
+        pydb.start_query_execution_and_wait(
+            f"CREATE DATABASE IF NOT EXISTS {database_name};"
+        )
+
         delete_table_if_exists(database=database_name, table=metadata.name)
         glue_client.create_table(**boto_dict)
 
@@ -474,7 +484,9 @@ class GlueTable(BaseConverter):
             )
             warnings.warn(w)
         elif run_msck_repair:
-            pydb.read_sql_query(f"msck repair table {database_name}.{metadata.name}")
+            pydb.start_query_execution_and_wait(
+                f"msck repair table {database_name}.{metadata.name}"
+            )
 
     def generate_to_meta(self, database: str, table: str) -> Metadata:
         # get the table information

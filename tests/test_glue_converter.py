@@ -1,6 +1,8 @@
 import pytest
 import json
 
+import pydbtools as pydb
+
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue
 from mojap_metadata.converters.glue_converter import (
@@ -172,12 +174,13 @@ def test_meta_or_kwarg_location_and_name(gc_kwargs: dict, add_to_meta: dict):
     }
 
 
-def test_gluetable_generate_from_meta(glue_client):
+def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
+    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     # ignore the warnings as I don't want to run msck repair table
@@ -189,24 +192,25 @@ def test_gluetable_generate_from_meta(glue_client):
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-def test_gluetable_msck_warnings(glue_client):
+def test_gluetable_msck_warnings(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
-
+    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
     with pytest.warns(Warning):
         gt.generate_from_meta(meta)
 
 
-def test_gluetable_generate_to_meta(glue_client):
+def test_gluetable_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
+    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
     # create the mock table and generate the meta from the mock table
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
@@ -219,3 +223,33 @@ def test_gluetable_generate_to_meta(glue_client):
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
+
+
+@pytest.mark.parametrize(
+    "glue_type,expected_mojap_type",
+    [
+        ("boolean", "bool"),
+        ("tinyint", "int8"),
+        ("smallint", "int16"),
+        ("int", "int32"),
+        ("integer", "int32"),
+        ("bigint", "int64"),
+        ("double", "float64"),
+        ("float", "float32"),
+        ("decimal(15, 2)", "decimal128(15, 2)"),
+        ("decimal(15)", "decimal128(15)"),
+        ("char(2)", "string"),
+        ("varchar(10)", "string"),
+        ("string", "string"),
+        ("binary", "larg_binary"),
+        ("date", "date64"),
+        ("timestamp", "timestamp(s)"),
+        ("array<integer>", "large_list<int32>"),
+        ("struct<name:varchar(10), age:integer>", "struct<name:string,age:int32>"),
+    ]
+)
+def test_glue_to_mojap_exhaustive_conversion(glue_type: str, expected_mojap_type: str):
+    boto3_col = [{"Name": "cool_column", "Type": glue_type}]
+    gtc = GlueTable()
+    mojap_meta_cols = gtc.convert_columns(boto3_col)
+    assert mojap_meta_cols[0]["type"] == expected_mojap_type
