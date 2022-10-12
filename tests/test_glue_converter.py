@@ -241,7 +241,7 @@ def test_gluetable_generate_to_meta(glue_client, monkeypatch):
         ("char(2)", "string"),
         ("varchar(10)", "string"),
         ("string", "string"),
-        ("binary", "larg_binary"),
+        ("binary", "large_binary"),
         ("date", "date64"),
         ("timestamp", "timestamp(s)"),
         ("array<integer>", "large_list<int32>"),
