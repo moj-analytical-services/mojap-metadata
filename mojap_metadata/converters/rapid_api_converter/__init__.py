@@ -75,13 +75,13 @@ class RapidApiConverter(BaseConverter):
         self._rapid_to_mojap_types = _rapid_to_mojap_types
 
     def convert_to_rapid_col_type(self, coltype: str) -> str:
-        out_col = _mojap_to_rapid_types(coltype)
+        out_col = _mojap_to_rapid_types[coltype]
         if out_col is None:
             raise NotImplementedError(f"{coltype} is not a valid rAPId type.")
         return out_col
 
     def reverse_convert_col_type(self, coltype: str) -> str:
-        return _rapid_to_mojap_types(coltype)
+        return _rapid_to_mojap_types[coltype]
 
     def generate_from_meta(
         self,
