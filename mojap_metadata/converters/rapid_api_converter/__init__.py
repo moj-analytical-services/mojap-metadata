@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
@@ -104,7 +104,7 @@ class RapidApiConverter(BaseConverter):
                 rapid_col["format"] = date_format
 
             cols.append(rapid_col)
-        return {"metadata": rapid_table_meta, "columns": cols}
+        return {"metadata": asdict(rapid_table_meta), "columns": cols}
 
     def generate_to_meta(self, rapid_schema) -> Metadata:
         meta = rapid_schema["metadata"]
