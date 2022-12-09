@@ -42,6 +42,14 @@ _mojap_to_rapid_types = {
     "struct": None,
 }
 
+_rapid_to_mojap_types = {
+    "Int64": "int64",
+    "Float64": "float64",
+    "object": "string",
+    "date": "date64",
+    "boolean": "bool",
+}
+
 
 @dataclass
 class Owner:
@@ -64,12 +72,16 @@ class RapidApiConverter(BaseConverter):
     def __init__(self):
         super().__init__(None)
         super()._mojap_to_rapid_types = _mojap_to_rapid_types
+        super()._rapid_to_mojap_types = _rapid_to_mojap_types
 
-    def convert_col_type(self, coltype: str) -> str:
+    def convert_to_rapid_col_type(self, coltype: str) -> str:
         out_col = _mojap_to_rapid_types(coltype)
         if out_col is None:
             raise NotImplementedError(f"{coltype} is not a valid rAPId type.")
         return out_col
+
+    def reverse_convert_col_type(self, coltype: str) -> str:
+        return _rapid_to_mojap_types(coltype)
 
     def generate_from_meta(
         self,
@@ -85,11 +97,33 @@ class RapidApiConverter(BaseConverter):
             rapid_col = {
                 "name": col["name"],
                 "partition_index": partition_indices.get(col["name"], None),
-                "data_type": self.convert_col_type(col["type"]),
-                "allow_null": col.get["nullable", True],
+                "data_type": self.convert_to_rapid_col_type(col["type"]),
+                "allow_null": col.get("nullable", True),
             }
             if rapid_col["data_type"] == "date":
                 rapid_col["format"] = date_format
 
             cols.append(rapid_col)
         return {"metadata": rapid_table_meta, "columns": cols}
+
+    def generate_to_meta(self, rapid_schema) -> Metadata:
+        meta = rapid_schema["metadata"]
+        cols = rapid_schema["columns"]
+
+        partitions = [col["name"] for col in cols if col["partition_index"] is not None]
+        table_name = meta["dataset"]
+
+        mojap_cols = []
+        for col in cols:
+            mojap_col = {
+                "name": col["name"],
+                "type": self.reverse_convert_col_type(col["data_type"]),
+                "nullable": col.get("allow_null", True),
+            }
+            mojap_cols.append(mojap_col)
+
+        mojap_meta = Metadata(
+            name=table_name, columns=mojap_cols, partitions=partitions
+        )
+
+        return mojap_meta
