@@ -71,8 +71,8 @@ class RapidTableMeta:
 class RapidApiConverter(BaseConverter):
     def __init__(self):
         super().__init__(None)
-        super()._mojap_to_rapid_types = _mojap_to_rapid_types
-        super()._rapid_to_mojap_types = _rapid_to_mojap_types
+        self._mojap_to_rapid_types = _mojap_to_rapid_types
+        self._rapid_to_mojap_types = _rapid_to_mojap_types
 
     def convert_to_rapid_col_type(self, coltype: str) -> str:
         out_col = _mojap_to_rapid_types(coltype)
