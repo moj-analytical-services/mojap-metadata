@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from mojap_metadata.metadata.metadata import Metadata
 from mojap_metadata.converters import BaseConverter
@@ -63,8 +63,8 @@ class RapidTableMeta:
     dataset: str
     sensitivity: str
     version: Optional[int]
-    key_value_tags: Dict[str, str] = dict()
-    key_only_tags: List[str] = list()
+    key_value_tags: Dict[str, str] = field(default_factory=dict)
+    key_only_tags: List[str] = field(default_factory=list)
     owners: Optional[List[Owner]] = None
 
 
