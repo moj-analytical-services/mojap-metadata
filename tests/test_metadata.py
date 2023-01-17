@@ -500,6 +500,33 @@ def test_basic_column_functions():
     with pytest.raises(ValueError):
         meta.remove_column("e")
 
+def test_basic_column_functions_mutable_mapping():
+    meta = Metadata(
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+        ]
+    )
+    assert [column_name for column_name in meta] == ["a", "b", "c"]
+
+    meta["a"] = {"name": "a", "type": "int64"}
+    assert meta.columns[0]["type"] == "int64"
+
+    meta["d"] = {"name": "d", "type": "string"}
+    assert meta.column_names == ["a", "b", "c", "d"]
+
+    del meta["d"]
+    assert meta.column_names == ["a", "b", "c"]
+
+    with pytest.raised(ValueError):
+        meta["b"] = {"name": "d", "type": "string"}
+
+    with pytest.raises(ValidationError):
+        meta.update_column({"name": "d", "type": "error"})
+
+    with pytest.raises(ValueError):
+        meta.remove_column("e")
 
 def test_column_and_partition_functionality():
     meta = Metadata()
