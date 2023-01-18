@@ -500,6 +500,7 @@ def test_basic_column_functions():
     with pytest.raises(ValueError):
         meta.remove_column("e")
 
+
 def test_column_and_partition_functionality():
     meta = Metadata()
     assert meta.columns == []

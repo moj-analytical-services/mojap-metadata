@@ -619,7 +619,7 @@ class Metadata(MutableMapping):
 
     def __setitem__(self, __key: str, __value: dict) -> None:
         if __key != __value["name"]:
-            raise ValueError(f"Column name {__value['name']} does not match key {__key}")
+            raise ValueError(f"Column name {__value['name']} doesn't match key {__key}")
         else:
             self.update_column(__value)
 

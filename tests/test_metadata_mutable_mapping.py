@@ -3,6 +3,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 from mojap_metadata import Metadata
 
+
 def test_basic_column_functions_mutable_mapping():
     meta = Metadata(
         name='metadata_name',
@@ -34,6 +35,7 @@ def test_basic_column_functions_mutable_mapping():
     with pytest.raises(ValueError):
         del meta["e"]
 
+
 def test_mutable_mapping_iter():
     meta = Metadata(
         name='metadata_name',
@@ -44,7 +46,9 @@ def test_mutable_mapping_iter():
         ]
     )
 
-    assert [(col["name"], col["type"]) for col in meta] == [("a","int8"), ("b", "string"), ("c", "date32")]
+    name_type = [("a", "int8"), ("b", "string"), ("c", "date32")]
+    assert [(col["name"], col["type"]) for col in meta] == name_type
+
 
 def test_mutable_mapping_len():
     meta = Metadata(
@@ -62,4 +66,3 @@ def test_mutable_mapping_len():
     meta["b"] = {"name": "b", "type": "string"}
     meta["c"] = {"name": "c", "type": "date32"}
     assert len(meta) == 3
-
