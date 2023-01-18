@@ -3,25 +3,18 @@ import pytest
 from jsonschema.exceptions import ValidationError
 from mojap_metadata import Metadata
 
-# from mojap_metadata.metadata.metadata import (
-#     _parse_and_split,
-#     _get_first_level,
-#     _unpack_complex_data_type,
-#     _table_schema,
-#     _get_type_category_pattern_dict_from_schema,
-#     _schema_url,
-# )
-# from typing import Any
-
 def test_basic_column_functions_mutable_mapping():
     meta = Metadata(
+        name='metadata_name',
         columns=[
             {"name": "a", "type": "int8"},
             {"name": "b", "type": "string"},
             {"name": "c", "type": "date32"},
         ]
     )
-    assert [column_name for column_name in meta] == ["a", "b", "c"]
+
+    col_a = meta["a"]
+    assert col_a == {"name": "a", "type": "int8"}
 
     meta["a"] = {"name": "a", "type": "int64"}
     assert meta.columns[0]["type"] == "int64"
@@ -32,13 +25,41 @@ def test_basic_column_functions_mutable_mapping():
     del meta["d"]
     assert meta.column_names == ["a", "b", "c"]
 
-    with pytest.raised(ValueError):
+    with pytest.raises(ValueError):
         meta["b"] = {"name": "d", "type": "string"}
 
     with pytest.raises(ValidationError):
         meta.update_column({"name": "d", "type": "error"})
 
     with pytest.raises(ValueError):
-        meta.remove_column("e")
+        del meta["e"]
 
+def test_mutable_mapping_iter():
+    meta = Metadata(
+        name='metadata_name',
+        columns=[
+            {"name": "a", "type": "int8"},
+            {"name": "b", "type": "string"},
+            {"name": "c", "type": "date32"},
+        ]
+    )
+
+    assert [(col["name"], col["type"]) for col in meta] == [("a","int8"), ("b", "string"), ("c", "date32")]
+
+def test_mutable_mapping_len():
+    meta = Metadata(
+        name="metadata_name",
+        columns=[
+            {"name": "a", "type": "int8"}
+        ]
+    )
+    assert len(meta) == 1
+
+    del meta["a"]
+    assert len(meta) == 0
+
+    meta["a"] = {"name": "a", "type": "int8"}
+    meta["b"] = {"name": "b", "type": "string"},
+    meta["c"] = {"name": "c", "type": "date32"}
+    assert len(meta) == 3
 

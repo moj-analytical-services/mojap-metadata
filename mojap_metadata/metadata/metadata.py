@@ -609,7 +609,8 @@ class Metadata(MutableMapping):
 
         self.validate()
 
-    # Metadata is a subclass of collections.abc.MutableMapping class, with keys as metadata column names, and values as columns
+    # Metadata is a subclass of collections.abc.MutableMapping class
+    # with keys as metadata column names, and values as columns
     def __getitem__(self, __key: str) -> dict:
         return self.get_column(__key)
 

@@ -115,6 +115,27 @@ meta3.name = "new_table"
 meta3.to_json("path/to/new_metadata_schema.json")
 ```
 
+The metadata class is a subclass of MutableMappings, where keys are column names and values are column metadata. 
+
+```python
+# Access a specific column
+meta1["c1"] == {"name": "c1", "type": "int64"}
+
+# Add a new column (key must match name)
+meta1["c3"] = {"name": "c3", "type": "bool"}
+
+# Delete a column
+del meta1["c3"]
+
+# Iterate over all columns
+[(col["name"], col["type"]) for col in meta1]
+
+# Get the number of columns
+len(meta1)
+```
+
+
+
 ## Added Class methods and properties
 
 The metadata class has some methods and properties that are not part of the schema but helps organise and manage the schema.
