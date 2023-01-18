@@ -1,9 +1,8 @@
-# import json
-# import pytest
-# import urllib.request
+import pytest
 
-# from jsonschema.exceptions import ValidationError
-# from mojap_metadata import Metadata
+from jsonschema.exceptions import ValidationError
+from mojap_metadata import Metadata
+
 # from mojap_metadata.metadata.metadata import (
 #     _parse_and_split,
 #     _get_first_level,
@@ -41,4 +40,5 @@ def test_basic_column_functions_mutable_mapping():
 
     with pytest.raises(ValueError):
         meta.remove_column("e")
+
 
