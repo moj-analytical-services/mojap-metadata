@@ -59,7 +59,7 @@ def test_mutable_mapping_len():
     assert len(meta) == 0
 
     meta["a"] = {"name": "a", "type": "int8"}
-    meta["b"] = {"name": "b", "type": "string"},
+    meta["b"] = {"name": "b", "type": "string"}
     meta["c"] = {"name": "c", "type": "date32"}
     assert len(meta) == 3
 
