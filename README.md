@@ -155,20 +155,20 @@ The metadata class is a subclass of MutableMappings, where keys are column names
 
 ```python
 # Access a specific column
-meta1["c1"] # {"name": "c1", "type": "int64"}
+meta["c1"] # {"name": "c1", "type": "int64"}
 
 # Add a new column (key must match name)
-meta1["c3"] = {"name": "c3", "type": "bool"}
+meta["c3"] = {"name": "c3", "type": "bool"}
 
 # Delete a column
-del meta1["c3"]
+del meta["c3"]
 
 # Iterate over all columns
-for col in meta1:
+for col in meta:
     print(f"column name:{col["name"]}, column type:{col["type"]}")
 
 # Get the number of columns
-len(meta1) # 3
+len(meta) # 3
 ```
 
 ### force_partition_order Property
