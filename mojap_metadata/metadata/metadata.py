@@ -9,7 +9,8 @@ import importlib.resources as pkg_resources
 from copy import deepcopy
 from dataengineeringutils3.s3 import read_json_from_s3, read_yaml_from_s3
 from mojap_metadata.metadata import specs
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Iterator
+from collections.abc import MutableMapping
 
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
@@ -159,7 +160,7 @@ class MetadataProperty:
         obj.validate()
 
 
-class Metadata:
+class Metadata(MutableMapping):
     @classmethod
     def from_dict(cls, d: dict) -> object:
         """
@@ -607,3 +608,24 @@ class Metadata:
                 col["type"] = new_type
 
         self.validate()
+
+    # Metadata is a subclass of collections.abc.MutableMapping class
+    # with keys as metadata column names, and values as columns
+    def __getitem__(self, __key: str) -> dict:
+        return self.get_column(__key)
+
+    def __delitem__(self, __key: str) -> None:
+        self.remove_column(__key)
+
+    def __setitem__(self, __key: str, __value: dict) -> None:
+        if __key != __value["name"]:
+            raise ValueError(f"Column name {__value['name']} doesn't match key {__key}")
+        else:
+            self.update_column(__value)
+
+    def __iter__(self) -> Iterator[str]:
+        for col in self.columns:
+            yield col
+
+    def __len__(self) -> int:
+        return len(self.columns)

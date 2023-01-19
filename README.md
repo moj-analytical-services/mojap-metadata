@@ -134,8 +134,7 @@ The class has multiple methods to alter the columns list.
         {"name": "c", "type": "date32"},
     ])
     meta.column_names # ["a", "b", "c"]
-
-    # 
+ 
     meta.update_column({"name": "a", "type": "int64"})
     meta.columns[0]["type"] # "int64"
 
@@ -144,6 +143,32 @@ The class has multiple methods to alter the columns list.
 
     meta.remove_column("d")
     assert meta.column_names == ["a", "b", "c"]
+```
+
+The metadata class is a subclass of MutableMappings, where keys are column names and values are column metadata. 
+
+- A metadata column can be accessed using the column name as a key.
+- A new or existing column can be updated using the column name as a key. The key must match the column name. Calls update_column.
+- A column can be deleted. Calls remove_column.
+- Columns of metadata can be iterated over.
+- The length of metadata is defined as the number of columns.
+
+```python
+# Access a specific column
+meta["c1"] # {"name": "c1", "type": "int64"}
+
+# Add a new column (key must match name)
+meta["c3"] = {"name": "c3", "type": "bool"}
+
+# Delete a column
+del meta["c3"]
+
+# Iterate over all columns
+for col in meta:
+    print(f"column name:{col["name"]}, column type:{col["type"]}")
+
+# Get the number of columns
+len(meta) # 3
 ```
 
 ### force_partition_order Property
