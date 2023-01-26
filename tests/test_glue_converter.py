@@ -1,8 +1,6 @@
 import pytest
 import json
 
-import pydbtools as pydb
-
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue
 from mojap_metadata.converters import glue_converter
