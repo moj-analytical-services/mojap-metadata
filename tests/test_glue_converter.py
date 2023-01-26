@@ -5,6 +5,7 @@ import pydbtools as pydb
 
 from tests.helper import assert_meta_col_conversion, valid_types, get_meta
 from moto import mock_glue
+from mojap_metadata.converters import glue_converter
 from mojap_metadata.converters.glue_converter import (
     GlueConverter,
     GlueTable,
@@ -180,7 +181,9 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
-    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
+    monkeypatch.setattr(
+        glue_converter, "_start_query_execution_and_wait", lambda x: None
+    )
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     # ignore the warnings as I don't want to run msck repair table
@@ -197,7 +200,9 @@ def test_gluetable_msck_warnings(glue_client, monkeypatch):
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
-    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
+    monkeypatch.setattr(
+        glue_converter, "_start_query_execution_and_wait", lambda x: None
+    )
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
     with pytest.warns(Warning):
@@ -210,7 +215,9 @@ def test_gluetable_generate_to_meta(glue_client, monkeypatch):
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
 
-    monkeypatch.setattr(pydb, "start_query_execution_and_wait", lambda x: None)
+    monkeypatch.setattr(
+        glue_converter, "_start_query_execution_and_wait", lambda x: None
+    )
     # create the mock table and generate the meta from the mock table
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
