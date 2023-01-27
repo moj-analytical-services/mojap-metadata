@@ -465,10 +465,6 @@ class GlueTable(BaseConverter):
         _start_query_execution_and_wait(
             database_name, f"CREATE DATABASE IF NOT EXISTS {database_name};"
         )
-
-        _start_query_execution_and_wait(
-            f"DELETE TABLE IF EXISTS {database_name}.{metadata.name}"
-        )
         glue_client.create_table(**boto_dict)
 
         if (
