@@ -180,7 +180,7 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     )
 
     monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda x: None
+        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
     )
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
@@ -199,7 +199,7 @@ def test_gluetable_msck_warnings(glue_client, monkeypatch):
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
     )
     monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda x: None
+        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
     )
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
@@ -214,7 +214,7 @@ def test_gluetable_generate_to_meta(glue_client, monkeypatch):
     )
 
     monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda x: None
+        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
     )
     # create the mock table and generate the meta from the mock table
     with mock_glue():
