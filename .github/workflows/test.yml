@@ -22,7 +22,9 @@ jobs:
             echo "Installing dependencies from lock file"
           else
             echo "Removing lock file and installing latest possible dependencies"
-            rm poetry.lock
+            if [ -f poetry.lock ]; then
+              rm poetry.lock
+            fi
           fi
           python -m pip install --upgrade pip
           pip install poetry
