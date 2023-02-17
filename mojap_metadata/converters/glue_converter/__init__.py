@@ -465,6 +465,13 @@ class GlueTable(BaseConverter):
         _start_query_execution_and_wait(
             database_name, f"CREATE DATABASE IF NOT EXISTS {database_name};"
         )
+
+        # delete table if it exists
+        try:
+            glue_client.delete_table(DatabaseName=database_name, Name=metadata.name)
+        except glue_client.exceptions.EntityNotFoundException:
+            pass
+
         glue_client.create_table(**boto_dict)
 
         if (
@@ -473,7 +480,7 @@ class GlueTable(BaseConverter):
             and not self.options.ignore_warnings
         ):
             w = (
-                "metadata has partitions and run_msck_reapair is set to false. To "
+                "metadata has partitions and run_msck_repair is set to false. To "
                 "To supress these warnings set this converters "
                 "options.ignore_warnings = True"
             )
@@ -605,7 +612,7 @@ def _start_query_execution_and_wait(db: str, sql: str):
         WorkGroup=WorkGroup,
     )
     query_exec_id = res["QueryExecutionId"]
-    while (response := ath.get_query_execution(QueryExecutionId=query_exec_id)):
+    while response := ath.get_query_execution(QueryExecutionId=query_exec_id):
         state = response["QueryExecution"]["Status"]["State"]
         if state not in ["SUCCEEDED", "FAILED"]:
             time.sleep(0.25)
@@ -639,7 +646,6 @@ def generate_spec_from_template(
 
     # Do CSV options
     if spec_name == "csv":
-
         csv_param_lu = {
             "sep": {"lazy": "field.delim", "open": "separatorChar"},
             "quote_char": {"lazy": None, "open": "quoteChar"},
