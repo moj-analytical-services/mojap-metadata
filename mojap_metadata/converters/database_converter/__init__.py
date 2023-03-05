@@ -5,11 +5,13 @@
     SQL-Alchemy has it's own Type definitions: sqlalchemy.sql.sqltypes
     These are the types that are returned.
     The DMS requires a specific set of definitions differing from what sql-alchemy outputs, we define the convertions here.
-    TODO. I assuming there will need to be a convertion table for types. Existing types below are from postgres.
+    TODO. I'm assuming there will need to be a convertion table for types. Existing types below are from postgres.
+    class sqlalchemy.types.TypeEngine
 """
 
 from typing import DefaultDict
 import sqlalchemy
+from sqlalchemy.sql import sqltypes
 
 from mojap_metadata import Metadata
 import mojap_metadata.converters.database_converter.database_functions as dbfun
@@ -48,13 +50,14 @@ _default_type_converter = {
 
 
 class DatabaseConverter(BaseConverter):
-    def __init__(self):
+    def __init__(self, dialect):
         """
         Extracts and converts metadata to Metadata format
         """
 
         super().__init__()
         self._default_type_converter = _default_type_converter
+        self.dialect= dialect
 
 
     def convert_to_mojap_type(self, col_type: str) -> str:
@@ -118,9 +121,9 @@ class DatabaseConverter(BaseConverter):
             Metadata: Metadata object
         """
         meta_list_per_schema = DefaultDict(list)
-
+        
         schema_names = dbfun.list_schemas(
-            connection
+            connection, self.dialect
         )  # database name will be passed on in the connection
 
         for schema in sorted(schema_names):

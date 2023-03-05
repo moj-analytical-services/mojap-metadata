@@ -39,7 +39,7 @@ class PostgresConverter(BaseConverter):
         Extracts and converts metadata to Metadata format
         """
 
-        super().__init__()
+        super().__init__(None)
         self._default_type_converter = _default_type_converter
 
     def convert_to_mojap_type(self, col_type: str) -> str:

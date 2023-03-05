@@ -1,11 +1,10 @@
 import pandas as pd
 import pytest
 
-from mojap_metadata.converters.postgres_converter import PostgresConverter
+from mojap_metadata.converters.database_converter import DatabaseConverter
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
-
-from sqlalchemy import text as sqlalchemy_text
+from sqlalchemy import text
 
 TEST_ROOT = Path(__file__).resolve().parent
 
@@ -45,13 +44,14 @@ def load_data(postgres_connection):
         )
 
         # Sample comment for column for testing
-        engine.connect().execute(sqlalchemy_text(
+        
+        engine.connect().execute(text(
             """COMMENT ON COLUMN public.postgres_table1.my_int"""
             """ IS 'This is the int column';COMMIT;"""
         ))
 
         # Sample NULLABLE column for testing
-        engine.connect().execute(sqlalchemy_text(
+        engine.connect().execute(text(
             """ ALTER TABLE public.postgres_table1 ALTER """
             """ COLUMN primary_key SET NOT NULL;COMMIT;"""
         ))
@@ -81,7 +81,7 @@ def test_meta_data_object_list(postgres_connection):
     engine = postgres_connection[0].connect()
     load_data(postgres_connection)
 
-    pc = PostgresConverter()
+    pc = DatabaseConverter('postgres')
     output = pc.generate_from_meta(engine)
 
     for i in output.items():
@@ -162,7 +162,7 @@ mojap_metadata/v1.3.0.json",
 
     load_data(postgres_connection)
 
-    pc = PostgresConverter()
+    pc = DatabaseConverter('postgres')
     meta_output = pc.get_object_meta(engine, "postgres_table1", "public")
 
     assert expected == meta_output.to_dict()
@@ -203,6 +203,6 @@ mojap_metadata/v1.3.0.json",
     ],
 )
 def test_convert_to_mojap_type(inputtype: str, expected: str):
-    pc = PostgresConverter()
+    pc = DatabaseConverter('postgres')
     actual = pc.convert_to_mojap_type(inputtype)
     assert actual == expected
