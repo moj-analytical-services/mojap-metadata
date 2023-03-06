@@ -15,7 +15,7 @@ def load_data(postgres_connection):
     path = TEST_ROOT / "data/postgres_extractor"
     files = sorted(Path.glob(path, "postgres*.csv"))
     engine = postgres_connection[0]
-
+    
     for file in files:
         # Read file
         tabledf = pd.read_csv(str(file), index_col=None)
@@ -55,7 +55,7 @@ def load_data(postgres_connection):
             """ ALTER TABLE public.postgres_table1 ALTER """
             """ COLUMN primary_key SET NOT NULL;COMMIT;"""
         ))
-
+    
 
 def test_connection(postgres_connection):
     pgsql = postgres_connection[1]
