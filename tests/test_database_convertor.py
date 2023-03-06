@@ -78,15 +78,17 @@ def test_dsn_and_url(postgres_connection):
 
 
 def test_meta_data_object_list(postgres_connection):
-    engine = postgres_connection[0].connect()
-    load_data(postgres_connection)
+    engine = postgres_connection[0]
 
-    pc = DatabaseConverter('postgres')
-    output = pc.generate_from_meta(engine)
+    with engine.connect() as conn:
+        load_data(conn)
 
-    for i in output.items():
-        assert len(i[1]) == 2
-        assert i[0] == "schema: public"
+        pc = DatabaseConverter('postgres')
+        output = pc.generate_from_meta(conn)
+
+        for i in output.items():
+            assert len(i[1]) == 2
+            assert i[0] == "schema: public"
 
 
 def test_meta_data_object(postgres_connection):
@@ -158,28 +160,30 @@ mojap_metadata/v1.3.0.json",
         "partitions": [],
     }
 
-    engine = postgres_connection[0].connect()
+    engine = postgres_connection[0]
 
-    load_data(postgres_connection)
+    with engine.connect() as conn:
 
-    pc = DatabaseConverter('postgres')
-    meta_output = pc.get_object_meta(engine, "postgres_table1", "public")
+        load_data(conn)
 
-    assert expected == meta_output.to_dict()
+        pc = DatabaseConverter('postgres')
+        meta_output = pc.get_object_meta(conn, "postgres_table1", "public")
 
-    assert len(meta_output.columns) == 9
-    assert meta_output.columns[0]["description"] == "This is the int column"
-    assert meta_output.column_names == [
-        "my_int",
-        "my_float",
-        "my_decimal",
-        "my_bool",
-        "my_website",
-        "my_email",
-        "my_datetime",
-        "my_date",
-        "primary_key",
-    ]
+        assert expected == meta_output.to_dict()
+
+        assert len(meta_output.columns) == 9
+        assert meta_output.columns[0]["description"] == "This is the int column"
+        assert meta_output.column_names == [
+            "my_int",
+            "my_float",
+            "my_decimal",
+            "my_bool",
+            "my_website",
+            "my_email",
+            "my_datetime",
+            "my_date",
+            "primary_key",
+        ]
 
 
 @pytest.mark.parametrize(
