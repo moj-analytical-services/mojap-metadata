@@ -81,7 +81,7 @@ def test_meta_data_object_list(postgres_connection):
     engine = postgres_connection[0]
 
     with engine.connect() as conn:
-        load_data(conn)
+        load_data(postgres_connection)
 
         pc = DatabaseConverter('postgres')
         output = pc.generate_from_meta(conn)
@@ -161,10 +161,10 @@ mojap_metadata/v1.3.0.json",
     }
 
     engine = postgres_connection[0]
-
+    
     with engine.connect() as conn:
 
-        load_data(conn)
+        load_data(postgres_connection)
 
         pc = DatabaseConverter('postgres')
         meta_output = pc.get_object_meta(conn, "postgres_table1", "public")
