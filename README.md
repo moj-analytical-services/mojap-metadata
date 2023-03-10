@@ -25,15 +25,15 @@ This module creates a class called `Metadata` which allows you to interact with 
 
 ## The Schema
 
-Our metadata schemas are used to define a table. The idea of these schemas are to define the contexts of a table with generic metadata schemas. If you want to use this schema to interact with Oracle, PyArrow or AWS Glue for example, then you can create a Converter class to take the metadata and converter it to a schema that works with that tool (or vice versa).
+Our metadata schema is used to define a table in a generic way. If you want to use this schema to interact with Oracle, PyArrow or AWS Glue for example, then you can create a Converter class to take the metadata and convert it to a schema that works with that tool (or vice versa).
 
-When adding a parameter to the metadata config first thing is to look if it exists in [json-schema](https://json-schema.org/understanding-json-schema/index.html). For example `enum`, `pattern` and `type` are parameters in our column types but come from json schema naming definitions.
+When adding a parameter to the metadata config, first look to see if it exists in [json-schema](https://json-schema.org/understanding-json-schema/index.html). For example `enum`, `pattern` and `type` are parameters in our column types but come from json schema naming definitions.
 
 An example of a basic metadata schema:
 
 ```json
 {
-    "$schema" : "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
     "name": "employees",
     "description": "table containing employee information",
     "file_format": "parquet",
@@ -69,7 +69,7 @@ An example of a basic metadata schema:
 
 - **file_format:** String denoting the file format.
 
-- **columns:** List of objects where each object descibes a column in your table. Each column object must have at least a `name` and a (`type` or `type_description`).
+- **columns:** List of objects where each object descibes a column in your table. Each column object must have at least a `name` and a `type` or `type_description`.
 
     - **name:** String denoting the name of the column.
     - **type:** String specifing the type the data is in. We use data types from the [Apache Arrow project](https://arrow.apache.org/docs/python/api/datatypes.html). We use their type names as it seems to comprehensively cover most of the data types we deal with. _Note: In our naming convention for types we allow `bool` (which is equivalent to `bool_`) and `list` (which is equivalent to `list_`)._
@@ -85,7 +85,7 @@ An example of a basic metadata schema:
 
 #### Additional Schema Parameters
 
-We allow users to add addition parameters to the table schema object or any of the columns in the schema. If there are specific parameters / tags you want to add to your schema it should still pass validation (as long as the additional parameters are not the same name of ones already used in the schema).
+We allow users to add addition parameters to the table schema object or any of the columns in the schema. If there are specific parameters / tags you want to add to your schema it should still pass validation (as long as the additional parameters have unique names that are not already used in the schema).
 
 ## Usage
 
@@ -201,11 +201,11 @@ meta.column_names # ["b", "a" ,"c"]
 
 # Converters
 
-Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema. 
+Converters take a Metadata object and generate something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another system's schema. 
 
 # Usage
 
-For example the `ArrowConverter` takes our schemas and converts them to a pyarrow schema:
+For example the `ArrowConverter` takes our schema and converts it to a pyarrow schema:
 
 ```python
 from mojap_metadata import Metadata
@@ -228,7 +228,7 @@ arrow_schema = ac.generate_from_meta(meta)
 print(arrow_schema) # Could use this schema to read in data as arrow dataframe and cast it to the correct types
 ```
 
-Another use for the arrow converter is to convert it back from an Arrow schema to our metadata. This is especially useful if you have nested data types that would be difficult to write out the full `STRUCT` / `LIST`. Instead you can let Arrow do that for you and then pass the agnostic metadata object into something like the Glue Converter to generate a schema for AWS Glue.
+Another use for the arrow converter is to convert it back from an Arrow schema to our metadata. This is especially useful if you have nested data types where it would be difficult to write out the full `STRUCT` / `LIST`. Instead you can let Arrow do that for you and then pass the agnostic metadata object into something like the Glue Converter to generate a schema for AWS Glue.
 
 ```python
 import pyarrow as pa
@@ -251,7 +251,7 @@ meta = ac.generate_to_meta(arrow_df.schema)
 print(meta.columns) # [{'name': 'a', 'type': 'int64'}, {'name': 'b', 'type': 'struct<cat:struct<meow:bool>, dog:list<string>>'}]
 ```
 
-Another example is the `GlueConverter` which takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.
+Another example is the `GlueConverter` which takes our schema and converts it to a dictionary that can be passed to the glue_client to add the table to the AWS Glue catalog.
 
 ```python
 import boto3
@@ -279,22 +279,22 @@ glue_client = boto3.client("glue")
 glue_client.create_table(**boto_dict) # Would deploy glue schema based on our metadata
 ```
 
-All converter classes are sub classes of the `mojap_metadata.converters.BaseConverter`. This `BaseConverter` has no actual functionality but is a boilerplate class that ensures standardised attributes  for all added `Converters` these are:
+All converter classes are sub classes of the `mojap_metadata.converters.BaseConverter`. This `BaseConverter` has no actual functionality but is a boilerplate class that ensures standardised attributes for all added `Converters`. These are:
 
-- **generate_from_meta:** (function) takes a Metadata object and returns whatever the converter is producing .
+- **generate_from_meta:** (function) takes a Metadata object and returns whatever the converter is producing.
 
-- **generate_to_meta:** (function) takes Any object (normally another schema for another system or package) and returns our Metadata object. (i.e. the reverse of generate_from_meta).
+- **generate_to_meta:** (function) takes any object (normally another schema for another system or package) and returns our Metadata object (i.e. the reverse of generate_from_meta).
 
-- **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
+- **options:** (Data Class) the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or `tests/test_glue_converter.py`.
 
-included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
-- **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
-    - _metadata:_ the metadata object, dict, or string path that is to be overlaid
+Included alongside `GlueConverter` is `GlueTable`. It has one method:
+- **generate_from_meta:** generates a Glue table from a metadata object, a dict, or a path (of type string) to a metadata file. Takes the following arguments:
+    - _metadata:_ the metadata object, dict, or string path
     - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
-    - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
+    - _database\_name:_ a kwarg, the name of the Glue database to assign the table to. This can also be a property of the metadata object, dict, or file
 
 
-## Further Usage
+## Further Usage
 
 See the [mojap-aws-tools repo](https://github.com/moj-analytical-services/mojap-aws-tools-demo) which utilises the converters a lot in different tutorials.
 
@@ -306,11 +306,11 @@ Each new converter (if not expanding on existing converters) should be added as 
 pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
 ```
 
-This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed).
+This means we can add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) while keeping the default install lightweight. `mojap_metadata` will only error if someone tries to import a converter subclass without having the additional dependencies installed.
 
 ## Postgres Converter
 
-Postgres Converter provides the following functionality
+Postgres Converter provides the following functionality:
 
 1. Conenction to postgres database
 2. Extract the metadata from the tables
@@ -319,4 +319,4 @@ Postgres Converter provides the following functionality
 - **get_object_meta** (function) takes the table name, schema name then the extracts the metadata from postgres database and 
 converts into Metadata object 
 
-- **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
+- **generate_to_meta:** (function) takes the database connection and returns a list of Metadata objects for all the (non-system) schemas and tables from the connection.
