@@ -33,7 +33,7 @@ An example of a basic metadata schema:
 
 ```json
 {
-    "$schema" : "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.0.0.json",
     "name": "employees",
     "description": "table containing employee information",
     "file_format": "parquet",
