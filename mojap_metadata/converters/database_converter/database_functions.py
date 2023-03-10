@@ -29,6 +29,29 @@ def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
     elif dialect=='oracle':
         system_schemas = (
             "information_schema",
+            "ADMIN",
+            "ANONYMOUS",
+            "APPQOSSYS",
+            "AUDSYS",
+            "CTXSYS",
+            "DBSFWUSER",
+            "DBSNMP",
+            "DIP",
+            "GGSYS",
+            "GSMADMIN_INTERNAL",
+            "GSMUSER",
+            "OUTLN",
+            "PUBLIC",
+            "RDSADMIN",
+            "REMOTE_SCHEDULER_AGENT",
+            "SYS",
+            "SYS$UMF",
+            "SYSDG",
+            "SYSKM",
+            "SYSRAC",
+            "SYSTEM",
+            "XDB",
+            "XS$NULL"
         )
     else:
         system_schemas=()
