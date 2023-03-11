@@ -28,7 +28,6 @@ def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
         )
     elif dialect=='oracle':
         system_schemas = (
-            "information_schema",
             "ADMIN",
             "ANONYMOUS",
             "APPQOSSYS",
@@ -55,7 +54,7 @@ def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
         )
     else:
         system_schemas=()
-    return [r for r in response if r not in system_schemas]
+    return [r for r in response if r.upper() not in system_schemas]
 
 
 def list_tables(connection: sqlalchemy.engine.Engine, schema: str = "public") -> list:

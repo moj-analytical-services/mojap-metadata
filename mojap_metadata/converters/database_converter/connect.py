@@ -24,7 +24,10 @@ def create_database_connection(
 
     example, where the required database name is 'mydata' for a database whose dialect is postgres and the driver is psycopg2: 
         database_name: str = "mydata", 
-        database_dialect_driver: str = "postgres+psycopg2"
+        database_dialect_driver: str = "postgresql+psycopg2"
+
+    !! NOTE !! accepted dialect is 'postgresql' NOT 'postgres'!!
+    
     """
     user = db_settings["user"]
     password = db_settings["password"]
