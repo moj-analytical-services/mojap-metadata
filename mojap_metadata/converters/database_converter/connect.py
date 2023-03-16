@@ -27,6 +27,9 @@ def create_database_connection(
         database_dialect_driver: str = "postgresql+psycopg2"
 
     !! NOTE !! accepted dialect is 'postgresql' NOT 'postgres'!!
+
+    oracle+oracledb
+    "oracledb" has replace "oracle_cx" drivers.    
     
     """
     user = db_settings["user"]
