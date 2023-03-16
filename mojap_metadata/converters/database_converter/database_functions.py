@@ -45,6 +45,7 @@ def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
             "REMOTE_SCHEDULER_AGENT",
             "SYS",
             "SYS$UMF",
+            "SYSBACKUP",
             "SYSDG",
             "SYSKM",
             "SYSRAC",
