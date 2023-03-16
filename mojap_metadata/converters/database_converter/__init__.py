@@ -3,10 +3,16 @@
 
     Convertor for data types:
     SQL-Alchemy has it's own Type definitions: sqlalchemy.sql.sqltypes
+    https://docs.sqlalchemy.org/en/20/core/type_basics.html#types-sqlstandard
     These are the types that are returned.
-    The DMS requires a specific set of definitions differing from what sql-alchemy outputs, we define the convertions here.
-    TODO. I'm assuming there will need to be a convertion table for types. Existing types below are from postgres.
+    The DMS requires a specific set of definitions differing from what sql-alchemy outputs, we define the convertion mappings here.
+    
+    Note. Mapping convertions for types. 
+     -> SQL-Alchemy  >> _sqlalchemy_type_map
+     -> PostgreSQL   >> _postgres_type_map
+
     class sqlalchemy.types.TypeEngine
+    
 """
 
 from typing import DefaultDict
@@ -18,10 +24,36 @@ import mojap_metadata.converters.database_converter.database_functions as dbfun
 
 from mojap_metadata.converters import BaseConverter
 
-#   source : target
-#   postgres : DMS
+_sqlalchemy_type_map = {
+    "BIGINT": "int64",
+    "INT": "int32",
+    "INTEGER": "int32",
+    "SMALLINT": "int16",
+    "REAL": 'float24',
+    "DOUBLE": "float32",
+    "DOUBLE_PRECISION": "float64",
+    "NUMERIC": "float64",
+    "DECIMAL": "float64",
+    "TEXT": "string",
+    "UUID": "string",
+    "NCHAR": "string",
+    "CHAR": "string",
+    "NVARCHAR": "string",
+    "VARCHAR": "string",
+    "JSON": "string",
+    "DATE": "date64",
+    "TIME": "timestamp(ms)",
+    "TIMESTAMP": "timestamp(ms)",
+    "DATETIME": "timestamp(ms)",
+    "BOOLEAN": "bool",
+    "BOOL": "bool",
+    "BLOB": "blob",
+    "CLOB": "clob",
+    "BINARY": "string",
+    "VARBINARY": "string"
+}
 
-_default_type_converter = {
+_postgres_type_map = {
     "int8": "int8",
     "int16": "int16",
     "int32": "int32",
@@ -56,7 +88,8 @@ class DatabaseConverter(BaseConverter):
         """
 
         super().__init__()
-        self._default_type_converter = _default_type_converter
+        self._postgres_type_map = _postgres_type_map
+        self._sqlalchemy_type_map = _sqlalchemy_type_map
         self.dialect= dialect
 
 
@@ -68,8 +101,8 @@ class DatabaseConverter(BaseConverter):
 
         output = (
             "string"
-            if self._default_type_converter.get(col_type) is None
-            else self._default_type_converter.get(col_type)
+            if self._sqlalchemy_type_map.get(col_type) is None
+            else self._sqlalchemy_type_map.get(col_type)
         )
         return output
 
@@ -101,7 +134,7 @@ class DatabaseConverter(BaseConverter):
                     "name": col[0].lower(),
                     "type": column_type,
                     "description": None if str(col[3]) is None else str(col[3]),
-                    "nullable": True if col[2] == "YES" else False,
+                    "nullable": True if col[2] == "YES" or col[2]==True or col[2] else False,
                 }
             )
 
