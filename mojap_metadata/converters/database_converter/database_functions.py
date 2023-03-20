@@ -4,7 +4,7 @@ from sqlalchemy import inspect
 """
     see https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector
     
-    TODO. check behaviour is consistent for all dialects. 
+    TODO. check behaviour is consistent for all dialects. Current tests are for postgres
     (For different dialects; database and schema mean different/same thing).
     Assuming: Instance > Database > Schema > Tables > Columns
     Database is declared at the point of connection.
