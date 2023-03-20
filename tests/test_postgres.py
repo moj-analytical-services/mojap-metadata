@@ -5,8 +5,6 @@ from mojap_metadata.converters.postgres_converter import PostgresConverter
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
 
-from sqlalchemy import text as sqlalchemy_text
-
 TEST_ROOT = Path(__file__).resolve().parent
 
 
@@ -15,7 +13,7 @@ def load_data(postgres_connection):
     path = TEST_ROOT / "data/postgres_extractor"
     files = sorted(Path.glob(path, "postgres*.csv"))
     engine = postgres_connection[0]
-    
+
     for file in files:
         # Read file
         tabledf = pd.read_csv(str(file), index_col=None)
@@ -45,17 +43,17 @@ def load_data(postgres_connection):
         )
 
         # Sample comment for column for testing
-        engine.connect().execute(sqlalchemy_text(
+        engine.connect().execute(
             """COMMENT ON COLUMN public.postgres_table1.my_int"""
             """ IS 'This is the int column';COMMIT;"""
-        ))
+        )
 
         # Sample NULLABLE column for testing
-        engine.connect().execute(sqlalchemy_text(
+        engine.connect().execute(
             """ ALTER TABLE public.postgres_table1 ALTER """
             """ COLUMN primary_key SET NOT NULL;COMMIT;"""
-        ))
-    
+        )
+
 
 def test_connection(postgres_connection):
     pgsql = postgres_connection[1]
