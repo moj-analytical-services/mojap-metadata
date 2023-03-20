@@ -127,12 +127,12 @@ class DatabaseConverter(BaseConverter):
         columns = []
 
         for col in rows[0]:
-
-            column_type = self.convert_to_mojap_type(str(col[1]))
+            dType=self._approx_dtype(str(col[1]))
+            columnType = self.convert_to_mojap_type(dType)
             columns.append(
                 {
                     "name": col[0].lower(),
-                    "type": column_type,
+                    "type": columnType,
                     "description": None if str(col[3]) is None else str(col[3]),
                     "nullable": True if col[2] == "YES" or col[2]==True or col[2] else False,
                 }
@@ -167,3 +167,18 @@ class DatabaseConverter(BaseConverter):
                 meta_list_per_schema[f"schema: {schema}"].append(meta_output)
 
         return meta_list_per_schema
+
+
+    def _approx_dtype(self, txt: str)-> str:
+        """ Find approximate data type value of SQL-Alchemy data type, often supplied with precision value that can't be matched.
+            Args:
+                txt: SQL-Alchemy data type, with precision value
+            Returns:
+                string: mapped data type, from _sqlalchemy_type_map
+        """
+        dtype='binary'
+        for k in _sqlalchemy_type_map:
+            if txt.find(k) >= 0:
+                dtype=k
+                break
+        return dtype
