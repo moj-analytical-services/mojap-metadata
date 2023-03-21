@@ -9,7 +9,6 @@
     
     Note. Mapping convertions for types. 
      -> SQL-Alchemy  >> _sqlalchemy_type_map
-     -> PostgreSQL   >> _postgres_type_map
 
     class sqlalchemy.types.TypeEngine
     
@@ -53,34 +52,6 @@ _sqlalchemy_type_map = {
     "VARBINARY": "binary"
 }
 
-_postgres_type_map = {
-    "int8": "int8",
-    "int16": "int16",
-    "int32": "int32",
-    "int64": "int64",
-    "bigint": "int64",
-    "int2": "int32",
-    "int4": "int32",
-    "integer": "int32",
-    "smallint": "int32",
-    "numeric": "float64",
-    "double precision": "float64",
-    "text": "string",
-    "uuid": "string",
-    "character": "string",
-    "tsvector": "string",
-    "jsonb": "string",
-    "varchar": "string",
-    "bpchar": "string",
-    "date": "date64",
-    "boolean": "bool",
-    "timestamptz": "timestamp(ms)",
-    "timestamp": "timestamp(ms)",
-    "datetime": "timestamp(ms)",
-    "bool": "bool",
-}
-
-
 class DatabaseConverter(BaseConverter):
     def __init__(self, dialect):
         """
@@ -88,13 +59,12 @@ class DatabaseConverter(BaseConverter):
         """
 
         super().__init__()
-        self._postgres_type_map = _postgres_type_map
         self._sqlalchemy_type_map = _sqlalchemy_type_map
         self.dialect= dialect
 
 
     def convert_to_mojap_type(self, col_type: str) -> str:
-        """ Converts our postgress datatypes to mojap-metadata types
+        """ Converts SQL-Alchemy datatypes to mojap-metadata types
             Args:       ct (str):   String representation of source column types
             Returns:    str:        String representation of metadata column types
         """
@@ -129,6 +99,7 @@ class DatabaseConverter(BaseConverter):
         for col in rows[0]:
             dType=self._approx_dtype(str(col[1]))
             columnType = self.convert_to_mojap_type(dType)
+            columnType=str(col[1])
             columns.append(
                 {
                     "name": col[0].lower(),
@@ -174,7 +145,7 @@ class DatabaseConverter(BaseConverter):
             Args:
                 txt: SQL-Alchemy data type, with precision value
             Returns:
-                string: mapped data type, from _sqlalchemy_type_map
+                string: mapped data type, from _sqlalchemy_type_map, default 'binary'
         """
         dtype='binary'
         for k in _sqlalchemy_type_map:
