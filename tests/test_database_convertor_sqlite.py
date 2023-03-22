@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy import text as sqlAlcText
 """ Logging... to switch off, in conftest.py, toggle line 51 'echo=False' on postgres_connection 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
+    pytest tests/test_database_convertor_sqlite.py --log-cli-level=INFO
 """
 import logging
 
@@ -38,7 +39,8 @@ def create_tables():
                 sa.Column('flag', sa.Boolean(), default=False),
                 schema='schema1'
                 )
-        
+        # metadata.create_all(engine) 
+
         places = sa.Table('places', metadata,
                 sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
                 sa.Column('name', sa.String(255), nullable=False),
@@ -46,106 +48,39 @@ def create_tables():
                 sa.Column('flag', sa.Boolean(), default=False),
                 schema='schema1'
                 )
-        
         metadata.create_all(engine) 
 
         
 
-        
 
 
+def test_list_tables():
+    create_tables()
 
-
-def test_meta_data_object_list():
+    pc = DatabaseConverter('sqlite')
+    logging.info(df.list_schemas(engine, 'sqlite'))
+    logging.info(df.list_tables(engine, 'schema1'))
+    logging.info(df.list_meta_data(engine, 'people', 'schema1'))
     
-    with engine.connect() as conn:
-        create_tables()
+    logging.info(pc.get_object_meta(engine, 'people', 'schema1'))
 
-        pc = DatabaseConverter('sqlite')
-        logging.info(df.list_schemas(engine, 'sqlite'))
+    # columns = []
+
+    # for col in df.list_meta_data(engine, 'people', 'schema1'):
+    #     # dType=self._approx_dtype(col['type'])
+    #     # columnType = self.convert_to_mojap_type(dType)
         
-        # output = pc.generate_from_meta(conn)
-        
-        # for i in output.items():
-        #     # if len(i[1]) == 2:
-        #     #     tst_pass()
-        #     # else:
-        #     #     print('length not 2:',len(i[1]))
-
-        #     # if i[0] == "schema: public":
-        #     #     tst_pass()
-        #     # else:
-        #     #     print('schema name not "public":', i[0])
-
-        #     print("test00a", i)
-        #     assert len(i[1]) == 1
-        #     assert i[0] == "schema: public", f'schema name not "public" >> actual value passed = {i[0]}'
+    #     columns.append(
+    #         {
+    #             "name": col['name'].lower(),
+    #             # "type": columnType,
+    #             "description": col.get('comment'),
+    #             "nullable": col.get('nullable'),
+    #         }
+    #     )
+    # logging.info(columns)
 
 
-# def test_meta_data_object():
-    
-#     expected = {
-#         "name": "People",
-#         "columns": [
-#             {
-#                 "name": "Id",
-#                 "type": "int32",
-#                 "description": "",
-#                 "nullable": False,
-#             },
-#             {
-#                 "name": "Name",
-#                 "type": "character",
-#                 "description": "None",
-#                 "nullable": True,
-#             },
-#             {
-#                 "name": "State",
-#                 "type": "character",
-#                 "description": "None",
-#                 "nullable": True,
-#             },
-#             {
-#                 "name": "Flag",
-#                 "type": "bool",
-#                 "description": "None",
-#                 "nullable": True,
-#             }
-#         ],
-#         "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
-# mojap_metadata/v1.3.0.json",
-#         "description": "",
-#         "file_format": "",
-#         "sensitive": False,
-#         "primary_key": [],
-#         "partitions": [],
-#     }
-
-    
-    
-#     with engine.connect() as conn:
-#         create_tables()
-
-#         pc = DatabaseConverter('sqlite')
-#         meta_output = pc.get_object_meta(conn, "People", "public")
-#         # print(meta_output.to_dict())
-        
-#         assert len(meta_output.columns) == 4, f'number of columns not 4, actual length = {len(meta_output.columns)}'
-        
-#         assert meta_output.column_names == [
-#                 "Id",
-#                 "Name",
-#                 "State",
-#                 "Flag"
-#             ], f'columns names miss-match >> passed {meta_output.column_names}'
-        
-#         assert (
-#             expected == meta_output.to_dict(), 
-#             f'expected dictionary not received, actual >> {meta_output.to_dict()}'
-#         )
-
-#         assert meta_output.columns[0]["description"] == "This is the int column", f'column description missmatch, expecting "This is the int column" >> {meta_output.columns[0]}'
-        
-        
-
+       
+   
 
