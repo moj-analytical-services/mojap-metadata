@@ -20,11 +20,11 @@ def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
 
     if dialect == 'postgres':
         system_schemas = (
-            "pg_catalog",
-            "information_schema",
-            "pg_toast",
-            "pg_temp_1",
-            "pg_toast_temp_1",
+            "pg_catalog".upper(),
+            "information_schema".upper(),
+            "pg_toast".upper(),
+            "pg_temp_1".upper(),
+            "pg_toast_temp_1".upper(),
         )
     elif dialect=='oracle':
         system_schemas = (
@@ -63,7 +63,7 @@ def list_tables(connection: sqlalchemy.engine.Engine, schema: str = "public") ->
         method: sqlalchemy.engine.reflection.Inspector.get_table_names(schema: Optional[str] = None, **kw: Any) → List[str]
     """
     insp = inspect(connection)
-    response = insp.get_table_names()
+    response = insp.get_table_names(schema)
     return [r for r in response]
 
 
@@ -84,13 +84,13 @@ def list_tables(connection: sqlalchemy.engine.Engine, schema: str = "public") ->
 def list_meta_data(connection: sqlalchemy.engine.Engine, table_name: str, schema: str ) -> list:
     """ List metadata for table in the schema declared in the connection
         https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_columns
-        nb. schema parameter is legacy. Not currently used.
     """
 
     insp = inspect(connection)
-    response = insp.get_columns(table_name)
+    response = insp.get_columns(table_name, schema)
 
-    cols=[list(r) for r in response]
-    rows=[list(r.values()) for r in response]
+    # cols=[list(r) for r in response]
+    # rows=[list(r.values()) for r in response]
 
-    return rows, cols
+    # return rows, cols
+    return response

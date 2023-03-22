@@ -20,7 +20,7 @@ from sqlalchemy.sql import sqltypes
 
 from mojap_metadata import Metadata
 import mojap_metadata.converters.database_converter.database_functions as dbfun
-
+from sqlalchemy.types import INTEGER
 from mojap_metadata.converters import BaseConverter
 
 _sqlalchemy_type_map = {
@@ -52,6 +52,33 @@ _sqlalchemy_type_map = {
     "VARBINARY": "binary"
 }
 
+_postgres_type_map = {
+    "int8": "int8",
+    "int16": "int16",
+    "int32": "int32",
+    "int64": "int64",
+    "bigint": "int64",
+    "int2": "int32",
+    "int4": "int32",
+    "integer": "int32",
+    "smallint": "int32",
+    "numeric": "float64",
+    "double precision": "float64",
+    "text": "string",
+    "uuid": "string",
+    "character": "string",
+    "tsvector": "string",
+    "jsonb": "string",
+    "varchar": "string",
+    "bpchar": "string",
+    "date": "date64",
+    "boolean": "bool",
+    "timestamptz": "timestamp(ms)",
+    "timestamp": "timestamp(ms)",
+    "datetime": "timestamp(ms)",
+    "bool": "bool",
+}
+
 class DatabaseConverter(BaseConverter):
     def __init__(self, dialect):
         """
@@ -60,6 +87,7 @@ class DatabaseConverter(BaseConverter):
 
         super().__init__()
         self._sqlalchemy_type_map = _sqlalchemy_type_map
+        self._postgres_type_map = _postgres_type_map
         self.dialect= dialect
 
 
@@ -68,12 +96,8 @@ class DatabaseConverter(BaseConverter):
             Args:       ct (str):   String representation of source column types
             Returns:    str:        String representation of metadata column types
         """
-
-        output = (
-            "string"
-            if self._sqlalchemy_type_map.get(col_type) is None
-            else self._sqlalchemy_type_map.get(col_type)
-        )
+        cType = self._sqlalchemy_type_map.get(col_type)
+        output = "string" if cType is None else cType
         return output
 
 
@@ -81,7 +105,7 @@ class DatabaseConverter(BaseConverter):
         self, connection: sqlalchemy.engine.Engine, table: str, schema: str
     ) -> Metadata:
         """ for a table, get metadata and convert to mojap metadata format.
-            
+
             Convert sqlalchemy inpector result.
 
         Args:
@@ -96,24 +120,21 @@ class DatabaseConverter(BaseConverter):
         rows = dbfun.list_meta_data(connection, table, schema)
         columns = []
 
-        for col in rows[0]:
-            dType=self._approx_dtype(str(col[1]))
-            columnType = self.convert_to_mojap_type(dType)
-            columnType=str(col[1])
+        for col in rows:
             columns.append(
                 {
-                    "name": col[0].lower(),
-                    "type": columnType,
-                    "description": None if str(col[3]) is None else str(col[3]),
-                    "nullable": True if col[2] == "YES" or col[2]==True or col[2] else False,
+                    "name": col['name'].lower(),
+                    "type": self.convert_to_mojap_type(str(col['type'])),
+                    "description": col.get('comment'),
+                    "nullable": col.get('nullable'),
                 }
             )
 
-        d = {"name": table, "columns": columns}
+        # d = {"name": table, "columns": columns}
 
-        meta_output = Metadata.from_dict(d)
-        return meta_output
-
+        # meta_output = Metadata.from_dict(d)
+        # return meta_output
+        return columns
 
     def generate_from_meta(self, connection: sqlalchemy.engine.Engine) -> dict():
         """ For all the schema and tables and returns a list of Metadata

@@ -4,3 +4,4 @@
 **postgres_functions.py**  contains postgres functions for extracting database, tables, schema and  metadata from postgres database 
 **__init__py**  contains functions for getting metadata from tables and returning as mojap Metadata objects using mojap_metadata functionality 
 
+##  DEPRICATED; PLEASE USE DATABASE_CONVERTOR
