@@ -1,9 +1,10 @@
 import pandas as pd
 import pytest
 
-from mojap_metadata.converters.postgres_converter import PostgresConverter
+from mojap_metadata.converters.database_converter import DatabaseConverter
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
+from sqlalchemy import text
 
 TEST_ROOT = Path(__file__).resolve().parent
 
@@ -43,16 +44,17 @@ def load_data(postgres_connection):
         )
 
         # Sample comment for column for testing
-        engine.connect().execute(
+        
+        engine.connect().execute(text(
             """COMMENT ON COLUMN public.postgres_table1.my_int"""
             """ IS 'This is the int column';COMMIT;"""
-        )
+        ))
 
         # Sample NULLABLE column for testing
-        engine.connect().execute(
+        engine.connect().execute(text(
             """ ALTER TABLE public.postgres_table1 ALTER """
             """ COLUMN primary_key SET NOT NULL;COMMIT;"""
-        )
+        ))
 
 
 def test_connection(postgres_connection):
@@ -76,15 +78,17 @@ def test_dsn_and_url(postgres_connection):
 
 
 def test_meta_data_object_list(postgres_connection):
-    engine = postgres_connection[0].connect()
-    load_data(postgres_connection)
+    engine = postgres_connection[0]
 
-    pc = PostgresConverter()
-    output = pc.generate_from_meta(engine)
+    with engine.connect() as conn:
+        load_data(postgres_connection)
 
-    for i in output.items():
-        assert len(i[1]) == 2
-        assert i[0] == "schema: public"
+        pc = DatabaseConverter('postgres')
+        output = pc.generate_from_meta(conn)
+
+        for i in output.items():
+            assert len(i[1]) == 2
+            assert i[0] == "schema: public"
 
 
 def test_meta_data_object(postgres_connection):
@@ -156,28 +160,30 @@ mojap_metadata/v1.3.0.json",
         "partitions": [],
     }
 
-    engine = postgres_connection[0].connect()
+    engine = postgres_connection[0]
+    
+    with engine.connect() as conn:
 
-    load_data(postgres_connection)
+        load_data(postgres_connection)
 
-    pc = PostgresConverter()
-    meta_output = pc.get_object_meta(engine, "postgres_table1", "public")
+        pc = DatabaseConverter('postgres')
+        meta_output = pc.get_object_meta(conn, "postgres_table1", "public")
 
-    assert expected == meta_output.to_dict()
+        assert expected == meta_output.to_dict()
 
-    assert len(meta_output.columns) == 9
-    assert meta_output.columns[0]["description"] == "This is the int column"
-    assert meta_output.column_names == [
-        "my_int",
-        "my_float",
-        "my_decimal",
-        "my_bool",
-        "my_website",
-        "my_email",
-        "my_datetime",
-        "my_date",
-        "primary_key",
-    ]
+        assert len(meta_output.columns) == 9
+        assert meta_output.columns[0]["description"] == "This is the int column"
+        assert meta_output.column_names == [
+            "my_int",
+            "my_float",
+            "my_decimal",
+            "my_bool",
+            "my_website",
+            "my_email",
+            "my_datetime",
+            "my_date",
+            "primary_key",
+        ]
 
 
 @pytest.mark.parametrize(
@@ -201,6 +207,6 @@ mojap_metadata/v1.3.0.json",
     ],
 )
 def test_convert_to_mojap_type(inputtype: str, expected: str):
-    pc = PostgresConverter()
+    pc = DatabaseConverter('postgres')
     actual = pc.convert_to_mojap_type(inputtype)
     assert actual == expected
