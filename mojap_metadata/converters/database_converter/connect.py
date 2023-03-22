@@ -7,7 +7,7 @@ def create_database_connection(
         database_dialect_driver: str
         ):
     
-    """Create SQL Alchemy engine for a postgres database.
+    """Create SQL Alchemy engine for a specified database.
 
     Get connection details from file specified in config.json
 
