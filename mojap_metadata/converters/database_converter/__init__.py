@@ -20,7 +20,6 @@ from sqlalchemy.sql import sqltypes
 
 from mojap_metadata import Metadata
 import mojap_metadata.converters.database_converter.database_functions as dbfun
-from sqlalchemy.types import INTEGER
 from mojap_metadata.converters import BaseConverter
 
 _sqlalchemy_type_map = {
