@@ -80,7 +80,9 @@ def test_list_tables():
     logging.info(df.list_tables(engine, 'schema1'))
     logging.info(df.list_meta_data(engine, 'people', 'schema1'))
     
-    logging.info(pc.get_object_meta(engine, 'people', 'schema1'))
+    logging.info(pc.get_object_meta(engine, 'people', 'schema1').to_dict())
+
+
     
     # columns = []
 
