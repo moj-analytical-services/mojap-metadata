@@ -9,7 +9,7 @@ from pathlib import Path
 from sqlalchemy import text as sqlAlcText, exists, select
 """ Logging... 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
-    pytest tests/test_database_convertor_sqlite.py --log-cli-level=INFO
+    pytest tests/test_database_converter_sqlite.py --log-cli-level=INFO
 """
 import logging
 
@@ -71,12 +71,12 @@ def create_tables():
 def test_list_tables():
     create_tables()
 
-#   exists(
-#         select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
-#         )
+    # logging.info(exists(
+    #     select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
+    #     ))
 
-    pc = DatabaseConverter('sqlite')
-    logging.info(df.list_schemas(engine, 'sqlite'))
+    pc = DatabaseConverter()
+    logging.info(df.list_schemas(engine))
     logging.info(df.list_tables(engine, 'schema1'))
     logging.info(df.list_meta_data(engine, 'people', 'schema1'))
     
