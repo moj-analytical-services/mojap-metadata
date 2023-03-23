@@ -6,8 +6,8 @@ from mojap_metadata.converters.database_converter import DatabaseConverter
 
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
 from pathlib import Path
-from sqlalchemy import text as sqlAlcText
-""" Logging... to switch off, in conftest.py, toggle line 51 'echo=False' on postgres_connection 
+from sqlalchemy import text as sqlAlcText, exists, select
+""" Logging... 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
     pytest tests/test_database_convertor_sqlite.py --log-cli-level=INFO
 """
@@ -22,11 +22,15 @@ import mojap_metadata.converters.database_converter.database_functions as df
 
 engine = sa.create_engine('sqlite://')
 
+# def test_schema_exists():
+#     """ check if schema has already been created """
+#     return exists(
+#         select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
+#         )
 
 def create_tables():
     """ For loading the data and updating the table with the constraints and metadata
     """        
-
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT")  as connection:
         
         connection.execute(sqlAlcText("ATTACH DATABASE 'testdb' AS schema1;"))
@@ -50,7 +54,15 @@ def create_tables():
                 )
         metadata.create_all(engine) 
 
-        
+# def setup_tests():
+#     if not test_schema_exists(): 
+#         create_tables()
+    
+
+
+# def test_list_schema():
+#     setup_tests()
+#     assert df.list_tables(engine, 'schema1') == ['main', 'schema1']
 
 
 
@@ -63,7 +75,7 @@ def test_list_tables():
     logging.info(df.list_meta_data(engine, 'people', 'schema1'))
     
     logging.info(pc.get_object_meta(engine, 'people', 'schema1'))
-
+    
     # columns = []
 
     # for col in df.list_meta_data(engine, 'people', 'schema1'):
@@ -83,4 +95,3 @@ def test_list_tables():
 
        
    
-
