@@ -95,16 +95,15 @@ class DatabaseConverter(BaseConverter):
                 {
                     "name": col['name'].lower(),
                     "type": self.convert_to_mojap_type(str(col['type'])),
-                    "description": col.get('comment'),
+                    "description": col.get('comment') if col.get('comment') else '',
                     "nullable": col.get('nullable'),
                 }
             )
 
-        # d = {"name": table, "columns": columns}
+        d = {"name": table, "columns": columns}
 
-        # meta_output = Metadata.from_dict(d)
-        # return meta_output
-        return columns
+        meta_output = Metadata.from_dict(d)
+        return meta_output
 
     def generate_from_meta(self, connection: sqlalchemy.engine.Engine) -> dict():
         """ For all the schema and tables and returns a list of Metadata
