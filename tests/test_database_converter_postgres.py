@@ -2,11 +2,15 @@ import pandas as pd
 import pytest
 # from mojap_metadata.converters.postgres_converter import PostgresConverter
 from mojap_metadata.converters.database_converter import DatabaseConverter
-from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, VARCHAR, TIMESTAMP, Numeric, Double, DOUBLE_PRECISION
 from pathlib import Path
-from sqlalchemy import text as sqlAlcText
-""" Logging... to switch off, in conftest.py, toggle line 51 'echo=False' on postgres_connection 
+import sqlalchemy as sa
+from sqlalchemy import text as sqlAlcText, DDL, event
+from sqlalchemy.schema import CreateSchema
+from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, VARCHAR, TIMESTAMP, Numeric, Double, DOUBLE_PRECISION
+
+""" Logging... comment out to switch off 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
+    $ pytest tests/test_database_converter_postgres.py --log-cli-level=INFO
 """
 import logging
 
@@ -15,15 +19,21 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 TEST_ROOT = Path(__file__).resolve().parent
 
+def create_schema(engine: sa.engine.Engine, schemaName: str):
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+    # event.listen(engine, 'before_create', DDL("CREATE SCHEMA IF NOT EXISTS schema001"))
+        connection.execute(CreateSchema(name=schemaName,if_not_exists=True))
 
 def load_data(postgres_connection):
     """ For loading the data and updating the table with the constraints and metadata
         https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.Connection.execute
     """    
-        
+    
     path = TEST_ROOT / "data/postgres_extractor"
     files = sorted(Path.glob(path, "postgres*.csv"))
     engine = postgres_connection[0]
+    
+    create_schema(engine, 'schema001')
 
     for file in files:
         # Read file
@@ -48,16 +58,17 @@ def load_data(postgres_connection):
         tabledf.to_sql(
             filename,
             engine,
+            schema='schema001',
             if_exists="replace",
             index=False,
             dtype=dtypedict,
         )
 
         # Sample comment for column for testing
-        qryDesc = sqlAlcText("COMMENT ON COLUMN postgres_table1.my_int IS 'This is the int column';")
+        qryDesc = sqlAlcText("COMMENT ON COLUMN schema001.postgres_table1.my_int IS 'This is the int column';")
         
         # Sample NULLABLE column for testing
-        qryPk = sqlAlcText("ALTER TABLE public.postgres_table1 ALTER COLUMN primary_key SET NOT NULL;")
+        qryPk = sqlAlcText("ALTER TABLE schema001.postgres_table1 ALTER COLUMN primary_key SET NOT NULL;")
 
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
             res1 = connection.execute(qryDesc)
@@ -94,11 +105,11 @@ def test_meta_data_object_list(postgres_connection):
 
         pc = DatabaseConverter()
         
-        output = pc.generate_from_meta(conn, 'public')
+        output = pc.generate_from_meta(conn, 'schema001')
 
         for i in output.items():
             assert len(i[1]) == 2
-            assert i[0] == "schema: public", f'schema name not "public" >> actual value passed = {i[0]}'
+            assert i[0] == "schema: schema001", f'schema name not "public" >> actual value passed = {i[0]}'
 
 
 def test_meta_data_object(postgres_connection):
@@ -175,7 +186,7 @@ def test_meta_data_object(postgres_connection):
     with engine.connect() as conn:
 
         pc = DatabaseConverter()
-        meta_output = pc.get_object_meta(conn, "postgres_table1", "public")
+        meta_output = pc.get_object_meta(conn, "postgres_table1", "schema001")
 
         assert len(meta_output.columns) == 9, f'number of columns not 9, actual length = {len(meta_output.columns)}'
         
@@ -197,7 +208,10 @@ def test_meta_data_object(postgres_connection):
         
         
 
-"""from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean"""
+""" 
+    This test is not dialect specific, it confirms the mojap meta type convertion.
+    It could probably go in a seperate test file...
+"""
 @pytest.mark.parametrize(
     "inputtype,expected",
     [
