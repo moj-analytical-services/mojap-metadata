@@ -54,6 +54,8 @@ def create_tables():
                 )
         metadata.create_all(engine) 
 
+
+
 # def setup_tests():
 #     if not test_schema_exists(): 
 #         create_tables()
@@ -69,6 +71,10 @@ def create_tables():
 def test_list_tables():
     create_tables()
 
+#   exists(
+#         select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
+#         )
+
     pc = DatabaseConverter('sqlite')
     logging.info(df.list_schemas(engine, 'sqlite'))
     logging.info(df.list_tables(engine, 'schema1'))
@@ -81,7 +87,6 @@ def test_list_tables():
     # for col in df.list_meta_data(engine, 'people', 'schema1'):
     #     # dType=self._approx_dtype(col['type'])
     #     # columnType = self.convert_to_mojap_type(dType)
-        
     #     columns.append(
     #         {
     #             "name": col['name'].lower(),
