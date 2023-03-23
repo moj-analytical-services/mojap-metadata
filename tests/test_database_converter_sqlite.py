@@ -9,7 +9,7 @@ from pathlib import Path
 from sqlalchemy import text as sqlAlcText, exists, select
 """ Logging... 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
-    pytest tests/test_database_converter_sqlite.py --log-cli-level=INFO
+    $ pytest tests/test_database_converter_sqlite.py --log-cli-level=INFO
 """
 import logging
 
@@ -22,66 +22,61 @@ import mojap_metadata.converters.database_converter.database_functions as df
 
 engine = sa.create_engine('sqlite://')
 
-# def test_schema_exists():
-#     """ check if schema has already been created """
-#     return exists(
-#         select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
-#         )
-
 def create_tables():
     """ For loading the data and updating the table with the constraints and metadata
     """        
+   
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT")  as connection:
         
-        connection.execute(sqlAlcText("ATTACH DATABASE 'testdb' AS schema1;"))
+        logging.info(f"Is Existing? {engine.dialect.has_table(connection, 'schema1.people')}")
+        if not engine.dialect.has_table(connection, 'schema1.people'): 
 
-        metadata = sa.MetaData(engine)
-        people = sa.Table('people', metadata,
-                sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
-                sa.Column('name', sa.String(255), nullable=False),
-                sa.Column('state', sa.String(255), default="Active"),
-                sa.Column('flag', sa.Boolean(), default=False),
-                schema='schema1'
-                )
-        # metadata.create_all(engine) 
+            connection.execute(sqlAlcText("ATTACH DATABASE 'testdb' AS schema1;"))
 
-        places = sa.Table('places', metadata,
-                sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
-                sa.Column('name', sa.String(255), nullable=False),
-                sa.Column('state', sa.String(255), default="Active"),
-                sa.Column('flag', sa.Boolean(), default=False),
-                schema='schema1'
-                )
-        metadata.create_all(engine) 
+            metadata = sa.MetaData(engine)
+            people = sa.Table('people', metadata,
+                    sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
+                    sa.Column('name', sa.String(255), nullable=False),
+                    sa.Column('state', sa.String(255), default="Active"),
+                    sa.Column('flag', sa.Boolean(), default=False),
+                    schema='schema1'
+                    )
 
+            places = sa.Table('places', metadata,
+                    sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
+                    sa.Column('name', sa.String(255), nullable=False),
+                    sa.Column('state', sa.String(255), default="Active"),
+                    sa.Column('flag', sa.Boolean(), default=False),
+                    schema='schema1'
+                    )
+            metadata.create_all(engine) 
 
+            logging.info(f"Is Existing now? {engine.dialect.has_table(connection, 'schema1.people')}")
 
-# def setup_tests():
-#     if not test_schema_exists(): 
-#         create_tables()
+def drop_tables():
+    """delete test database instance"""
+    metadata = sa.MetaData(engine)
+    metadata.drop_all(engine)
+
     
-
-
-# def test_list_schema():
-#     setup_tests()
-#     assert df.list_tables(engine, 'schema1') == ['main', 'schema1']
-
 
 
 def test_list_tables():
+
+    drop_tables()
     create_tables()
 
-    # logging.info(exists(
-    #     select([('schema_name')]).select_from("information_schema.schemata").where("schema_name = 'schema1'")
-    #     ))
-
+    
     pc = DatabaseConverter()
-    logging.info(df.list_schemas(engine))
+    
     logging.info(df.list_tables(engine, 'schema1'))
     logging.info(df.list_meta_data(engine, 'people', 'schema1'))
     
-    logging.info(pc.get_object_meta(engine, 'people', 'schema1'))
+    logging.info(pc.get_object_meta(engine, 'people', 'schema1').to_dict())
+
     
+    assert df.list_tables(engine, 'schema1') == ['people', 'places']
+
     # columns = []
 
     # for col in df.list_meta_data(engine, 'people', 'schema1'):
