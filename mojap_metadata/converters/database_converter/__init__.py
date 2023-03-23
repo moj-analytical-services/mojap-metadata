@@ -51,43 +51,13 @@ _sqlalchemy_type_map = {
     "VARBINARY": "binary"
 }
 
-_postgres_type_map = {
-    "int8": "int8",
-    "int16": "int16",
-    "int32": "int32",
-    "int64": "int64",
-    "bigint": "int64",
-    "int2": "int32",
-    "int4": "int32",
-    "integer": "int32",
-    "smallint": "int32",
-    "numeric": "float64",
-    "double precision": "float64",
-    "text": "string",
-    "uuid": "string",
-    "character": "string",
-    "tsvector": "string",
-    "jsonb": "string",
-    "varchar": "string",
-    "bpchar": "string",
-    "date": "date64",
-    "boolean": "bool",
-    "timestamptz": "timestamp(ms)",
-    "timestamp": "timestamp(ms)",
-    "datetime": "timestamp(ms)",
-    "bool": "bool",
-}
-
 class DatabaseConverter(BaseConverter):
-    def __init__(self, dialect):
+    def __init__(self):
         """
         Extracts and converts metadata to Metadata format
         """
-
         super().__init__()
         self._sqlalchemy_type_map = _sqlalchemy_type_map
-        self._postgres_type_map = _postgres_type_map
-        self.dialect= dialect
 
 
     def convert_to_mojap_type(self, col_type: str) -> str:
@@ -114,6 +84,7 @@ class DatabaseConverter(BaseConverter):
 
         Returns:
             Metadata: Metadata object
+
         """
 
         rows = dbfun.list_meta_data(connection, table, schema)
@@ -146,9 +117,7 @@ class DatabaseConverter(BaseConverter):
         """
         meta_list_per_schema = DefaultDict(list)
         
-        schema_names = dbfun.list_schemas(
-            connection, self.dialect
-        )  # database name will be passed on in the connection
+        schema_names = dbfun.list_schemas(connection)  # dialect and database name will be passed on in the connection
 
         for schema in sorted(schema_names):
             table_names = dbfun.list_tables(connection, schema)

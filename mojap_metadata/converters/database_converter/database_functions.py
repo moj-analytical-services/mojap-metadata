@@ -10,14 +10,15 @@ from sqlalchemy import inspect
     Database is declared at the point of connection.
 """
 
-def list_schemas(connection: sqlalchemy.engine.Engine, dialect) -> list:
+def list_schemas(connection: sqlalchemy.engine.Engine) -> list:
     """ List non-system schemas in a database.
         method: sqlalchemy.engine.reflection.Inspector.get_schema_names(**kw: Any) → List[str]
         TODO. check system_schemas, will need to contain lists for other dialect exclusions.
     """
     insp = inspect(connection)
     response = insp.get_schema_names()
-
+    
+    dialect = connection.dialect.name
     if dialect == 'postgres':
         system_schemas = (
             "pg_catalog".upper(),
