@@ -86,7 +86,7 @@ class DatabaseConverter(BaseConverter):
     ) -> Metadata:
         """ for a table, get metadata and convert to mojap metadata format.
             Convert sqlalchemy inpector result.
-        Args:...... connection: Database connection
+        Args:...... connection: Database connection, SQL Alchemy
             ....... table: table name
             ....... schema: schema name
         Returns:... Metadata: Metadata object
