@@ -2,9 +2,9 @@ import pandas as pd
 import pytest
 import sqlalchemy as sa
 
-from mojap_metadata.converters.database_converter import DatabaseConverter
+from mojap_metadata.converters.database_converter import DatabaseConverter, database_functions as df
 
-from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean
+from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, INTEGER, VARCHAR, BOOLEAN
 from pathlib import Path
 from sqlalchemy import text as sqlAlcText, exists, select
 """ Logging... 
@@ -12,86 +12,94 @@ from sqlalchemy import text as sqlAlcText, exists, select
     $ pytest tests/test_database_converter_sqlite.py --log-cli-level=INFO
 """
 import logging
-
 logging.basicConfig(filename='db.log')
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
-
-import mojap_metadata.converters.database_converter.database_functions as df
-
-engine = sa.create_engine('sqlite://')
-
-def create_tables():
+def create_tables() -> sa.engine.Engine:
     """ For loading the data and updating the table with the constraints and metadata
-    """        
-   
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT")  as connection:
+    """   
+    engine = sa.create_engine('sqlite://')
+    with engine.connect() as connection:
+        metadata = sa.MetaData()
+        people = sa.Table('people', metadata,
+                sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
+                sa.Column('name', sa.String(255), nullable=False),
+                sa.Column('state', sa.String(255), default="Active"),
+                sa.Column('flag', sa.Boolean(), default=False)
+                )
+        places = sa.Table('places', metadata,
+                sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
+                sa.Column('name', sa.String(255), nullable=False),
+                sa.Column('state', sa.String(255), default="Active"),
+                sa.Column('flag', sa.Boolean(), default=False)
+                )
+        metadata.create_all(engine) 
+    return engine
+
+
+def test_get_meta_data():    
+    expected = {
+        'name': 'people',
+        'columns': [
+            {
+                'name': 'id',
+                'type': 'int32',
+                'description': 'None',
+                'nullable': False
+            },
+            {
+                'name': 'name',
+                'type': 'string',
+                'description': 'None',
+                'nullable': False
+            },
+            {
+                'name': 'state',
+                'type': 'string',
+                'description': 'None',
+                'nullable': True
+            },
+            {
+                'name': 'flag',
+                'type': 'bool',
+                'description': 'None',
+                'nullable': True
+            }
+        ],
+        '$schema': 'https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.3.0.json',
+        'description': '',
+        'file_format': '',
+        'sensitive': False,
+        'primary_key': [],
+        'partitions': []
+    }
+
+    engine = create_tables()
+    with engine.connect() as conn:
+        pc = DatabaseConverter()
+        metaOutput = pc.get_object_meta(conn, "people", "main")
+
+        assert metaOutput.column_names==['id', 'name', 'state', 'flag'], f'Column names do not match. output: {metaOutput.column_names}'
+        assert metaOutput.to_dict() == expected
         
-        logging.info(f"Is Existing? {engine.dialect.has_table(connection, 'schema1.people')}")
-        if not engine.dialect.has_table(connection, 'schema1.people'): 
 
-            connection.execute(sqlAlcText("ATTACH DATABASE 'testdb' AS schema1;"))
-
-            metadata = sa.MetaData(engine)
-            people = sa.Table('people', metadata,
-                    sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
-                    sa.Column('name', sa.String(255), nullable=False),
-                    sa.Column('state', sa.String(255), default="Active"),
-                    sa.Column('flag', sa.Boolean(), default=False),
-                    schema='schema1'
-                    )
-
-            places = sa.Table('places', metadata,
-                    sa.Column('id', sa.Integer(),primary_key=True, comment='this is the pk'),
-                    sa.Column('name', sa.String(255), nullable=False),
-                    sa.Column('state', sa.String(255), default="Active"),
-                    sa.Column('flag', sa.Boolean(), default=False),
-                    schema='schema1'
-                    )
-            metadata.create_all(engine) 
-
-            logging.info(f"Is Existing now? {engine.dialect.has_table(connection, 'schema1.people')}")
-
-def drop_tables():
-    """delete test database instance"""
-    metadata = sa.MetaData(engine)
-    metadata.drop_all(engine)
-
-    
+def test_generate_from_meta():
+    engine = create_tables()
+    with engine.connect() as conn:
+        pc = DatabaseConverter()
+        metaOutput = pc.generate_from_meta(conn, "main")
+        
+        for i in metaOutput.items():
+            assert len(i[1]) == 2
+            assert i[0] == "schema: main", f'schema name not "main" >> actual value passed = {i[0]}'
 
 
 def test_list_tables():
+    engine = create_tables()
+    assert df.list_tables(engine, 'main') == ['people', 'places']
 
-    drop_tables()
-    create_tables()
-
-    
-    pc = DatabaseConverter()
-    
-    logging.info(df.list_tables(engine, 'schema1'))
-    logging.info(df.list_meta_data(engine, 'people', 'schema1'))
-    
-    logging.info(pc.get_object_meta(engine, 'people', 'schema1').to_dict())
-
-    
-    assert df.list_tables(engine, 'schema1') == ['people', 'places']
-
-    # columns = []
-
-    # for col in df.list_meta_data(engine, 'people', 'schema1'):
-    #     # dType=self._approx_dtype(col['type'])
-    #     # columnType = self.convert_to_mojap_type(dType)
-    #     columns.append(
-    #         {
-    #             "name": col['name'].lower(),
-    #             # "type": columnType,
-    #             "description": col.get('comment'),
-    #             "nullable": col.get('nullable'),
-    #         }
-    #     )
-    # logging.info(columns)
-
+ 
 
        
    
