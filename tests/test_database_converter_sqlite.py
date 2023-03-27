@@ -18,6 +18,8 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 def create_tables() -> sa.engine.Engine:
     """ For loading the data and updating the table with the constraints and metadata
+        NOTE. 'Comment' renders a SQL comment in the generated script. It is not comparative to the column attribute 'description'.
+        SQLite doesn't appear to support table column description. https://www.sqlite.org/lang_createtable.html
     """   
     engine = sa.create_engine('sqlite://')
     with engine.connect() as connection:
@@ -39,6 +41,10 @@ def create_tables() -> sa.engine.Engine:
 
 
 def test_get_meta_data():    
+    """ Check table metadata is read properly 
+        NOTE. 'Comment' is not copied into 'description'. 
+        SQLite doesn't appear to support table column description. https://www.sqlite.org/lang_createtable.html
+    """
     expected = {
         'name': 'people',
         'columns': [

@@ -1,12 +1,14 @@
 import pandas as pd
 import pytest
 # from mojap_metadata.converters.postgres_converter import PostgresConverter
-from mojap_metadata.converters.database_converter import DatabaseConverter
+from mojap_metadata.converters.database_converter import DatabaseConverter, database_functions as df
+
 from pathlib import Path
 import sqlalchemy as sa
 from sqlalchemy import text as sqlAlcText, DDL, event
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, VARCHAR, TIMESTAMP, Numeric, Double, DOUBLE_PRECISION
+
 
 """ Logging... comment out to switch off 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
@@ -52,7 +54,7 @@ def load_data(postgres_connection):
             "my_email": String,
             "my_datetime": DateTime,
             "my_date": Date,
-            "primary_key": Integer,
+            "my_primary_key": Integer,
         }
 
         tabledf.to_sql(
@@ -68,11 +70,15 @@ def load_data(postgres_connection):
         qryDesc = sqlAlcText("COMMENT ON COLUMN schema001.postgres_table1.my_int IS 'This is the int column';")
         
         # Sample NULLABLE column for testing
-        qryPk = sqlAlcText("ALTER TABLE schema001.postgres_table1 ALTER COLUMN primary_key SET NOT NULL;")
+        qryNullable = sqlAlcText("ALTER TABLE schema001.postgres_table1 ALTER COLUMN my_primary_key SET NOT NULL;")
+
+        # Sample PrimaryKey column for testing
+        qryPk = sqlAlcText("ALTER TABLE schema001.postgres_table1 ADD CONSTRAINT my_pk PRIMARY KEY (my_primary_key);")
 
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
             res1 = connection.execute(qryDesc)
-            res2 = connection.execute(qryPk)
+            res2 = connection.execute(qryNullable)
+            # res3 = connection.execute(qryPk)
             connection.commit()
         
 
@@ -166,7 +172,7 @@ def test_meta_data_object(postgres_connection):
                 'nullable': True
             },
             {
-                'name': 'primary_key',
+                'name': 'my_primary_key',
                 'type': 'int32',
                 'description': 'None',
                 'nullable': False
@@ -199,14 +205,28 @@ def test_meta_data_object(postgres_connection):
                 "my_email",
                 "my_datetime",
                 "my_date",
-                "primary_key",
+                "my_primary_key",
             ], f'columns names miss-match >> passed {meta_output.column_names}'
         
         assert meta_output.columns[0]["description"] == "This is the int column", f'column description missmatch, expecting "This is the int column" >> {meta_output.columns[0]}'
         
         assert expected == meta_output.to_dict(), f'expected dictionary not received, actual >> {meta_output.to_dict()}'
         
-        
+
+
+
+# def test_get_primarykey(postgres_connection):
+#     """  """
+#     load_data(postgres_connection)
+#     engine = postgres_connection[0]
+#     pk = df.get_constraint_pk(engine, "postgres_table1", "schema001")
+#     logging.info(pk)
+#     assert 'my_pk' == pk['name']
+#     assert ['my_primary_key','my_int'] == pk['constrained_columns'], f'Primary key as "my_primary_key, my_int" not identified, returning: {pk["constrained_columns"]}'
+
+
+
+
 
 """ 
     This test is not dialect specific, it confirms the mojap meta type convertion.
@@ -231,7 +251,5 @@ def test_meta_data_object(postgres_connection):
 )
 def test_convert_to_mojap_type(inputtype: type, expected: str):
     pc = DatabaseConverter()
-
     actual = pc.convert_to_mojap_type(str(inputtype))
-
     assert actual == expected
