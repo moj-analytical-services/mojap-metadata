@@ -1,0 +1,11 @@
+my_int,my_float,my_decimal,my_bool,my_website,my_email,my_datetime,my_date,my_primary_key
+156,32.9278846106942,45.51268694761662,True,null,olsonalexis@example.com,null,2003-06-08,0
+81,9.41987629809005,24.53762372712474,null,https://www.murphy-wright.org/,swilliams@example.com,null,1995-12-20,1
+117,4.36794385825722,null,null,http://jennings-stanley.com/,yhaas@example.com,1973-01-05 02:29:37,2009-09-01,2
+11,null,47.15763252491177,null,http://www.herrera.biz/,theodoredelgado@example.org,null,2004-02-27,3
+50,47.7492271313876,null,null,https://johnson.biz/,null,1974-11-26 10:24:49,2006-04-21,4
+null,53.9210346576074,38.42224197236174,null,https://www.dougherty-durham.com/,wmejia@example.net,1982-12-29 11:51:35,1993-09-23,5
+null,null,19.551420299388575,True,http://www.hill.com/,bryantfrederick@example.com,null,1981-11-11,6
+55,38.0243970960454,30.106430914897576,null,http://www.smith-marquez.com/,null,1991-09-27 07:23:05,1986-07-06,7
+30,28.2094230953151,null,null,http://www.knapp.net/,victoria48@example.com,null,null,8
+137,44.7746207859401,null,null,http://www.morales-fisher.com/,tracy28@example.com,1998-04-03 04:45:11,1972-05-27,9
