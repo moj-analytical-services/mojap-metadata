@@ -2,14 +2,14 @@ import pandas as pd
 import pytest
 import sqlalchemy as sa
 
-from mojap_metadata.converters.database_converter import DatabaseConverter, database_functions as df
+from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter, sqlalchemy_functions as df
 
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, INTEGER, VARCHAR, BOOLEAN
 from pathlib import Path
 from sqlalchemy import text as sqlAlcText, exists, select
 """ Logging... 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
-    $ pytest tests/test_database_converter_sqlite.py --log-cli-level=INFO
+    $ pytest tests/test_sqlalchemy_converter_sqlite.py --log-cli-level=INFO
 """
 import logging
 logging.basicConfig(filename='db.log')
@@ -83,7 +83,7 @@ def test_get_meta_data():
 
     engine = create_tables()
     with engine.connect() as conn:
-        pc = DatabaseConverter()
+        pc = SQLAlchemyConverter()
         metaOutput = pc.get_object_meta(conn, "people", "main")
 
         assert metaOutput.column_names==['id', 'name', 'state', 'flag'], f'Column names do not match. output: {metaOutput.column_names}'
@@ -93,7 +93,7 @@ def test_get_meta_data():
 def test_generate_from_meta():
     engine = create_tables()
     with engine.connect() as conn:
-        pc = DatabaseConverter()
+        pc = SQLAlchemyConverter()
         metaOutput = pc.generate_from_meta(conn, "main")
         
         for i in metaOutput.items():

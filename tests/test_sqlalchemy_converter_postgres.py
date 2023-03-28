@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 # from mojap_metadata.converters.postgres_converter import PostgresConverter
-from mojap_metadata.converters.database_converter import DatabaseConverter, database_functions as df
+from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter, sqlalchemy_functions as df
 
 from pathlib import Path
 import sqlalchemy as sa
@@ -10,12 +10,15 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 from sqlalchemy.types import Integer, Float, String, DateTime, Date, Boolean, VARCHAR, TIMESTAMP, Numeric, DECIMAL
 
 
-""" Logging... comment out to switch off 
+""" NOTE
+    Logging... comment out to switch off 
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
-    $ pytest tests/test_database_converter_postgres.py --log-cli-level=INFO
+    $ pytest tests/test_sqlalchemy_converter_postgres.py --log-cli-level=INFO
 
     SQLalchemy.inspect() function returns Inspector object. see documentation... 
     https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector
+
+    sqlalchemy v1.4 does not support DOUBLE or Double_Precision types, see Decimal.
 """
 import logging
 
@@ -147,7 +150,7 @@ def test_meta_data_object_list(postgres_connection):
 
         hasSchema, hasTable = _check_test_setup(engine)
         
-        pc = DatabaseConverter()
+        pc = SQLAlchemyConverter()
         output = pc.generate_from_meta(conn, testSchemaName)
 
         for i in output.items():
@@ -228,7 +231,7 @@ def test_meta_data_object(postgres_connection):
     load_data(postgres_connection)
     
     with engine.connect() as conn:
-        pc = DatabaseConverter()
+        pc = SQLAlchemyConverter()
         meta_output = pc.get_object_meta(conn, testDatabaseName, testSchemaName)
 
         assert len(meta_output.columns) == 9, f'number of columns not 9, actual length = {len(meta_output.columns)}'
@@ -286,6 +289,6 @@ def test_meta_data_object(postgres_connection):
     ],
 )
 def test_convert_to_mojap_type(inputtype: type, expected: str):
-    pc = DatabaseConverter()
+    pc = SQLAlchemyConverter()
     actual = pc.convert_to_mojap_type(str(inputtype))
     assert actual == expected

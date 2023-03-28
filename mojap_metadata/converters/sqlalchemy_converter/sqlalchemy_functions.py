@@ -22,8 +22,11 @@ def list_meta_data(engine: sqlalchemy.engine.Engine, tableName: str, schema: str
     return insp.get_columns(tableName, schema)
 
 
-def get_constraint_pk(engine: sqlalchemy.engine.Engine, tableName: str, schema: str = "public") -> list:
-    """ List Primary Keys from Inspector Method """
+def get_constraint_pk(engine: sqlalchemy.engine.Engine, tableName: str, schema: str = "public") -> dict:
+    """ List Primary Keys from Inspector Method 
+        https://docs.sqlalchemy.org/en/14/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_pk_constraint
+        returns dictionary, {"constrained_columns":[],"name":'*optional'}
+    """
     insp = inspect(engine)
     return insp.get_pk_constraint(tableName, schema)
     

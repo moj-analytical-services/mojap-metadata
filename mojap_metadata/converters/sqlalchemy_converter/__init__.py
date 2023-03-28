@@ -17,7 +17,7 @@ import sqlalchemy
 from sqlalchemy.sql import sqltypes
 
 from mojap_metadata import Metadata
-import mojap_metadata.converters.database_converter.database_functions as dbfun
+import mojap_metadata.converters.sqlalchemy_converter.sqlalchemy_functions as dbfun
 from mojap_metadata.converters import BaseConverter
 
 _sqlalchemy_type_map = {
@@ -51,7 +51,7 @@ _sqlalchemy_type_map = {
     "BINARY": "binary"
 }
 
-class DatabaseConverter(BaseConverter):
+class SQLAlchemyConverter(BaseConverter):
     def __init__(self):
         """ Extracts and converts metadata to Metadata format
         """
