@@ -432,7 +432,7 @@ class Metadata(MutableMapping):
         else:
             raise ValueError(f"Column: {name} not in metadata columns")
 
-    def update_column(self, column: dict):
+    def update_column(self, column: dict, append: bool = True):
         """
         Adds a column to the columns property. If the column name
         alredy exists in in the metadata then that column is replaced.
@@ -443,11 +443,14 @@ class Metadata(MutableMapping):
                 a column.
         """
         name = column["name"]
+
         if name in self.column_names:
             i = self.column_names.index(name)
             self.columns[i] = column
-        else:
+        elif append:
             self.columns.append(column)
+        else:
+            self.columns.insert(0, column)
         self.validate()
 
     def _init_data_with_default_key_values(self, data: dict):
