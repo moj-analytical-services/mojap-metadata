@@ -26,7 +26,7 @@ _sqlalchemy_type_map = {
     "BIGINT": "int64",
     "INTEGER": "int32",
     "INT": "int32",
-    "REAL": 'float24',
+    "REAL": 'float16',
     "DOUBLE_PRECISION": "float64",
     "DOUBLE PRECISION": "float64",
     "DOUBLE": "float32",
@@ -46,11 +46,12 @@ _sqlalchemy_type_map = {
     "TIME": "timestamp(ms)",
     "BOOLEAN": "bool",
     "BOOL": "bool",
-    "BLOB": "blob",
-    "CLOB": "clob",
+    "BLOB": "binary",
+    "CLOB": "binary",
+    "LARGEBINARY": "binary",
+    "BYTEA": "binary",
     "VARBINARY": "binary",
     "BINARY": "binary",
-    "LargeBinary": "blob"
 }
 
 
@@ -71,7 +72,7 @@ class SQLAlchemyConverter(BaseConverter):
         """
         dtype = 'string'
         for k in self._sqlalchemy_type_map:
-            if txt.find(k) >= 0:
+            if txt.upper().find(k) >= 0:
                 dtype = self._sqlalchemy_type_map.get(k)
                 break
         return dtype

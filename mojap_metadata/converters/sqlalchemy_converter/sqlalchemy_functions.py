@@ -1,15 +1,19 @@
 import sqlalchemy
 from sqlalchemy import inspect
 
-""" see 
+""" see notes for v2
     https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector
+    NOTE:
+    Deprecated since version 1.4:
+    The __init__() method on Inspector is deprecated ... removed in a future release.
+    Please use inspect() function on an Engine or Connection to acquire an Inspector.
 """
 
 
 def list_tables(engine: sqlalchemy.engine.Engine, schema: str = "public") -> list:
     """ List tables in a database.
-        method: sqlalchemy.engine.reflection.Inspector.
-            get_table_names(schema: Optional[str] = None, **kw: Any) → List[str]
+        https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_table_names
+        returns list of strings.
     """
     insp = inspect(engine)
     response = insp.get_table_names(schema)
@@ -22,6 +26,7 @@ def list_meta_data(
         schema: str) -> list:
     """ List metadata for table in the schema declared in the connection
         https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_columns
+        returns list of dictionaries
     """
     insp = inspect(engine)
     return insp.get_columns(tableName, schema)
@@ -37,14 +42,3 @@ def get_constraint_pk(
     """
     insp = inspect(engine)
     return insp.get_pk_constraint(tableName, schema)
-
-
-def list_primary_keys(tableSchema: list) -> list:
-    """ Extract Primary Keys from schema
-    arg. tableSchema: return list from SQLAlchemy inspector method, get_columns
-    """
-    if any(d['primary_key'] == 1 for d in tableSchema):
-        pk = [d for d in tableSchema if d['primary_key'] == 1]
-    else:
-        pk = []
-    return pk
