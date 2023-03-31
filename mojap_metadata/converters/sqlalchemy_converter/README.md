@@ -100,14 +100,39 @@ we define the convertion mappings here.
     Note. Mapping convertions for types. 
      -> SQL-Alchemy  >> _sqlalchemy_type_map
 
+There is a class private method called `_approx_dtype`. It's important to note that when adding to the map list, where the value appears matters and affects the output. This method could be more optimal, but for the sake of simplicity, it iterates through the list and attempts a substring search. Therefore the list should start with the most complex/unique variant first and then be followed by the more simplistic varient. 
 
-The default return value is 'string'.
+    "DOUBLE PRECISION": "float64",
+    "DOUBLE": "float32",
+If this was the other way around, 'double' would match to a returning 'double_precision()' and there would be an incorrect type conversion. 
 
-This is returned in the event the type received back from SQL-Alchemy is not found.
+### Type conflation
+In the oracle documentation it conflates int, smallint, numeric, number and decimal. There some inter-operability that makes it confusing. https://www.oracletutorial.com/oracle-basics/oracle-number-data-type/
 
-Specific types can be instaciated using:
-`class sqlalchemy.types.TypeEngine`
+1. NUMBER(precision=9, scale=0, asdecimal=False) - should return **integer**
+2. NUMBER(precision=10, scale=2, asdecimal=True) - should return **decimal**
+
+SQLAlchemy v1.4 does appear to handle this. Where the 'asdecimal' flag triggers a SQLAlchemy type switch.
+
+### Default type
+In the event the data-type received back from SQL-Alchemy is not found, the default return value from the private method `_approx_dtype` is 'string'.
+
 
 ### Notes on CASE 
 Oracle objects, such as tables and data typee are Uppercase, postgres are lower or camelcase, SQLServer is often a mix. Sometimes they can be case insensitive. Therefore,SQLAlchemy 
+
+# Future enhancements
+
+## optimisation
+As previously mentioned, private method `_approx_dtype` iterates through the whole type list for every table column. It does short-circuit, but this search is clearly sub-optimal and will not scale. If the list increases in size and in large tables (salesforce i'm looking at you) it might negativly affect performance. At the moment, the latency will be unnoticable and is well within tolerance. However, speed is not the only issue. Accuracy is also affected by this approach. It is a substring match, so it is suceptible to confusion in the future if there are sql-alchemy changes to accomidate more dialects. A more robust approach might be to match using the object. Specific types can be instaciated using:
+`class sqlalchemy.types.TypeEngine`. This needs more investigation.
+
+Removed from the convertion methods (that exists in the postgres convertor) was a method to extract all non-system schema from an instance. This is still technically possible. If it becomes desirable, it might be wise to refactor the code first.
+## refactoring
+Either fold the Functions defined in `sqlalchemy_functions.py` into the file containing the class, or purge the sqlalchemy_converter class `__init__.py` of sqlalchemy dependencies. That aforementioned class would then inherit from a newly defined wrapper class for sqlalchemy that standardizes the Engine connection and alllows you to abstract the specific functinonality required for the metadata convertion.
+
+Engines can be created a few different ways. A new class method could handle or at least greatly simplify the engine creation and subsiquent connections required for the other methods.
+
+
+
 
