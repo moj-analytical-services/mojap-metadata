@@ -1,5 +1,8 @@
 """ Database convertor class
     SQL Alchemy v1.4
+    NOTE this version contains methods and types that have been depricated in version 2.
+    Effort has been made to ensure transition for this class to be as easy as possible.
+    However the Mappings will need to be updated. See SQLAlchemy Documenation.
 
     Convertor for data types:
     SQL-Alchemy has it's own Type definitions: sqlalchemy.sql.sqltypes
@@ -8,7 +11,7 @@
     DMS requires a specific set of definitions differing from what sql-alchemy outputs,
     we define the convertion mappings here.
 
-    Note. Mapping convertions for types. 
+    Note. Mapping convertions for types.
      -> SQL-Alchemy  >> _sqlalchemy_type_map
 
     class sqlalchemy.types.TypeEngine
@@ -31,7 +34,8 @@ _sqlalchemy_type_map = {
     "DOUBLE PRECISION": "float64",
     "DOUBLE": "float32",
     "FLOAT": "float64",
-    "NUMERIC": "float64",
+    "NUMERIC": "decimal",
+    "NUMBER": "decimal",
     "DECIMAL": "decimal",
     "TEXT": "string",
     "UUID": "string",
