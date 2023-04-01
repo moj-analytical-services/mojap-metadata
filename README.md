@@ -2,6 +2,9 @@
 
 This python package allows users to read and alter our metadata schemas (using the metadata module) as well as convert our metadata schemas to other schema definitions utilised by other tools (these are defined in the converters module and are defined as Converters).
 
+[Metadata](#metadata)
+[Converters](#converters)
+[Converter Systems](#converter-systems)
 
 ## Installation
 
@@ -195,15 +198,15 @@ meta.force_partition_order = "start"
 meta.column_names # ["b", "a" ,"c"]
 ```
 
-### Generating Metdata objects
+### Generating Metadata objects
 
 <hr>
 
 # Converters
 
-Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema. 
+Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema.
 
-# Usage
+## How to use the Converters
 
 For example the `ArrowConverter` takes our schemas and converts them to a pyarrow schema:
 
@@ -306,9 +309,17 @@ Each new converter (if not expanding on existing converters) should be added as 
 pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
 ```
 
-This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed).
+This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed.
 
-## Postgres Converter
+## Converter systems
+
+### SQLAlchemy Converter
+
+Uses the [Inspector](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to extract from metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects).
+
+See [SQLAlchemy Converter](/mojap_metadata/converters/sqlalchemy_converter/) for more details.
+
+### Postgres Converter
 
 Postgres Converter provides the following functionality
 
@@ -320,3 +331,5 @@ Postgres Converter provides the following functionality
 converts into Metadata object 
 
 - **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
+
+NOTE: You should be using the SQLAlchemy converter instead with a postgres sqlalchemy connection.
