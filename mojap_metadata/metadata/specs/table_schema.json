@@ -193,7 +193,7 @@
                     "properties": {
                         "type": {
                             "type": "string",
-                            "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$"
+                            "pattern": "^float(16|32|64)$|^decimal128\\(\\d+,\\d+\\)$|^decimal$|^decimal\\(\\d+,\\d+\\)$|^decimal\\(\\d+\\)$"
                         },
                         "type_category": {
                             "enum": [
