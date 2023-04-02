@@ -1,28 +1,36 @@
-## SQLAlchemy Converter 
+# SQLAlchemy Converter
 
-Uses the SQLAlchemy [Inspector](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to:
+[Functions](#functions)
+[Connection](#connection)
+[Data Types](#data-types)
+[Dialects](#database-dialects)
+
+Uses the SQLAlchemy [`Inspector`](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to:
 
 1. Extract metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects)
-2. Convert the extracted ouptut into a `Metadata` object
+2. Convert the extracted output into a mojap `Metadata` object
 
 ## Functions
 
-- **convert_to_mojap_type()** converts a SQLAlchemy data type into the generic mojap Metadata data type 
+- **convert_to_mojap_type()** converts a SQLAlchemy data type into a mojap `Metadata` data type 
 
-- **get_object_meta()** extracts the metadata and returns a `Metadata` object for a given table and schema name
+- **generate_to_meta()** extracts the metadata for a given table and schema name and returns a `Metadata` object 
 
-- **generate_to_meta()** returns a list of `Metadata` objects for all the tables in a given schema name
+- **generate_to_meta_list()** returns a list of `Metadata` objects for all the tables in a given schema sorted by table name
 
-Functions which already exist in Inspector such [`get_schema_names()`](https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_schema_names) are **not** recreated in order to limit boiler plate code.
+`Inspector` comes with many functions to extract metadata such as [`get_schema_names()`](https://docs.sqlalchemy.org/en/20/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_schema_names).
+These functions are **not** recreated in order to limit boiler plate code and maintenance. You can use the `inpector` object which is instantiated by `SQLAlchemyConverter` instead of creating your own one.
 
 ## Connection
 
-You will need to provide a SQLAlchemy database engine or connection for a given dialect and database when instantiating a `SQLAlchemyConverter` object.
+You will need to provide a SQLAlchemy database engine or connection for a given dialect and database when instantiating a `SQLAlchemyConverter` object for example:
 
     ```
     from sqlalchemy import create_engine
+    from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
     engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
+    sqlc = SQLAlchemyConverter(engine)
     ```
 
 See [Engine Configuration](https://docs.sqlalchemy.org/en/20/core/engines.html) for more details and how to configure for the different database dialects.
@@ -46,7 +54,7 @@ To create an oracle SQLAlchemy.engine:
 
 SQLAlchemy converts specific dialects into a common type varient. 
 
-Therefore, SQLAlchemy has it's own Type definitions [`sqlalchemy.sql.sqltypes`](https://docs.sqlalchemy.org/en/14/core/type_basics.html#generic-camelcase-types).
+Therefore, SQLAlchemy has its own Type definitions [`sqlalchemy.sql.sqltypes`](https://docs.sqlalchemy.org/en/14/core/type_basics.html#generic-camelcase-types).
     
 These are the types that are returned for v1.4. Version 2 has a bigger and more diverse list.
 We have kept most of the previous datatypes but added binary types.
@@ -71,3 +79,13 @@ In the event the data-type received back from SQL-Alchemy is not found, the defa
 
 ### Notes on CASE 
 Oracle objects, such as tables and data typee are Uppercase, postgres are lower or camelcase, SQLServer is often a mix. Sometimes they can be case insensitive.
+
+## Database Dialects
+
+The `SQLAlchemyConverter` is tested against three different SQLAlchemy database engines in [`test_sqlachemy.py`](/tests/test_sqlalchemy.py):
+
+1. sqlite
+2. duckdb
+3. postgres
+
+Whilst all three return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, a feature may not be supported by the database or by the sqlalchemy dialect. For example only the postgres dialect recognises the table comment. For more examples of differences have a look at the parameters passed in to `test_generate_to_meta()`.

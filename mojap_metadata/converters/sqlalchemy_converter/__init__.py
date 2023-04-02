@@ -16,6 +16,9 @@ _sqlalchemy_type_map = {
     "DOUBLE PRECISION": "float64",
     "DOUBLE": "float32",
     "FLOAT": "float64",
+    "NUMERIC": "decimal128(18,3)",
+    "NUMBER": "decimal128(18,3)",
+    "DECIMAL": "decimal128(18,3)",
     "TEXT": "string",
     "UUID": "string",
     "NCHAR": "string",
@@ -40,46 +43,41 @@ _sqlalchemy_type_map = {
 
 class SQLAlchemyConverter(BaseConverter):
     def __init__(self, connectable):
-        """Extracts and converts metadata to Metadata format"""
         super().__init__()
         self.connectable = connectable
         self.inspector = inspect(connectable)
         self._sqlalchemy_type_map = _sqlalchemy_type_map
 
     def _approx_dtype(self, txt: str) -> str:
-        """Find approximate data type value of SQL-Alchemy data type,
-        often supplied with precision value that can't be matched.
-        Args:......
-            txt: SQL-Alchemy data type, with precision value
-        Returns:...
-            string: mapped data type, from _sqlalchemy_type_map, default 'string'
-        """
         dtype = "string"
         for k in self._sqlalchemy_type_map:
             if txt.upper().find(k) >= 0:
                 dtype = self._sqlalchemy_type_map.get(k)
                 break
         return dtype
+    
+    def _convert_to_decimal(self, txt: str) -> str:
+        dtype = re.sub(r"^.*?\(", "decimal128(", txt).replace(" ", "")
+        return dtype
+
+    def _get_table_description(self, table, schema) -> str:
+        description = ""
+        try:
+            description = (
+                self.inspector.get_table_comment(table, schema=schema)["text"] or ""
+            )
+        except:
+            pass
+        return description
 
     def convert_to_mojap_type(self, col_type: str) -> str:
-        """Converts SQL-Alchemy datatypes to mojap-metadata types
-        Args:       ct (str):   String representation of source column types
-        Returns:    str:        String representation of metadata column types
-        """
         if col_type.startswith(("NUMERIC(", "NUMBER(", "DECIMAL(")):
-            dtype = re.sub(r"^.*?\(", "decimal128(", col_type).replace(" ", "")
+            dtype = self._convert_to_decimal(col_type)
         else:
             dtype = self._approx_dtype(col_type)
         return dtype
 
-    def get_object_meta(self, table: str, schema: str) -> Metadata:
-        """for a table, get metadata and convert to mojap metadata format.
-            Convert sqlalchemy inpector result.
-        Args:...... connection: Database connection, SQL Alchemy
-            ....... table: table name
-            ....... schema: schema name
-        Returns:... Metadata: Metadata object
-        """
+    def generate_to_meta(self, table: str, schema: str) -> Metadata:
         rows = self.inspector.get_columns(table, schema)
         columns = []
         for col in rows:
@@ -87,7 +85,7 @@ class SQLAlchemyConverter(BaseConverter):
                 {
                     "name": col["name"].lower(),
                     "type": self.convert_to_mojap_type(str(col["type"])),
-                    "description": col.get("comment") if col.get("comment") else "None",
+                    "description": col.get("comment") or "",
                     "nullable": col.get("nullable"),
                 }
             )
@@ -96,19 +94,19 @@ class SQLAlchemyConverter(BaseConverter):
             "name": table,
             "columns": columns,
             "primary_key": pk["constrained_columns"],
+            "database": schema,
+            "description": self._get_table_description(table, schema),
         }
 
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_from_meta(self, schema: str) -> dict():
-        """For all the schema and tables and returns a list of Metadata
-        Args:...... connection: Database connection with database details
-        Returns:... Metadata: Metadata object
-        """
-        meta_list = DefaultDict(list)
+
+    def generate_to_meta_list(self, schema: str) -> list():
+        schema_metadata = []
         table_names = self.inspector.get_table_names(schema)
+        table_names = sorted(table_names)
         for table in table_names:
-            meta_output = self.get_object_meta(table, schema)
-            meta_list[f"schema: {schema}"].append(meta_output)
-        return meta_list
+            table_metadata = self.generate_to_meta(table, schema)
+            schema_metadata.append(table_metadata)
+        return schema_metadata
