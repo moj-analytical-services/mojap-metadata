@@ -1,6 +1,6 @@
 """ Database convertor class
     SQL Alchemy v1.4
-    NOTE this version contains methods and types that have been depricated in version 2.
+    NOTE: this version contains methods & types depricated in version 2.
     Effort has been made to ensure transition for this class to be as easy as possible.
     However the Mappings will need to be updated. See SQLAlchemy Documenation.
 
@@ -11,8 +11,9 @@
     DMS requires a specific set of definitions differing from what sql-alchemy outputs,
     we define the convertion mappings here.
 
-    Note. Mapping convertions for types.
+    NOTE: Mapping convertions for types.
      -> SQL-Alchemy  >> _sqlalchemy_type_map
+    !! Sequence of the map list matters for the class private method _approx_dtype()
 
     class sqlalchemy.types.TypeEngine
 """
@@ -61,7 +62,9 @@ _sqlalchemy_type_map = {
 
 class SQLAlchemyConverter(BaseConverter):
     def __init__(self):
-        """ Extracts and converts metadata to Metadata format
+        """ Extracts and converts dialect metadata to Metadata format.
+            Public methods need a SQLAlchemy engine defined with connection credentials.
+            (see README.md for more details.)
         """
         super().__init__()
         self._sqlalchemy_type_map = _sqlalchemy_type_map
@@ -69,10 +72,9 @@ class SQLAlchemyConverter(BaseConverter):
     def _approx_dtype(self, txt: str) -> str:
         """ Find approximate data type value of SQL-Alchemy data type,
             often supplied with precision value that can't be matched.
-            Args:......
-                txt: SQL-Alchemy data type, with precision value
-            Returns:...
-                string: mapped data type, from _sqlalchemy_type_map, default 'string'
+            Args:...... txt: SQL-Alchemy data type, with precision value
+            Returns:... string: mapped data type, from _sqlalchemy_type_map
+                        Default return value = 'string'
         """
         dtype = 'string'
         for k in self._sqlalchemy_type_map:
@@ -85,6 +87,9 @@ class SQLAlchemyConverter(BaseConverter):
         """ Converts SQL-Alchemy datatypes to mojap-metadata types
             Args:       ct (str):   String representation of source column types
             Returns:    str:        String representation of metadata column types
+            NOTE: old code was for precise matching only. 
+            Alternate method was required to handle variant type parameters.
+            (See README.md for more dettails)
         """
         # cType = self._sqlalchemy_type_map.get(col_type)
         # return "string" if cType is None else cType
@@ -95,10 +100,10 @@ class SQLAlchemyConverter(BaseConverter):
     ) -> Metadata:
         """ for a table, get metadata and convert to mojap metadata format.
             Convert sqlalchemy inpector result.
-        Args:...... connection: Database connection, SQL Alchemy
-            ....... table: table name
-            ....... schema: schema name
-        Returns:... Metadata: Metadata object
+            Args:...... connection: Database connection, SQL Alchemy
+                ....... table: table name
+                ....... schema: schema name
+            Returns:... Metadata: Metadata object
         """
         rows = dbfun.list_meta_data(connection, table, schema)
         columns = []
@@ -126,8 +131,8 @@ class SQLAlchemyConverter(BaseConverter):
             connection: sqlalchemy.engine.Engine,
             schema: str) -> dict():
         """ For all the schema and tables and returns a list of Metadata
-        Args:...... connection: Database connection with database details
-        Returns:... Metadata: Metadata object
+            Args:...... connection: Database connection with database details
+            Returns:... Metadata: Metadata object
         """
         meta_list = DefaultDict(list)
         table_names = dbfun.list_tables(connection, schema)
