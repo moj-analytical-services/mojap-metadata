@@ -33,7 +33,7 @@ table_name = "my_table"
 sqlite_engine = create_engine("sqlite:///:memory:")
 duckdb_engine = create_engine("duckdb:///:memory:")
 
-run_oracle = True
+run_oracle = False
 oracle_engine = None
 oracle_schema = "TEST"
 if run_oracle:
