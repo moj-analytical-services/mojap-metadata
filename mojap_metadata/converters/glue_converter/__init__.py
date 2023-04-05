@@ -2,14 +2,11 @@ import boto3
 import json
 import os
 import re
+import time
 import warnings
 
 import importlib.resources as pkg_resources
-import pydbtools as pydb
 
-from awswrangler.catalog import (
-    delete_table_if_exists,
-)
 from dataclasses import dataclass
 from mojap_metadata.converters import (
     BaseConverter,
@@ -465,11 +462,16 @@ class GlueTable(BaseConverter):
             metadata, database_name=database_name, table_location=table_location
         )
         # create database if it doesn't exist
-        pydb.start_query_execution_and_wait(
-            f"CREATE DATABASE IF NOT EXISTS {database_name};"
+        _start_query_execution_and_wait(
+            database_name, f"CREATE DATABASE IF NOT EXISTS {database_name};"
         )
 
-        delete_table_if_exists(database=database_name, table=metadata.name)
+        # delete table if it exists
+        try:
+            glue_client.delete_table(DatabaseName=database_name, Name=metadata.name)
+        except glue_client.exceptions.EntityNotFoundException:
+            pass
+
         glue_client.create_table(**boto_dict)
 
         if (
@@ -478,14 +480,14 @@ class GlueTable(BaseConverter):
             and not self.options.ignore_warnings
         ):
             w = (
-                "metadata has partitions and run_msck_reapair is set to false. To "
+                "metadata has partitions and run_msck_repair is set to false. To "
                 "To supress these warnings set this converters "
                 "options.ignore_warnings = True"
             )
             warnings.warn(w)
         elif run_msck_repair:
-            pydb.start_query_execution_and_wait(
-                f"msck repair table {database_name}.{metadata.name}"
+            _start_query_execution_and_wait(
+                database_name, f"msck repair table {database_name}.{metadata.name}"
             )
 
     def generate_to_meta(self, database: str, table: str) -> Metadata:
@@ -600,6 +602,27 @@ def _convert_opts_into_dict(spec_opts: SpecOptions):
     return out_dict
 
 
+def _start_query_execution_and_wait(db: str, sql: str):
+    ath = boto3.client("athena")
+    QueryExecutionContext = {"Database": db}
+    WorkGroup = "primary"
+    res = ath.start_query_execution(
+        QueryString=sql,
+        QueryExecutionContext=QueryExecutionContext,
+        WorkGroup=WorkGroup,
+    )
+    query_exec_id = res["QueryExecutionId"]
+    while response := ath.get_query_execution(QueryExecutionId=query_exec_id):
+        state = response["QueryExecution"]["Status"]["State"]
+        if state not in ["SUCCEEDED", "FAILED"]:
+            time.sleep(0.25)
+        else:
+            break
+
+    if not state == "SUCCEEDED":
+        raise ValueError(response["QueryExecution"]["Status"].get("StateChangeReason"))
+
+
 def generate_spec_from_template(
     database_name,
     table_name,
@@ -623,7 +646,6 @@ def generate_spec_from_template(
 
     # Do CSV options
     if spec_name == "csv":
-
         csv_param_lu = {
             "sep": {"lazy": "field.delim", "open": "separatorChar"},
             "quote_char": {"lazy": None, "open": "quoteChar"},
