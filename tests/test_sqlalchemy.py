@@ -2,7 +2,7 @@ import sys
 import os
 import logging
 import pytest
-from sqlalchemy import Column, Table, MetaData, create_engine, text
+from sqlalchemy import Column, Table, MetaData, create_engine, inspect, text
 from sqlalchemy.types import (
     Integer,
     Float,
@@ -29,38 +29,36 @@ logging.basicConfig(filename="db.log")
 logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
 
 table_name = "my_table"
+schema_name = "MY_SCHEMA"
 sqlite_engine = create_engine("sqlite:///:memory:")
 duckdb_engine = create_engine("duckdb:///:memory:")
 
 run_oracle = False
 oracle_engine = None
-oracle_schema = "TEST"
 if run_oracle:
     import oracledb
+
     oracledb.version = "8.3.0"
     sys.modules["cx_Oracle"] = oracledb
-
-    dialect = os.getenv("dialect")
-    user = os.getenv("user")
-    password = os.getenv("password")
-    host = os.getenv("host")
-    port = os.getenv("port")
-    database_name = os.getenv("database_name")
-
+    user = os.getenv("DB_USER")
+    password = os.getenv("PASSWORD")
+    host = os.getenv("HOST")
+    port = os.getenv("PORT")
+    database_name = os.getenv("DATABASE_NAME")
     oracle_engine = create_engine(
-        f"{dialect}://{user}:{password}@{host}:{port}/{database_name}"
+        f"oracle://{user}:{password}@{host}:{port}/{database_name}"
     )
 
-    with oracle_engine.connect() as con:
-        result = con.execute(text("SELECT USERNAME FROM ALL_USERS"))
-        schemas = []
-        for item in result:
-            schemas.append(item["username"])
-        if oracle_schema not in schemas:
-            con.execute(text(f"CREATE USER {oracle_schema}"))
+
+def create_schema(connectable, schema_command, schema):
+    inspector = inspect(connectable)
+    if schema not in inspector.get_schema_names():
+        with connectable.connect() as conn:
+            conn.execute(text(f'CREATE {schema_command} "{schema}"'))
 
 
 def create_tables(connectable, schema):
+
     metadata = MetaData()
     Table(
         table_name,
@@ -159,11 +157,12 @@ mojap_metadata/v1.3.0.json",
 
 
 @pytest.mark.parametrize(
-    "connectable,schema,table_description,column_description,"
+    "connectable,schema_command,schema,table_description,column_description,"
     "primary_key,float_type,bool_type,decimal_type,numeric_type",
     [
         (
             sqlite_engine,
+            "SCHEMA",
             "main",
             "",
             "",
@@ -175,6 +174,7 @@ mojap_metadata/v1.3.0.json",
         ),
         (
             duckdb_engine,
+            "SCHEMA",
             "main",
             "",
             "",
@@ -186,7 +186,8 @@ mojap_metadata/v1.3.0.json",
         ),
         (
             "postgres_engine",
-            "my_schema",
+            "SCHEMA",
+            schema_name,
             "this is my table",
             "this is the comment",
             ["my_string_10"],
@@ -197,7 +198,8 @@ mojap_metadata/v1.3.0.json",
         ),
         pytest.param(
             oracle_engine,
-            oracle_schema,
+            "USER",
+            schema_name,
             "this is my table",
             "this is the comment",
             ["my_string_10"],
@@ -211,6 +213,7 @@ mojap_metadata/v1.3.0.json",
 )
 def test_generate_to_meta(
     connectable,
+    schema_command,
     schema,
     table_description,
     column_description,
@@ -223,9 +226,8 @@ def test_generate_to_meta(
 ):
     if connectable == "postgres_engine":
         connectable = postgres_connection[0]
-        with connectable.connect() as con:
-            con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
 
+    create_schema(connectable, schema_command, schema)
     create_tables(connectable, schema)
 
     # To check the sqlalchemy data types:
