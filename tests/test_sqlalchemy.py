@@ -59,6 +59,7 @@ if run_oracle:
         if oracle_schema not in schemas:
             con.execute(text(f"CREATE USER {oracle_schema}"))
 
+    
 
 def create_tables(connectable, schema):
     metadata = MetaData()
@@ -186,7 +187,7 @@ mojap_metadata/v1.3.0.json",
         ),
         (
             "postgres_engine",
-            "public",
+            "my_schema",
             "this is my table",
             "this is the comment",
             ["my_string_10"],
@@ -223,6 +224,8 @@ def test_generate_to_meta(
 ):
     if connectable == "postgres_engine":
         connectable = postgres_connection[0]
+        with connectable.connect() as con:
+            con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
 
     create_tables(connectable, schema)
 
