@@ -1,4 +1,3 @@
-import oracledb
 import sys
 import os
 import logging
@@ -37,6 +36,7 @@ run_oracle = False
 oracle_engine = None
 oracle_schema = "TEST"
 if run_oracle:
+    import oracledb
     oracledb.version = "8.3.0"
     sys.modules["cx_Oracle"] = oracledb
 
