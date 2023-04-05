@@ -1,6 +1,6 @@
 import logging
 import pytest
-from sqlalchemy import Column, Table, MetaData, create_engine, inspect
+from sqlalchemy import Column, Table, MetaData, create_engine
 from sqlalchemy.types import (
     Integer,
     Float,
@@ -46,10 +46,10 @@ def create_tables(connectable):
         comment="this is my table",
     )
     Table(
-        'table2', 
+        'table2',
         metadata,
         Column('id', String(10), primary_key=True),
-    )   
+    )
     metadata.create_all(connectable)
 
 
@@ -57,7 +57,8 @@ def expected_metadata(
     schema, table_description, column_description, primary_key, float_type
 ):
     return {
-        "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.3.0.json",
+        "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
+mojap_metadata/v1.3.0.json",
         "name": table_name,
         "database": schema,
         "description": table_description,
@@ -171,13 +172,15 @@ def test_generate_to_meta(
     # from mojap_metadata.converters.etl_manager_converter import EtlManagerConverter
     # emc = EtlManagerConverter()
     # my_lookup_dict = {"": "parquet"}
-    # etl_meta = emc.generate_from_meta(metadata=metadata, file_format_mapper=my_lookup_dict.get)
+    # etl_meta = emc.generate_from_meta(metadata=metadata,
+    #                                   file_format_mapper=my_lookup_dict.get)
     # etl_meta.write_to_json(f"{connectable.dialect}.json")
 
     metadata_list = sqlc.generate_to_meta_list(schema=schema)
     assert len(metadata_list) == 2
     assert metadata_list[0].name == table_name
     assert metadata_list[1].name == "table2"
+
 
 @pytest.mark.parametrize(
     "inputtype,expected",

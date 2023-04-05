@@ -1,6 +1,4 @@
-from typing import DefaultDict
 import re
-import sqlalchemy
 from sqlalchemy import inspect
 
 from mojap_metadata import Metadata
@@ -55,7 +53,7 @@ class SQLAlchemyConverter(BaseConverter):
                 dtype = self._sqlalchemy_type_map.get(k)
                 break
         return dtype
-    
+
     def _convert_to_decimal(self, txt: str) -> str:
         dtype = re.sub(r"^.*?\(", "decimal128(", txt).replace(" ", "")
         return dtype
@@ -66,7 +64,7 @@ class SQLAlchemyConverter(BaseConverter):
             description = (
                 self.inspector.get_table_comment(table, schema=schema)["text"] or ""
             )
-        except:
+        except NotImplementedError:
             pass
         return description
 
@@ -100,7 +98,6 @@ class SQLAlchemyConverter(BaseConverter):
 
         meta_output = Metadata.from_dict(d)
         return meta_output
-
 
     def generate_to_meta_list(self, schema: str) -> list():
         schema_metadata = []
