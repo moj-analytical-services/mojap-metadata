@@ -1,6 +1,9 @@
+import oracledb
+import sys
+import os
 import logging
 import pytest
-from sqlalchemy import Column, Table, MetaData, create_engine
+from sqlalchemy import Column, Table, MetaData, create_engine, text
 from sqlalchemy.types import (
     Integer,
     Float,
@@ -17,6 +20,7 @@ from sqlalchemy.types import (
 )
 from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
+
 """ Logging
     https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
     $ pytest tests/test_sqlalchemy.py --log-cli-level=INFO -vv
@@ -29,8 +33,34 @@ table_name = "my_table"
 sqlite_engine = create_engine("sqlite:///:memory:")
 duckdb_engine = create_engine("duckdb:///:memory:")
 
+run_oracle = True
+oracle_engine = None
+oracle_schema = "TEST"
+if run_oracle:
+    oracledb.version = "8.3.0"
+    sys.modules["cx_Oracle"] = oracledb
 
-def create_tables(connectable):
+    dialect = os.getenv("dialect")
+    user = os.getenv("user")
+    password = os.getenv("password")
+    host = os.getenv("host")
+    port = os.getenv("port")
+    database_name = os.getenv("database_name")
+
+    oracle_engine = create_engine(
+        f"{dialect}://{user}:{password}@{host}:{port}/{database_name}"
+    )
+
+    with oracle_engine.connect() as con:
+        result = con.execute(text("SELECT USERNAME FROM ALL_USERS"))
+        schemas = []
+        for item in result:
+            schemas.append(item["username"])
+        if oracle_schema not in schemas:
+            con.execute(text(f"CREATE USER {oracle_schema}"))
+
+
+def create_tables(connectable, schema):
     metadata = MetaData()
     Table(
         table_name,
@@ -44,17 +74,26 @@ def create_tables(connectable):
         Column("my_numeric", NUMERIC(precision=15, scale=2)),
         Column("my_binary", LargeBinary()),
         comment="this is my table",
+        schema=schema,
     )
     Table(
-        'table2',
+        "table2",
         metadata,
-        Column('id', String(10), primary_key=True),
+        Column("id", String(10), primary_key=True),
+        schema=schema,
     )
     metadata.create_all(connectable)
 
 
 def expected_metadata(
-    schema, table_description, column_description, primary_key, float_type
+    schema,
+    table_description,
+    column_description,
+    primary_key,
+    float_type,
+    decimal_type,
+    bool_type,
+    numeric_type,
 ):
     return {
         "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
@@ -87,7 +126,7 @@ mojap_metadata/v1.3.0.json",
             },
             {
                 "name": "my_bool",
-                "type": "bool",
+                "type": bool_type,
                 "description": "",
                 "nullable": True,
             },
@@ -99,13 +138,13 @@ mojap_metadata/v1.3.0.json",
             },
             {
                 "name": "my_decimal",
-                "type": "decimal128(38,0)",
+                "type": decimal_type,
                 "description": "",
                 "nullable": True,
             },
             {
                 "name": "my_numeric",
-                "type": "decimal128(15,2)",
+                "type": numeric_type,
                 "description": "",
                 "nullable": True,
             },
@@ -120,10 +159,31 @@ mojap_metadata/v1.3.0.json",
 
 
 @pytest.mark.parametrize(
-    "connectable,schema,table_description,column_description,primary_key,float_type",
+    "connectable,schema,table_description,column_description,"
+    "primary_key,float_type,bool_type,decimal_type,numeric_type",
     [
-        (sqlite_engine, "main", "", "", ["my_string_10"], "float64"),
-        (duckdb_engine, "main", "", "", [], "float16"),
+        (
+            sqlite_engine,
+            "main",
+            "",
+            "",
+            ["my_string_10"],
+            "float64",
+            "bool",
+            "decimal128(38,0)",
+            "decimal128(15,2)",
+        ),
+        (
+            duckdb_engine,
+            "main",
+            "",
+            "",
+            [],
+            "float16",
+            "bool",
+            "decimal128(38,0)",
+            "decimal128(15,2)",
+        ),
         (
             "postgres_engine",
             "public",
@@ -131,6 +191,21 @@ mojap_metadata/v1.3.0.json",
             "this is the comment",
             ["my_string_10"],
             "float16",
+            "bool",
+            "decimal128(38,0)",
+            "decimal128(15,2)",
+        ),
+        pytest.param(
+            oracle_engine,
+            oracle_schema,
+            "this is my table",
+            "this is the comment",
+            ["my_string_10"],
+            "float64",
+            "int32",
+            "decimal128(18,3)",
+            "decimal128(18,3)",
+            marks=(pytest.mark.skipif(run_oracle is False, reason="skip oracle test")),
         ),
     ],
 )
@@ -141,11 +216,15 @@ def test_generate_to_meta(
     column_description,
     primary_key,
     float_type,
+    bool_type,
+    decimal_type,
+    numeric_type,
     postgres_connection,
 ):
     if connectable == "postgres_engine":
         connectable = postgres_connection[0]
-    create_tables(connectable)
+
+    create_tables(connectable, schema)
 
     # To check the sqlalchemy data types:
     # insp = inspect(connectable)
@@ -162,6 +241,9 @@ def test_generate_to_meta(
         column_description=column_description,
         primary_key=primary_key,
         float_type=float_type,
+        bool_type=bool_type,
+        decimal_type=decimal_type,
+        numeric_type=numeric_type,
     )
 
     # To check the mojap metadata types:
