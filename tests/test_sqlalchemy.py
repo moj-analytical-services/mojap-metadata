@@ -59,7 +59,6 @@ if run_oracle:
         if oracle_schema not in schemas:
             con.execute(text(f"CREATE USER {oracle_schema}"))
 
-    
 
 def create_tables(connectable, schema):
     metadata = MetaData()
