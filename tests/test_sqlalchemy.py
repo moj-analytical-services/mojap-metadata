@@ -40,6 +40,7 @@ if run_oracle:
 
     oracledb.version = "8.3.0"
     sys.modules["cx_Oracle"] = oracledb
+
     user = os.getenv("DB_USER")
     password = os.getenv("PASSWORD")
     host = os.getenv("HOST")
@@ -52,7 +53,7 @@ if run_oracle:
 
 def create_schema(connectable, schema_command, schema):
     inspector = inspect(connectable)
-    if schema not in inspector.get_schema_names():
+    if schema.lower() not in inspector.get_schema_names():
         with connectable.connect() as conn:
             conn.execute(text(f'CREATE {schema_command} "{schema}"'))
 
