@@ -1,5 +1,6 @@
 import re
 from sqlalchemy import inspect
+from sqlalchemy.types import Numeric, Float
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters import BaseConverter
@@ -14,9 +15,6 @@ _sqlalchemy_type_map = {
     "DOUBLE PRECISION": "float64",
     "DOUBLE": "float32",
     "FLOAT": "float64",
-    "NUMERIC": "decimal128(18,3)",
-    "NUMBER": "decimal128(18,3)",
-    "DECIMAL": "decimal128(18,3)",
     "TEXT": "string",
     "UUID": "string",
     "NCHAR": "string",
@@ -46,17 +44,16 @@ class SQLAlchemyConverter(BaseConverter):
         self.inspector = inspect(connectable)
         self._sqlalchemy_type_map = _sqlalchemy_type_map
 
-    def _approx_dtype(self, txt: str) -> str:
+    def _approx_dtype(self, col_type) -> str:
         dtype = "string"
         for k in self._sqlalchemy_type_map:
-            if txt.upper().find(k) >= 0:
+            if str(col_type).upper().find(k) >= 0:
                 dtype = self._sqlalchemy_type_map.get(k)
                 break
         return dtype
 
-    def _convert_to_decimal(self, txt: str) -> str:
-        dtype = re.sub(r"^.*?\(", "decimal128(", txt).replace(" ", "")
-        return dtype
+    def _convert_to_decimal(self, col_type) -> str:
+        return f"decimal128({str(col_type.precision)},{str(col_type.scale)})"
 
     def _get_table_description(self, table, schema) -> str:
         description = ""
@@ -68,8 +65,8 @@ class SQLAlchemyConverter(BaseConverter):
             pass
         return description
 
-    def convert_to_mojap_type(self, col_type: str) -> str:
-        if col_type.startswith(("NUMERIC(", "NUMBER(", "DECIMAL(")):
+    def convert_to_mojap_type(self, col_type) -> str:
+        if isinstance(col_type, Numeric) and not isinstance(col_type, Float):
             dtype = self._convert_to_decimal(col_type)
         else:
             dtype = self._approx_dtype(col_type)
@@ -82,7 +79,7 @@ class SQLAlchemyConverter(BaseConverter):
             columns.append(
                 {
                     "name": col["name"].lower(),
-                    "type": self.convert_to_mojap_type(str(col["type"])),
+                    "type": self.convert_to_mojap_type(col["type"]),
                     "description": col.get("comment") or "",
                     "nullable": col.get("nullable"),
                 }
