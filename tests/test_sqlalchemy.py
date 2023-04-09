@@ -5,18 +5,25 @@ import pytest
 import oracledb
 from sqlalchemy import Column, Table, MetaData, create_engine, inspect, text
 from sqlalchemy.types import (
-    Integer,
-    Float,
     String,
+    NCHAR,
+    VARCHAR,
+    CLOB,
+    Integer,
+    BIGINT,
+    Float,
+    DECIMAL,
+    NUMERIC,
     DateTime,
     Date,
+    TIMESTAMP,
+    DATE,
+    DATETIME,
     Boolean,
     LargeBinary,
-    VARCHAR,
-    TIMESTAMP,
-    DECIMAL,
-    BIGINT,
-    NUMERIC,
+    BLOB,
+    VARBINARY,
+    JSON,
 )
 from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
@@ -42,7 +49,7 @@ oracle_engine = create_engine(
 sqlite_engine = create_engine("sqlite:///:memory:")
 duckdb_engine = create_engine("duckdb:///:memory:")
 table_name = "my_table"
-schema_name = user  # needs to have the same name as the user for oracle
+schema_name = user  # schema name needs to be the same as user name for Oracle
 
 
 def create_schema(connectable, schema_command, schema):
@@ -252,18 +259,24 @@ def test_generate_to_meta(
     "inputtype,expected",
     [
         (Integer(), "int32"),
-        (BIGINT, "int64"),
+        (BIGINT(), "int64"),
         (Float(precision=10, decimal_return_scale=2), "float64"),
         (String(), "string"),
         (String(length=4000), "string"),
         (VARCHAR(length=255), "string"),
+        (NCHAR(length=10), "string"),
+        (CLOB(), "string"),
         (Date(), "date64"),
-        (Boolean(), "bool"),
         (DateTime(), "datetime"),
+        (DATE(), "date64"),
+        (DATETIME(), "datetime"),
         (TIMESTAMP(timezone=False), "timestamp(ms)"),
+        (Boolean(), "bool"),
+        (BLOB(), "binary"),
+        (VARBINARY(), "binary"),
         (NUMERIC(precision=15, scale=2), "decimal128(15,2)"),
         (DECIMAL(precision=8, scale=0), "decimal128(8,0)"),
-        (NUMERIC, "string"),
+        (JSON(), "string"),
         ("Unknown", "string"),
     ],
 )

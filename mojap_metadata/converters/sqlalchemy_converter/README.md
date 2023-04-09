@@ -3,12 +3,14 @@
 [Functions](#functions)
 [Connection](#connection)
 [Data Types](#data-types)
-[Dialects](#database-dialects)
+[Testing](#testing)
 
 Uses the SQLAlchemy [`Inspector`](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to:
 
 1. Extract metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects)
 2. Convert the extracted output into a mojap `Metadata` object
+
+Currently assumes SQLAlchemy v1.4 but compatible with SQLAlchemy v2.0.
 
 ## Functions
 
@@ -52,19 +54,19 @@ To create an oracle SQLAlchemy.engine:
 
 ## Data types
 
-SQLAlchemy converts specific dialects into a common type varient. 
+SQLAlchemy converts specific dialects into a common type variant. 
 
-Therefore, SQLAlchemy has its own Type definitions [`sqlalchemy.sql.sqltypes`](https://docs.sqlalchemy.org/en/14/core/type_basics.html#generic-camelcase-types).
+Therefore, SQLAlchemy has its own Type definitions [`sqlalchemy.sql.sqltypes`](https://docs.sqlalchemy.org/en/14/core/type_basics.html).
+
+There are three categories:
     
-These are the types that are returned for v1.4. Version 2 has a bigger and more diverse list.
-We have kept most of the previous datatypes but added binary types.
+1. “CamelCase” datatypes are to the greatest degree possible database agnostic.
+2. “UPPERCASE” datatypes are always inherited from a particular “CamelCase” datatype, and always represent an exact datatype.
+3. Backend-specific “UPPERCASE” datatypes are either fully specific to those databases, or add additional arguments that are specific to those databases.
 
 ### Type approximation
-There is a class private method called `_approx_dtype`. It's important to note that when adding to the map list, where the value appears matters and affects the output. This method could be more optimal, but for the sake of simplicity, it iterates through the list and attempts a substring search. Therefore the list should start with the most complex/unique variant first and then be followed by the more simplistic varient. 
-
-    "DOUBLE PRECISION": "float64",
-    "DOUBLE": "float32",
-If this was the other way around, 'double' would match to a returning 'double_precision()' and there would be an incorrect type conversion. 
+There is a class private method called `_get_dtype` which infers the corresponding mojap data type by comparing with the instance type. 
+This is approximate and the mapping might need to be modified as less familiar data types are encountered.
 
 ### Type conflation
 In the oracle documentation it conflates int, smallint, numeric, number and decimal. There some inter-operability that makes it confusing. https://www.oracletutorial.com/oracle-basics/oracle-number-data-type/
@@ -77,15 +79,26 @@ SQLAlchemy v1.4 does appear to handle this. Where the 'asdecimal' flag triggers 
 ### Default type
 In the event the data-type received back from SQL-Alchemy is not found, the default return value from the private method `_approx_dtype` is 'string'.
 
-### Notes on CASE 
-Oracle objects, such as tables and data typee are Uppercase, postgres are lower or camelcase, SQLServer is often a mix. Sometimes they can be case insensitive.
+## Testing
 
-## Database Dialects
-
-The `SQLAlchemyConverter` is tested against three different SQLAlchemy database engines in [`test_sqlachemy.py`](/tests/test_sqlalchemy.py):
+The `SQLAlchemyConverter` is tested against the following database engines in [`test_sqlachemy.py`](/tests/test_sqlalchemy.py):
 
 1. sqlite
 2. duckdb
 3. postgres
+4. oracle+oracledb
 
-Whilst all three return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, a feature may not be supported by the database or by the sqlalchemy dialect. For example only the postgres dialect recognises the table comment. For more examples of differences have a look at the parameters passed in to `test_generate_to_meta()`.
+Whilst all return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, 
+a feature may not be supported by the database or by the sqlalchemy dialect. 
+For example only the postgres dialect recognises the table comment. For more examples of differences have a look at the parameters passed in to `test_generate_to_meta()`.
+
+### Oracle Container
+
+The oracle+oracledb dialect is tested against the [Oracle Database Express Edition Container](https://github.com/gvenzl/oci-oracle-xe).
+
+To run the test locally first create a docker container:
+
+``` bash
+source tests/.oracle_credentials.sh
+sh tests/.oracle_image.sh
+```

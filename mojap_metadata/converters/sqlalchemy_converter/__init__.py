@@ -1,39 +1,35 @@
-import re
 from sqlalchemy import inspect
-from sqlalchemy.types import Numeric, Float
 
+# from sqlalchemy.types import Numeric, Float
+from sqlalchemy.types import (
+    SmallInteger,
+    Integer,
+    BigInteger,
+    REAL,
+    Float,
+    Numeric,
+    String,
+    DateTime,
+    TIMESTAMP,
+    Date,
+    Boolean,
+    _Binary,
+)
 from mojap_metadata import Metadata
 from mojap_metadata.converters import BaseConverter
 
 _sqlalchemy_type_map = {
-    "SMALLINT": "int16",
-    "BIGINT": "int64",
-    "INTEGER": "int32",
-    "INT": "int32",
-    "REAL": "float16",
-    "DOUBLE_PRECISION": "float64",
-    "DOUBLE PRECISION": "float64",
-    "DOUBLE": "float32",
-    "FLOAT": "float64",
-    "TEXT": "string",
-    "UUID": "string",
-    "NCHAR": "string",
-    "NVARCHAR": "string",
-    "VARCHAR": "string",
-    "CHAR": "string",
-    "JSON": "string",
-    "TIMESTAMP": "timestamp(ms)",
-    "DATETIME": "datetime",
-    "DATE": "date64",
-    "TIME": "timestamp(ms)",
-    "BOOLEAN": "bool",
-    "BOOL": "bool",
-    "BLOB": "binary",
-    "CLOB": "binary",
-    "LARGEBINARY": "binary",
-    "BYTEA": "binary",
-    "VARBINARY": "binary",
-    "BINARY": "binary",
+    SmallInteger: "int16",
+    BigInteger: "int64",
+    Integer: "int32",
+    REAL: "float16",
+    Float: "float64",
+    String: "string",
+    TIMESTAMP: "timestamp(ms)",
+    DateTime: "datetime",
+    Date: "date64",
+    Boolean: "bool",
+    _Binary: "binary",
 }
 
 
@@ -44,11 +40,11 @@ class SQLAlchemyConverter(BaseConverter):
         self.inspector = inspect(connectable)
         self._sqlalchemy_type_map = _sqlalchemy_type_map
 
-    def _approx_dtype(self, col_type) -> str:
+    def _get_dtype(self, input_type) -> str:
         dtype = "string"
-        for k in self._sqlalchemy_type_map:
-            if str(col_type).upper().find(k) >= 0:
-                dtype = self._sqlalchemy_type_map.get(k)
+        for i, k in _sqlalchemy_type_map.items():
+            if isinstance(input_type, i):
+                dtype = k
                 break
         return dtype
 
@@ -69,7 +65,7 @@ class SQLAlchemyConverter(BaseConverter):
         if isinstance(col_type, Numeric) and not isinstance(col_type, Float):
             dtype = self._convert_to_decimal(col_type)
         else:
-            dtype = self._approx_dtype(col_type)
+            dtype = self._get_dtype(col_type)
         return dtype
 
     def generate_to_meta(self, table: str, schema: str) -> Metadata:
