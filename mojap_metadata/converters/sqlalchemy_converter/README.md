@@ -65,7 +65,7 @@ There are three categories:
 3. Backend-specific “UPPERCASE” datatypes are either fully specific to those databases, or add additional arguments that are specific to those databases.
 
 ### Type approximation
-There is a class private method called `_get_dtype` which infers the corresponding mojap data type by comparing with the instance type. 
+There is a class private method called `_get_dtype` which infers the corresponding mojap data type by comparing with the SQlAlchemy instance type. Order is important: the mojap data type will correspond to the instance type that first gets matched. 
 This is approximate and the mapping might need to be modified as less familiar data types are encountered.
 
 ### Type conflation
@@ -81,24 +81,38 @@ In the event the data-type received back from SQL-Alchemy is not found, the defa
 
 ## Testing
 
-The `SQLAlchemyConverter` is tested against the following database engines in [`test_sqlachemy.py`](/tests/test_sqlalchemy.py):
+The `SQLAlchemyConverter` is tested against the following database dialects in [`test_sqlachemy_converter.py`](/tests/test_sqlalchemy_converter.py):
 
 1. sqlite
 2. duckdb
 3. postgres
-4. oracle+oracledb
+4. oracle
 
-Whilst all return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, 
-a feature may not be supported by the database or by the sqlalchemy dialect. 
+Whilst all return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, a feature may not be supported by the database or by the sqlalchemy dialect. 
 For example only the postgres dialect recognises the table comment. For more examples of differences have a look at the parameters passed in to `test_generate_to_meta()`.
+
+The postgres and oracle dialects are tested in the [test-sqlalchemy.yml] GitHub action by creating [service containers](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) and specifying the relevant Docker image. It should be straightforward to add more service containers and test more dialects.
 
 ### Oracle Container
 
-The oracle+oracledb dialect is tested against the [Oracle Database Express Edition Container](https://github.com/gvenzl/oci-oracle-xe).
+The oracle dialect is tested against the [Oracle Database Express Edition Container](https://github.com/gvenzl/oci-oracle-xe).
 
-To run the test locally first create a docker container:
+To run the test locally first create a docker oracle container:
 
 ``` bash
-source tests/.oracle_credentials.sh
-sh tests/.oracle_image.sh
+source tests/scripts/.sqlalchemy_envs.sh
+sh tests/scripts/.oracle_image.sh
+```
+
+If you are using an M1 please follow these [instructions](https://github.com/gvenzl/oci-oracle-xe#oracle-xe-on-apple-m-chips).
+
+### Oracle Container
+
+The postgres dialect is tested against the [Postgres Container](https://hub.docker.com/_/postgres).
+
+To run the test locally first create a docker postgres container:
+
+``` bash
+source tests/scripts/.sqlalchemy_envs.sh
+sh tests/scripts/.postgres_image.sh
 ```
