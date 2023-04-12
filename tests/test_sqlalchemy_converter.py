@@ -11,6 +11,7 @@ from sqlalchemy.types import (
     NUMERIC,
     Boolean,
     LargeBinary,
+    DateTime,
 )
 from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
@@ -74,6 +75,7 @@ def create_tables(connectable, schema):
         Column("my_decimal", DECIMAL(precision=38, scale=0, asdecimal=True)),
         Column("my_numeric", NUMERIC(precision=15, scale=2)),
         Column("my_binary", LargeBinary()),
+        Column("my_date_time", DateTime()),
         comment="this is my table",
         schema=schema,
     )
@@ -150,6 +152,12 @@ mojap_metadata/v1.3.0.json",
             {
                 "name": "my_binary",
                 "type": "binary",
+                "description": "",
+                "nullable": True,
+            },
+            {
+                "name": "my_date_time",
+                "type": "timestamp(ms)",
                 "description": "",
                 "nullable": True,
             },
