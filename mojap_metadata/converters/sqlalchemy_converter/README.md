@@ -91,6 +91,8 @@ The `SQLAlchemyConverter` is tested against the following database dialects in [
 Whilst all return a `Metadata` objects with broadly the same features, there are differences. This is because whilst `Inspector` provides a consistent interface, a feature may not be supported by the database or by the sqlalchemy dialect. 
 For example only the postgres dialect recognises the table comment. For more examples of differences have a look at the parameters passed in to `test_generate_to_meta()`.
 
+The sqlite and duckdb databases are in memory and can be tested directly.
+
 The postgres and oracle dialects are tested in the [test-sqlalchemy.yml] GitHub action by creating [service containers](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) and specifying the relevant Docker image. It should be straightforward to add more service containers and test more dialects.
 
 ### Oracle Container

@@ -1,12 +1,10 @@
-name: Run sqlalchemy_converter tests against database services
+name: Test SQLAchemyConverter against database services
 
 on: pull_request
 
 env:
   DB_USER: my_user
   DB_PASSWORD: my_password
-  TEST_SQLITE: "False"
-  TEST_DUCKDB: "False"
   TEST_POSTGRES: "True"
   TEST_ORACLE: "True"
 

@@ -32,4 +32,4 @@ jobs:
             && poetry install --extras "arrow etl-manager postgres" --no-interaction --no-ansi
       - name: Run Tests
         run: |
-          pytest tests/ -vv
+          pytest tests/ --ignore=tests/test_sqlalchemy_converter.py -vv

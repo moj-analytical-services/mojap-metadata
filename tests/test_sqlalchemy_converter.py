@@ -15,9 +15,15 @@ from sqlalchemy.types import (
 from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
 
-""" Logging
-    https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
-    $ pytest tests/test_sqlalchemy.py --log-cli-level=INFO -vv
+"""
+For instructions on running the tests in this python script see:
+mojap_metadata/converters/sqlalchemy_converter/README.md
+
+For more details on logging see:
+https://docs.sqlalchemy.org/en/20/core/engines.html#configuring-logging
+
+To run the tests:
+$ pytest tests/test_sqlalchemy_converter.py --log-cli-level=INFO -vv
 """
 
 logging.basicConfig(filename="db.log")
@@ -26,9 +32,6 @@ table_name = "my_table"
 user = os.getenv("DB_USER")
 password = os.getenv("DB_PASSWORD")
 
-# The following dialects are tested by default, skipped if value is different to 'True'
-test_sqlite = os.getenv("TEST_SQLITE", "True") == "True"
-test_duckdb = os.getenv("TEST_DUCKDB", "True") == "True"
 
 # The following dialects are skipped by default, tested if value is set to 'True'
 test_oracle = os.getenv("TEST_ORACLE", "False") == "True"
@@ -44,6 +47,7 @@ def create_sqlachemy_engine(dialect):
         engine = create_engine("duckdb:///:memory:")
     elif dialect == "oracle":
         import oracledb
+
         oracledb.version = "8.3.0"
         sys.modules["cx_Oracle"] = oracledb
         engine = create_engine(
@@ -157,7 +161,7 @@ mojap_metadata/v1.3.0.json",
     "dialect,schema,table_description,column_description,"
     "primary_key,float_type,bool_type",
     [
-        pytest.param(
+        (
             "sqlite",
             "main",
             "",
@@ -165,9 +169,8 @@ mojap_metadata/v1.3.0.json",
             ["my_string_10"],
             "float64",
             "bool",
-            marks=(pytest.mark.skipif(test_sqlite is False, reason="skip sqlite test")),
         ),
-        pytest.param(
+        (
             "duckdb",
             "main",
             "",
@@ -175,7 +178,6 @@ mojap_metadata/v1.3.0.json",
             [],
             "float16",
             "bool",
-            marks=(pytest.mark.skipif(test_duckdb is False, reason="skip duckdb test")),
         ),
         pytest.param(
             "postgres",
