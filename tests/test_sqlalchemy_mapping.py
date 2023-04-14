@@ -10,8 +10,6 @@ from sqlalchemy.types import (
     Float,
     DECIMAL,
     NUMERIC,
-    DateTime,
-    Date,
     TIMESTAMP,
     DATE,
     DATETIME,
