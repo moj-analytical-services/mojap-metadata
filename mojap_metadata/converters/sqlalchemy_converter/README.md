@@ -10,7 +10,7 @@ Uses the SQLAlchemy [`Inspector`](https://docs.sqlalchemy.org/en/20/core/reflect
 1. Extract metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects)
 2. Convert the extracted output into a mojap `Metadata` object
 
-Currently assumes SQLAlchemy v1.4 but compatible with SQLAlchemy v2.0.
+Currently installs SQLAlchemy v1.4 but compatible with SQLAlchemy [v2.0](https://docs.sqlalchemy.org/en/20/changelog/migration_20.html)
 
 ## Functions
 
@@ -39,7 +39,7 @@ See [Engine Configuration](https://docs.sqlalchemy.org/en/20/core/engines.html) 
 
 ### Notes on Oracle
 
-"oracledb" has replaced "oracle_cx" drivers.
+"oracledb" has replaced ["oracle_cx" drivers](https://oracle.github.io/python-oracledb/)
 
 To create an oracle SQLAlchemy.engine:
 

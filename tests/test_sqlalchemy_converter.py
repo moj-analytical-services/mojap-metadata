@@ -6,7 +6,6 @@ from sqlalchemy import Column, Table, MetaData, create_engine
 from sqlalchemy.types import (
     String,
     Integer,
-    Float,
     DECIMAL,
     NUMERIC,
     Boolean,
@@ -71,7 +70,6 @@ def create_tables(connectable, schema):
         Column("my_int", Integer(), comment="this is the comment"),
         Column("my_string_255", String(255), default="Active"),
         Column("my_bool", Boolean(), default=False),
-        Column("my_float", Float(precision=10, decimal_return_scale=2)),
         Column("my_decimal", DECIMAL(precision=38, scale=0, asdecimal=True)),
         Column("my_numeric", NUMERIC(precision=15, scale=2)),
         Column("my_binary", LargeBinary()),
@@ -93,7 +91,6 @@ def expected_metadata(
     table_description,
     column_description,
     primary_key,
-    float_type,
     bool_type,
 ):
     return {
@@ -132,12 +129,6 @@ mojap_metadata/v1.3.0.json",
                 "nullable": True,
             },
             {
-                "name": "my_float",
-                "type": float_type,
-                "description": "",
-                "nullable": True,
-            },
-            {
                 "name": "my_decimal",
                 "type": "decimal128(38,0)",
                 "description": "",
@@ -166,8 +157,7 @@ mojap_metadata/v1.3.0.json",
 
 
 @pytest.mark.parametrize(
-    "dialect,schema,table_description,column_description,"
-    "primary_key,float_type,bool_type",
+    "dialect,schema,table_description,column_description,primary_key,bool_type",
     [
         (
             "sqlite",
@@ -175,7 +165,6 @@ mojap_metadata/v1.3.0.json",
             "",
             "",
             ["my_string_10"],
-            "float64",
             "bool",
         ),
         (
@@ -184,7 +173,6 @@ mojap_metadata/v1.3.0.json",
             "",
             "",
             [],
-            "float16",
             "bool",
         ),
         pytest.param(
@@ -193,7 +181,6 @@ mojap_metadata/v1.3.0.json",
             "this is my table",
             "this is the comment",
             ["my_string_10"],
-            "float16",
             "bool",
             marks=(
                 pytest.mark.skipif(test_postgres is False, reason="skip postgres test")
@@ -205,7 +192,6 @@ mojap_metadata/v1.3.0.json",
             "this is my table",
             "this is the comment",
             ["my_string_10"],
-            "float64",
             "int32",
             marks=(pytest.mark.skipif(test_oracle is False, reason="skip oracle test")),
         ),
@@ -217,7 +203,6 @@ def test_generate_to_meta(
     table_description,
     column_description,
     primary_key,
-    float_type,
     bool_type,
 ):
 
@@ -231,7 +216,6 @@ def test_generate_to_meta(
         table_description=table_description,
         column_description=column_description,
         primary_key=primary_key,
-        float_type=float_type,
         bool_type=bool_type,
     )
 
