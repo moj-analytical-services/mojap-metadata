@@ -26,12 +26,13 @@ pytest = ">=6.1.2"
 pytest-watch = ">=4.2.0"
 moto = "^2.2.11"
 pandas = "^1.5.0"
+duckdb-engine = "^0.7.0"
+oracledb = "^1.3.0"
 
 [tool.poetry.extras]
 arrow = ["pyarrow"]
 etl-manager = ["etl-manager"]
 postgres = ["psycopg2","testing.postgresql","SQLAlchemy"]
-
 
 [build-system]
 requires = ["poetry>=0.12"]

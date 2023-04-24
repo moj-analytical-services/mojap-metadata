@@ -2,6 +2,11 @@
 
 This python package allows users to read and alter our metadata schemas (using the metadata module) as well as convert our metadata schemas to other schema definitions utilised by other tools (these are defined in the converters module and are defined as Converters).
 
+[Metadata](#metadata)
+
+[Converters](#converters)
+
+[Converter Systems](#converter-systems)
 
 ## Installation
 
@@ -195,15 +200,15 @@ meta.force_partition_order = "start"
 meta.column_names # ["b", "a" ,"c"]
 ```
 
-### Generating Metdata objects
+### Generating Metadata objects
 
 <hr>
 
 # Converters
 
-Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema. 
+Converters takes a Metadata object and generates something else from it (or can convert something to a Metadata object). Most of the time your converter will convert our schema into another systems schema.
 
-# Usage
+## How to use the Converters
 
 For example the `ArrowConverter` takes our schemas and converts them to a pyarrow schema:
 
@@ -251,7 +256,33 @@ meta = ac.generate_to_meta(arrow_df.schema)
 print(meta.columns) # [{'name': 'a', 'type': 'int64'}, {'name': 'b', 'type': 'struct<cat:struct<meow:bool>, dog:list<string>>'}]
 ```
 
-Another example is the `GlueConverter` which takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.
+All converter classes are sub classes of the `mojap_metadata.converters.BaseConverter`. This `BaseConverter` has no actual functionality but is a boilerplate class that ensures standardised attributes  for all added `Converters` these are:
+
+- **generate_from_meta:** (function) takes a Metadata object and returns whatever the converter is producing .
+
+- **generate_to_meta:** (function) takes Any object (normally another schema for another system or package) and returns our Metadata object. (i.e. the reverse of generate_from_meta).
+
+- **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
+
+## Further Usage
+
+See the [mojap-aws-tools repo](https://github.com/moj-analytical-services/mojap-aws-tools-demo) which utilises the converters a lot in different tutorials.
+
+## Contributing and Design Considerations
+
+Each new converter (if not expanding on existing converters) should be added as a new submodule within the parent `converters` module. This is especially true if the new converter has additional package dependencies. By design the standard install of this package is fairly lightweight. However if you needed the `ArrowConverter` you would need to install the additional package dependencies for the arrow converter:
+
+```bash
+pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
+```
+
+This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed.
+
+## Converter systems
+
+### Glue Converter
+
+The `GlueConverter` takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.
 
 ```python
 import boto3
@@ -279,36 +310,19 @@ glue_client = boto3.client("glue")
 glue_client.create_table(**boto_dict) # Would deploy glue schema based on our metadata
 ```
 
-All converter classes are sub classes of the `mojap_metadata.converters.BaseConverter`. This `BaseConverter` has no actual functionality but is a boilerplate class that ensures standardised attributes  for all added `Converters` these are:
-
-- **generate_from_meta:** (function) takes a Metadata object and returns whatever the converter is producing .
-
-- **generate_to_meta:** (function) takes Any object (normally another schema for another system or package) and returns our Metadata object. (i.e. the reverse of generate_from_meta).
-
-- **options:** (Data Class) that are the options for the converter. The base options have a `suppress_warnings` parameter but it doesn't mean call converters use this. To get a better understanding of setting options see the `GlueConverter` class or the `tests/test_glue_converter.py` to see how they are set.
-
 included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
 - **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
     - _metadata:_ the metadata object, dict, or string path that is to be overlaid
     - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
     - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
 
+### SQLAlchemy Converter
 
-## Further Usage
+Uses the [Inspector](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to extract metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects).
 
-See the [mojap-aws-tools repo](https://github.com/moj-analytical-services/mojap-aws-tools-demo) which utilises the converters a lot in different tutorials.
+See [SQLAlchemy Converter](/mojap_metadata/converters/sqlalchemy_converter/) for more details.
 
-## Contributing and Design Considerations
-
-Each new converter (if not expanding on existing converters) should be added as a new submodule within the parent `converters` module. This is especially true if the new converter has additional package dependencies. By design the standard install of this package is fairly lightweight. However if you needed the `ArrowConverter` you would need to install the additional package dependencies for the arrow converter:
-
-```bash
-pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-services/mojap-metadata'
-```
-
-This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed).
-
-## Postgres Converter
+### Postgres Converter
 
 Postgres Converter provides the following functionality
 
@@ -320,3 +334,5 @@ Postgres Converter provides the following functionality
 converts into Metadata object 
 
 - **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
+
+NOTE: the sqlalchemy converter is more robust and should be the default method for most databases, but the postgres converter is retained for compatibility

@@ -1,0 +1,83 @@
+name: Test SQLAchemyConverter against database services
+
+on: pull_request
+
+env:
+  DB_USER: my_user
+  DB_PASSWORD: my_password
+  TEST_POSTGRES: "True"
+  TEST_ORACLE: "True"
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+        sqlalchemy-version: ["1.4.27", "2.0.8"]
+        poetry-install: [fresh-install]
+
+    # Service containers to run with `runner-job`
+    services:
+
+      # Postgres service (label used to access the service container)
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+      # Oracle service (label used to access the service container)
+      oracle:
+        # Docker Hub image (feel free to change the tag "latest" to any other available one)
+        image: gvenzl/oracle-xe:latest
+        # Provide passwords and other environment variables to container
+        env:
+          ORACLE_RANDOM_PASSWORD: true
+          APP_USER: ${{ env.DB_USER }}
+          APP_USER_PASSWORD: ${{ env.DB_PASSWORD }}
+        # Provide healthcheck script options for startup
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        # Forward Oracle port
+        ports:
+          - 1521:1521
+    
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies ${{ matrix.poetry-install }}
+        run: |
+          if [ "${{ matrix.poetry-install }}" == "from-lock-file" ]; then
+            echo "Installing dependencies from lock file"
+          else
+            echo "Removing lock file and installing latest possible dependencies"
+            if [ -f poetry.lock ]; then
+              rm poetry.lock
+            fi
+          fi
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry config virtualenvs.create false \
+            && poetry install --extras "postgres" --no-interaction --no-ansi
+          pip install sqlalchemy==${{ matrix.sqlalchemy-version }}
+      - name: Run Tests
+        run: |
+          pytest tests/test_sqlalchemy_converter.py
