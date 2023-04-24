@@ -335,4 +335,4 @@ converts into Metadata object
 
 - **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
 
-NOTE: You should be using the SQLAlchemy converter with a postgres sqlalchemy connection.
+NOTE: the sqlalchemy converter is more robust and should be the default method for most databases, but the postgres converter is retained for compatibility
