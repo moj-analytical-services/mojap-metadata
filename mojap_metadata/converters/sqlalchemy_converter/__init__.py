@@ -53,7 +53,12 @@ class SQLAlchemyConverter(BaseConverter):
         return dtype
 
     def _convert_to_decimal(self, col_type) -> str:
-        return f"decimal128({str(col_type.precision)},{str(col_type.scale)})"
+        if col_type.precision is None:
+            return f"decimal128(38,10)"
+        elif col_type.scale is None:
+            return f"decimal128({str(col_type.precision)},0)"
+        else:
+            return f"decimal128({str(col_type.precision)},{str(col_type.scale)})"
 
     def _get_table_description(self, table, schema) -> str:
         description = ""

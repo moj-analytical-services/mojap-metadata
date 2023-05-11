@@ -1,4 +1,5 @@
 import pytest
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.types import (
     String,
@@ -21,13 +22,14 @@ from sqlalchemy.types import (
 )
 from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 
+logging.basicConfig(filename="db.log")
+logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
 
 @pytest.mark.parametrize(
     "inputtype,expected",
     [
         (Integer(), "int32"),
         (BIGINT(), "int64"),
-        (Float(precision=10, decimal_return_scale=2), "float64"),
         (String(), "string"),
         (String(length=4000), "string"),
         (VARCHAR(length=255), "string"),
@@ -40,8 +42,11 @@ from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
         (BLOB(), "binary"),
         (VARBINARY(), "binary"),
         (LargeBinary(), "binary"),
+        (Float(precision=10, decimal_return_scale=2), "float64"),
         (NUMERIC(precision=15, scale=2), "decimal128(15,2)"),
         (DECIMAL(precision=8, scale=0), "decimal128(8,0)"),
+        (DECIMAL(), "decimal128(38,10)"),
+        (DECIMAL(10), "decimal128(10,0)"),
         (JSON(), "string"),
         ("Unknown", "string"),
     ],
