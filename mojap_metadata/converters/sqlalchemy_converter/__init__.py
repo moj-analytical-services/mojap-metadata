@@ -52,9 +52,14 @@ class SQLAlchemyConverter(BaseConverter):
                 break
         return dtype
 
-    def _convert_to_decimal(self, col_type) -> str:
+    def _convert_to_decimal(
+        self,
+        col_type,
+        default_decimal_precision: int = 38,
+        default_decimal_scale: int = 10,
+    ) -> str:
         if col_type.precision is None:
-            return f"decimal128(38,10)"
+            return f"decimal128({default_decimal_precision},{default_decimal_scale})"
         elif col_type.scale is None:
             return f"decimal128({str(col_type.precision)},0)"
         else:
@@ -70,27 +75,44 @@ class SQLAlchemyConverter(BaseConverter):
             pass
         return description
 
-    def convert_to_mojap_type(self, col_type) -> str:
+    def convert_to_mojap_type(
+        self,
+        col_type,
+        default_decimal_precision: int = 38,
+        default_decimal_scale: int = 10,
+    ) -> str:
         """_Converts a SQLAlchemy data type into a mojap data type_
 
         Args:
             col_type (_type_): _A SQLAlchemy data type_
+            default_decimal_precision (int): _Default decimal precision when unknown_
+            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             str: _A mojap data type_
         """
         if isinstance(col_type, Numeric) and not isinstance(col_type, Float):
-            dtype = self._convert_to_decimal(col_type)
+            dtype = self._convert_to_decimal(
+                col_type, default_decimal_precision, default_decimal_scale
+            )
         else:
             dtype = self._get_dtype(col_type)
         return dtype
 
-    def generate_to_meta(self, table: str, schema: str) -> Metadata:
+    def generate_to_meta(
+        self,
+        table: str,
+        schema: str,
+        default_decimal_precision: int = 38,
+        default_decimal_scale: int = 10,
+    ) -> Metadata:
         """_Generates a Metadata object from a specified table and schema_
 
         Args:
             table (str): _Table name to generate the metadata for_
             schema (str): _Schema name to generate the metadata for_
+            default_decimal_precision (int): _Default decimal precision when unknown_
+            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             Metadata: _Metadata object_
@@ -101,7 +123,9 @@ class SQLAlchemyConverter(BaseConverter):
             columns.append(
                 {
                     "name": col["name"].lower(),
-                    "type": self.convert_to_mojap_type(col["type"]),
+                    "type": self.convert_to_mojap_type(
+                        col["type"], default_decimal_precision, default_decimal_scale
+                    ),
                     "description": col.get("comment") or "",
                     "nullable": col.get("nullable"),
                 }
@@ -118,11 +142,18 @@ class SQLAlchemyConverter(BaseConverter):
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_to_meta_list(self, schema: str) -> list:
+    def generate_to_meta_list(
+        self,
+        schema: str,
+        default_decimal_precision: int = 38,
+        default_decimal_scale: int = 10,
+    ) -> list:
         """_Generates a list of Metadata objects for all the tables in a schema_
 
         Args:
             schema (str): _Schema name to generate the metadata for_
+            default_decimal_precision (int): _Default decimal precision when unknown_
+            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             list: _list of Metadata objects_
@@ -131,6 +162,8 @@ class SQLAlchemyConverter(BaseConverter):
         table_names = self.inspector.get_table_names(schema)
         table_names = sorted(table_names)
         for table in table_names:
-            table_metadata = self.generate_to_meta(table, schema)
+            table_metadata = self.generate_to_meta(
+                table, schema, default_decimal_precision, default_decimal_scale
+            )
             schema_metadata.append(table_metadata)
         return schema_metadata

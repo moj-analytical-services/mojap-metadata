@@ -25,6 +25,7 @@ from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
 logging.basicConfig(filename="db.log")
 logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
 
+
 @pytest.mark.parametrize(
     "inputtype,expected",
     [
@@ -55,4 +56,23 @@ def test_convert_to_mojap_type(inputtype: type, expected: str):
     engine = create_engine("sqlite:///:memory:")
     pc = SQLAlchemyConverter(engine)
     actual = pc.convert_to_mojap_type(inputtype)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "inputtype,expected",
+    [
+        (DECIMAL(precision=8, scale=0), "decimal128(8,0)"),
+        (DECIMAL(), "decimal128(30,2)"),
+        (DECIMAL(10), "decimal128(10,0)"),
+    ],
+)
+def test_convert_to_mojap_type_decimal_default(inputtype: type, expected: str):
+    engine = create_engine("sqlite:///:memory:")
+    pc = SQLAlchemyConverter(engine)
+    actual = pc.convert_to_mojap_type(
+        inputtype,
+        default_decimal_precision=30,
+        default_decimal_scale=2,
+    )
     assert actual == expected
