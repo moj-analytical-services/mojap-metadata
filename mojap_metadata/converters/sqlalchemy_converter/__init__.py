@@ -55,11 +55,13 @@ class SQLAlchemyConverter(BaseConverter):
     def _convert_to_decimal(
         self,
         col_type,
-        default_decimal_precision: int = 38,
-        default_decimal_scale: int = 10,
+        default_decimal_precision: int = None,
+        default_decimal_scale: int = None,
     ) -> str:
+        default_precision = default_decimal_precision or 38
+        default_scale = default_decimal_scale or 10
         if col_type.precision is None:
-            return f"decimal128({default_decimal_precision},{default_decimal_scale})"
+            return f"decimal128({default_precision},{default_scale})"
         elif col_type.scale is None:
             return f"decimal128({str(col_type.precision)},0)"
         else:
@@ -78,8 +80,8 @@ class SQLAlchemyConverter(BaseConverter):
     def convert_to_mojap_type(
         self,
         col_type,
-        default_decimal_precision: int = 38,
-        default_decimal_scale: int = 10,
+        default_decimal_precision: int = None,
+        default_decimal_scale: int = None,
     ) -> str:
         """_Converts a SQLAlchemy data type into a mojap data type_
 
@@ -103,8 +105,8 @@ class SQLAlchemyConverter(BaseConverter):
         self,
         table: str,
         schema: str,
-        default_decimal_precision: int = 38,
-        default_decimal_scale: int = 10,
+        default_decimal_precision: int = None,
+        default_decimal_scale: int = None,
     ) -> Metadata:
         """_Generates a Metadata object from a specified table and schema_
 
@@ -145,8 +147,8 @@ class SQLAlchemyConverter(BaseConverter):
     def generate_to_meta_list(
         self,
         schema: str,
-        default_decimal_precision: int = 38,
-        default_decimal_scale: int = 10,
+        default_decimal_precision: int = None,
+        default_decimal_scale: int = None,
     ) -> list:
         """_Generates a list of Metadata objects for all the tables in a schema_
 
