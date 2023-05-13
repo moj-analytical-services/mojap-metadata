@@ -1,4 +1,6 @@
 from typing import Union
+from dataclasses import dataclass
+
 from sqlalchemy import inspect
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.types import (
@@ -32,14 +34,27 @@ _sqlalchemy_type_map = {
 }
 
 
+@dataclass
+class SQLAlchemyConverterOptions:
+    default_decimal_precision: int = 38
+    default_decimal_scale: int = 10
+
+
 class SQLAlchemyConverter(BaseConverter):
-    def __init__(self, connectable: Union[Engine, Connection]):
+    def __init__(
+        self,
+        connectable: Union[Engine, Connection],
+        options: SQLAlchemyConverterOptions = None,
+    ):
         """_Converts SQLAlchemy DDL to metadata object_
 
         Args:
             connectable (Union[Engine, Connection]): _A SQLAlchemy Engine or Connection_
         """
-        super().__init__()
+        if options is None:
+            options = SQLAlchemyConverterOptions()
+
+        super().__init__(options)
         self.connectable = connectable
         self.inspector = inspect(connectable)
         self._sqlalchemy_type_map = _sqlalchemy_type_map
@@ -52,16 +67,11 @@ class SQLAlchemyConverter(BaseConverter):
                 break
         return dtype
 
-    def _convert_to_decimal(
-        self,
-        col_type,
-        default_decimal_precision: int = None,
-        default_decimal_scale: int = None,
-    ) -> str:
-        default_precision = default_decimal_precision or 38
-        default_scale = default_decimal_scale or 10
+    def _convert_to_decimal(self, col_type) -> str:
         if col_type.precision is None:
-            return f"decimal128({default_precision},{default_scale})"
+            dp = self.options.default_decimal_precision
+            ds = self.options.default_decimal_scale
+            return f"decimal128({dp},{ds})"
         elif col_type.scale is None:
             return f"decimal128({str(col_type.precision)},0)"
         else:
@@ -77,44 +87,27 @@ class SQLAlchemyConverter(BaseConverter):
             pass
         return description
 
-    def convert_to_mojap_type(
-        self,
-        col_type,
-        default_decimal_precision: int = None,
-        default_decimal_scale: int = None,
-    ) -> str:
+    def convert_to_mojap_type(self, col_type) -> str:
         """_Converts a SQLAlchemy data type into a mojap data type_
 
         Args:
             col_type (_type_): _A SQLAlchemy data type_
-            default_decimal_precision (int): _Default decimal precision when unknown_
-            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             str: _A mojap data type_
         """
         if isinstance(col_type, Numeric) and not isinstance(col_type, Float):
-            dtype = self._convert_to_decimal(
-                col_type, default_decimal_precision, default_decimal_scale
-            )
+            dtype = self._convert_to_decimal(col_type)
         else:
             dtype = self._get_dtype(col_type)
         return dtype
 
-    def generate_to_meta(
-        self,
-        table: str,
-        schema: str,
-        default_decimal_precision: int = None,
-        default_decimal_scale: int = None,
-    ) -> Metadata:
+    def generate_to_meta(self, table: str, schema: str) -> Metadata:
         """_Generates a Metadata object from a specified table and schema_
 
         Args:
             table (str): _Table name to generate the metadata for_
             schema (str): _Schema name to generate the metadata for_
-            default_decimal_precision (int): _Default decimal precision when unknown_
-            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             Metadata: _Metadata object_
@@ -125,9 +118,7 @@ class SQLAlchemyConverter(BaseConverter):
             columns.append(
                 {
                     "name": col["name"].lower(),
-                    "type": self.convert_to_mojap_type(
-                        col["type"], default_decimal_precision, default_decimal_scale
-                    ),
+                    "type": self.convert_to_mojap_type(col["type"]),
                     "description": col.get("comment") or "",
                     "nullable": col.get("nullable"),
                 }
@@ -144,18 +135,11 @@ class SQLAlchemyConverter(BaseConverter):
         meta_output = Metadata.from_dict(d)
         return meta_output
 
-    def generate_to_meta_list(
-        self,
-        schema: str,
-        default_decimal_precision: int = None,
-        default_decimal_scale: int = None,
-    ) -> list:
+    def generate_to_meta_list(self, schema: str) -> list:
         """_Generates a list of Metadata objects for all the tables in a schema_
 
         Args:
             schema (str): _Schema name to generate the metadata for_
-            default_decimal_precision (int): _Default decimal precision when unknown_
-            default_decimal_scale (int): _Default decimal scale when unknown_
 
         Returns:
             list: _list of Metadata objects_
@@ -164,8 +148,6 @@ class SQLAlchemyConverter(BaseConverter):
         table_names = self.inspector.get_table_names(schema)
         table_names = sorted(table_names)
         for table in table_names:
-            table_metadata = self.generate_to_meta(
-                table, schema, default_decimal_precision, default_decimal_scale
-            )
+            table_metadata = self.generate_to_meta(table, schema)
             schema_metadata.append(table_metadata)
         return schema_metadata

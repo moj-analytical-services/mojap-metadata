@@ -20,7 +20,10 @@ from sqlalchemy.types import (
     VARBINARY,
     JSON,
 )
-from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
+from mojap_metadata.converters.sqlalchemy_converter import (
+    SQLAlchemyConverter,
+    SQLAlchemyConverterOptions,
+)
 
 logging.basicConfig(filename="db.log")
 logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
@@ -69,10 +72,9 @@ def test_convert_to_mojap_type(inputtype: type, expected: str):
 )
 def test_convert_to_mojap_type_decimal_default(inputtype: type, expected: str):
     engine = create_engine("sqlite:///:memory:")
-    pc = SQLAlchemyConverter(engine)
-    actual = pc.convert_to_mojap_type(
-        inputtype,
-        default_decimal_precision=30,
-        default_decimal_scale=2,
+    opt = SQLAlchemyConverterOptions(
+        default_decimal_precision=30, default_decimal_scale=2
     )
+    pc = SQLAlchemyConverter(engine, options=opt)
+    actual = pc.convert_to_mojap_type(inputtype)
     assert actual == expected
