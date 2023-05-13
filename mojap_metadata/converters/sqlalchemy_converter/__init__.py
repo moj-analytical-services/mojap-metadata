@@ -1,4 +1,6 @@
 from typing import Union
+from dataclasses import dataclass
+
 from sqlalchemy import inspect
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.types import (
@@ -32,14 +34,27 @@ _sqlalchemy_type_map = {
 }
 
 
+@dataclass
+class SQLAlchemyConverterOptions:
+    default_decimal_precision: int = 38
+    default_decimal_scale: int = 10
+
+
 class SQLAlchemyConverter(BaseConverter):
-    def __init__(self, connectable: Union[Engine, Connection]):
+    def __init__(
+        self,
+        connectable: Union[Engine, Connection],
+        options: SQLAlchemyConverterOptions = None,
+    ):
         """_Converts SQLAlchemy DDL to metadata object_
 
         Args:
             connectable (Union[Engine, Connection]): _A SQLAlchemy Engine or Connection_
         """
-        super().__init__()
+        if options is None:
+            options = SQLAlchemyConverterOptions()
+
+        super().__init__(options)
         self.connectable = connectable
         self.inspector = inspect(connectable)
         self._sqlalchemy_type_map = _sqlalchemy_type_map
@@ -53,7 +68,14 @@ class SQLAlchemyConverter(BaseConverter):
         return dtype
 
     def _convert_to_decimal(self, col_type) -> str:
-        return f"decimal128({str(col_type.precision)},{str(col_type.scale)})"
+        if col_type.precision is None:
+            dp = self.options.default_decimal_precision
+            ds = self.options.default_decimal_scale
+            return f"decimal128({dp},{ds})"
+        elif col_type.scale is None:
+            return f"decimal128({str(col_type.precision)},0)"
+        else:
+            return f"decimal128({str(col_type.precision)},{str(col_type.scale)})"
 
     def _get_table_description(self, table, schema) -> str:
         description = ""
