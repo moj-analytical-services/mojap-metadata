@@ -1,0 +1,24 @@
+{
+    "name": "test_table",
+    "file_format": "test-format",
+    "columns": [
+        {
+            "name": "my_int",
+            "type": "int32",
+            "description": "This is an integer",
+            "nullable": false
+        },
+        {"name": "my_double", "type": "float32", "nullable": true},
+        {"name": "my_date", "type": "date64"},
+        {"name": "my_decimal", "type": "decimal128(10,2)"},
+        {
+            "name": "my_timestamp",
+            "type": "timestamp(s)",
+            "description": "Partition column"
+        }
+    ],
+    "partitions": ["my_timestamp"],
+    "partition_transforms": ["identity"],
+    "table_type": "iceberg",
+    "noncurrent_columns": []
+}

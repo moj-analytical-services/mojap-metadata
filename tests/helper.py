@@ -1,5 +1,7 @@
-import pytest
 from typing import Any, Optional
+
+import pytest
+
 from mojap_metadata import Metadata
 
 valid_types = (
