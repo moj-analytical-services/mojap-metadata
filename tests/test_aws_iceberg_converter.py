@@ -1,9 +1,14 @@
 import json
+import os
 import re
 from copy import deepcopy
 
+import awswrangler as wr
+import boto3
 import botocore
+import pandas as pd
 import pytest
+from moto import mock_glue, mock_s3
 
 import mojap_metadata.converters.aws_iceberg_converter as ic
 from mojap_metadata.converters.aws_iceberg_converter import (
@@ -540,3 +545,53 @@ def test_generate_to_meta(monkeypatch):
             "tests/data/aws_iceberg_converter/expected_glue_metadata.json"
         ).to_dict()
     )
+
+
+@mock_glue
+@mock_s3
+@pytest.mark.parametrize(
+    ["table_exists", "delete_table_if_exists", "expected"],
+    [
+        (False, False, False),
+        (True, False, True),
+        (True, True, False),
+    ],
+)
+def test_pre_generation_setup(
+    table_exists,
+    delete_table_if_exists,
+    expected,
+):
+    os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
+
+    if table_exists:
+        s3_client = boto3.client("s3")
+
+        _ = s3_client.create_bucket(
+            Bucket="bucket",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+        )
+
+        wr.catalog.create_database("test_database")
+
+        wr.s3.to_parquet(
+            df=pd.DataFrame({"col": [1, 2, 3], "col2": ["A", "A", "B"]}),
+            path="s3://bucket/prefix",
+            dataset=True,
+            partition_cols=["col2"],
+            database="test_database",
+            table="test_table",
+        )
+
+    output = AwsIcebergTable._pre_generation_setup(
+        "test_database",
+        "test_table",
+        "s3://bucket/prefix",
+        delete_table_if_exists,
+    )
+
+    assert output == expected
+
+    if delete_table_if_exists:
+        assert not wr.catalog.does_table_exist("test_database", "test_table")
+        assert not wr.s3.list_objects("s3://bucket/prefix")

@@ -326,6 +326,54 @@ class AwsIcebergTable(GlueTable):
         super().__init__(glue_converter_options=None)
         self.sql_converter = AthenaIcebergSqlConverter()
 
+    @staticmethod
+    def _pre_generation_setup(
+        database_name: str,
+        table_name: str,
+        table_location: str,
+        delete_table_if_exists: bool,
+        boto3_session: Union[Session, None] = None,
+    ) -> bool:
+        # create database if it doesn't exist
+        existing_databases = wr.catalog.databases(None).Database.to_list()
+        if database_name not in existing_databases:
+            wr.catalog.create_database(name=database_name, boto3_session=boto3_session)
+
+        if delete_table_if_exists:
+            _ = wr.catalog.delete_table_if_exists(
+                database=database_name, table=table_name, boto3_session=boto3_session
+            )
+            wr.s3.delete_objects(table_location, boto3_session=boto3_session)
+            table_exists = False
+
+        else:
+            table_exists = wr.catalog.does_table_exist(
+                database=database_name, table=table_name, boto3_session=boto3_session
+            )
+
+        return table_exists
+
+    @staticmethod
+    def _execute_queries(
+        queries: List[str], boto3_session: Union[Session, None] = None
+    ):
+        for query in queries:
+            try:
+                query_id = wr.athena.start_query_execution(
+                    query, boto3_session=boto3_session
+                )
+                response = wr.athena.wait_query(
+                    query_execution_id=query_id, boto3_session=boto3_session
+                )
+            except Exception:
+                raise wr.exceptions.QueryFailed(f"Failed to execute:\n{query}")
+
+            if response["Status"]["State"] == "FAILED":
+                raise wr.exceptions.QueryFailed(f"Failed to execute:\n{query}")
+
+            if response["Status"]["State"] == "CANCELLED":
+                raise wr.exceptions.QueryCancelled(f"Query cancelled:\n{query}")
+
     def generate_from_meta(
         self,
         metadata: Union[Metadata, str, dict],
@@ -356,22 +404,13 @@ class AwsIcebergTable(GlueTable):
 
         metadata = Metadata.from_infer(metadata)
 
-        # create database if it doesn't exist
-        existing_databases = wr.catalog.databases(None).Database.to_list()
-        if database_name not in existing_databases:
-            wr.catalog.create_database(name=database_name, boto3_session=boto3_session)
-
-        if delete_table_if_exists:
-            _ = wr.catalog.delete_table_if_exists(
-                database=database_name, table=metadata.name, boto3_session=boto3_session
-            )
-            wr.s3.delete_objects(table_location, boto3_session=boto3_session)
-            table_exists = False
-
-        else:
-            table_exists = wr.catalog.does_table_exist(
-                database=database_name, table=metadata.name, boto3_session=boto3_session
-            )
+        table_exists = self._pre_generation_setup(
+            database_name=database_name,
+            table_name=metadata.name,
+            table_location=table_location,
+            delete_table_if_exists=delete_table_if_exists,
+            boto3_session=boto3_session,
+        )
 
         if not table_exists or alter_table_if_exists:
             queries = self.sql_converter.generate_from_meta(
@@ -379,21 +418,15 @@ class AwsIcebergTable(GlueTable):
                 database_name=database_name,
                 table_location=table_location,
                 create_not_alter=not table_exists,
+                existing_metadata=self.generate_to_meta(
+                    database=database_name,
+                    table=metadata.name,
+                )
+                if alter_table_if_exists
+                else None,
             )
 
-            for query in queries:
-                query_id = wr.athena.start_query_execution(
-                    query, boto3_session=boto3_session
-                )
-                response = wr.athena.wait_query(
-                    query_execution_id=query_id, boto3_session=boto3_session
-                )
-
-                if response["Status"]["State"] == "FAILED":
-                    raise wr.exceptions.QueryFailed(f"Failed to execute:\n{query}")
-
-                if response["Status"]["State"] == "CANCELLED":
-                    raise wr.exceptions.QueryCancelled(f"Query cancelled:\n{query}")
+            _ = self._execute_queries(queries, boto3_session=boto3_session)
 
         else:
             raise GlueIcebergTableExists(
