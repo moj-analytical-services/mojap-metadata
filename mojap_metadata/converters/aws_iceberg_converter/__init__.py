@@ -108,6 +108,9 @@ class AthenaIcebergSqlConverter(GlueConverter):
             database_name if database_name is not None else metadata.database_name
         )
 
+        if database_name_to_use is None:
+            raise ValueError("Database name must be set in metadata or via method")
+
         method_kwargs = {
             "metadata": metadata_to_use,
             "database_name": database_name_to_use,
@@ -141,6 +144,9 @@ class AthenaIcebergSqlConverter(GlueConverter):
         database_name_to_use = (
             database_name if database_name is not None else metadata.database_name
         )
+
+        if table_location_to_use is None:
+            raise ValueError("Table location must be set in metadata or via method")
 
         columns, partitions = self.convert_columns(metadata_to_use)
 
@@ -330,8 +336,8 @@ class AwsIcebergTable(GlueTable):
     def _pre_generation_setup(
         database_name: str,
         table_name: str,
-        table_location: str,
         delete_table_if_exists: bool,
+        table_location: Union[str, None] = None,
         boto3_session: Union[Session, None] = None,
     ) -> bool:
         # create database if it doesn't exist
@@ -340,6 +346,9 @@ class AwsIcebergTable(GlueTable):
             wr.catalog.create_database(name=database_name, boto3_session=boto3_session)
 
         if delete_table_if_exists:
+            if table_location is None:
+                raise ValueError("Table location must be set to re-create the table")
+
             _ = wr.catalog.delete_table_if_exists(
                 database=database_name, table=table_name, boto3_session=boto3_session
             )
@@ -401,6 +410,9 @@ class AwsIcebergTable(GlueTable):
         database_name = database_name if database_name else metadata.database_name
         # do the same with table_location
         table_location = table_location if table_location else metadata.table_location
+
+        if database_name is None:
+            raise ValueError("Database name must be set in metadata or via method")
 
         metadata = Metadata.from_infer(metadata)
 

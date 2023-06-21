@@ -247,10 +247,10 @@ def test_generate_alter_drop_queries():
 
     expected_sql_list = [
         """
-        ALTER TABLE my_database.my_table DROP my_column
+        ALTER TABLE my_database.my_table DROP COLUMN my_column
         """,
         """
-        ALTER TABLE my_database.my_table DROP my_other_column
+        ALTER TABLE my_database.my_table DROP COLUMN my_other_column
         """,
     ]
 
@@ -347,10 +347,10 @@ def test_generate_alter_from_meta(sql_converter, iceberg_metadata_dictionary):
         CHANGE my_double my_double double
         """,
         """
-        ALTER TABLE my_database.test_table DROP my_date
+        ALTER TABLE my_database.test_table DROP COLUMN my_date
         """,
         """
-        ALTER TABLE my_database.test_table DROP my_decimal
+        ALTER TABLE my_database.test_table DROP COLUMN my_decimal
         """,
     ]
 
@@ -407,10 +407,10 @@ def test_generate_alter_from_meta(sql_converter, iceberg_metadata_dictionary):
                 CHANGE my_double my_double double
                 """,
                 """
-                ALTER TABLE my_database.test_table DROP my_date
+                ALTER TABLE my_database.test_table DROP COLUMN my_date
                 """,
                 """
-                ALTER TABLE my_database.test_table DROP my_decimal
+                ALTER TABLE my_database.test_table DROP COLUMN my_decimal
                 """,
             ],
         ),
@@ -584,10 +584,10 @@ def test_pre_generation_setup(
         )
 
     output = AwsIcebergTable._pre_generation_setup(
-        "test_database",
-        "test_table",
-        "s3://bucket/prefix",
-        delete_table_if_exists,
+        database_name="test_database",
+        table_name="test_table",
+        table_location="s3://bucket/prefix",
+        delete_table_if_exists=delete_table_if_exists,
     )
 
     assert output == expected
