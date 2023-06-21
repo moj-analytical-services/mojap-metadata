@@ -150,9 +150,7 @@ class AthenaIcebergSqlConverter(GlueConverter):
 
         columns, partitions = self.convert_columns(metadata_to_use)
 
-        inp_file = pkg_resources.files(specs) / "create.sql"
-        with inp_file.open("r") as f:
-            raw_sql = f.read()
+        raw_sql = pkg_resources.open_text(specs, "create.sql").read()
 
         sql_template = Template(raw_sql)
 
@@ -219,9 +217,7 @@ class AthenaIcebergSqlConverter(GlueConverter):
     def _generate_alter_add_query(
         columns: List[Tuple[str, str]], table_name: str, database_name: str, **kwargs
     ) -> str:
-        inp_file = pkg_resources.files(specs) / "alter_add_columns.sql"
-        with inp_file.open("r") as f:
-            raw_sql = f.read()
+        raw_sql = pkg_resources.open_text(specs, "alter_add_columns.sql").read()
 
         sql_template = Template(raw_sql)
 
@@ -243,9 +239,7 @@ class AthenaIcebergSqlConverter(GlueConverter):
     ) -> List[str]:
         alter_change_queries = []
 
-        inp_file = pkg_resources.files(specs) / "alter_change_column.sql"
-        with inp_file.open("r") as f:
-            raw_sql = f.read()
+        raw_sql = pkg_resources.open_text(specs, "alter_change_column.sql").read()
 
         sql_template = Template(raw_sql)
 
@@ -268,9 +262,7 @@ class AthenaIcebergSqlConverter(GlueConverter):
     ) -> List[str]:
         alter_drop_queries = []
 
-        inp_file = pkg_resources.files(specs) / "alter_drop_column.sql"
-        with inp_file.open("r") as f:
-            raw_sql = f.read()
+        raw_sql = pkg_resources.open_text(specs, "alter_drop_column.sql").read()
 
         sql_template = Template(raw_sql)
 
