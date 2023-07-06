@@ -9,7 +9,6 @@ from moto import mock_glue
 from sqlalchemy import create_engine
 
 from mojap_metadata import Metadata
-from mojap_metadata.converters.aws_iceberg_converter import AthenaIcebergSqlConverter
 
 
 @pytest.fixture(scope="function")
@@ -100,11 +99,6 @@ def expected_meta_out_upper():
         ]
     )
     return meta
-
-
-@pytest.fixture(scope="module")
-def sql_converter():
-    yield AthenaIcebergSqlConverter()
 
 
 @pytest.fixture(scope="module")
