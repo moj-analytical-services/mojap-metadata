@@ -1,0 +1,190 @@
+{
+    "Table": {
+        "Name": "test_iceberg_table",
+        "DatabaseName": "test_database",
+        "CreateTime": "2023-05-23 16:21:09+01:00",
+        "UpdateTime": "2023-05-23 16:32:21+01:00",
+        "Retention": 0,
+        "StorageDescriptor": {
+            "Columns": [
+                {
+                    "Name": "status",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "1",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "pk",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "2",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "fk1",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "3",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "fk2",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "4",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "pk_parent",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "5",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "title",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "6",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "rating",
+                    "Type": "int",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "7",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "year_bigint",
+                    "Type": "bigint",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "15",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "votes",
+                    "Type": "int",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "8",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "total_votes",
+                    "Type": "int",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "9",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "verified",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "11",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "views",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "12",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "comments",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "13",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "comments_date",
+                    "Type": "date",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "14",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "category",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "16",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "further_comments",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "true",
+                        "iceberg.field.id": "17",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "additional_information",
+                    "Type": "string",
+                    "Parameters": {
+                        "iceberg.field.current": "false",
+                        "iceberg.field.id": "10",
+                        "iceberg.field.optional": "true"
+                    }
+                },
+                {
+                    "Name": "year",
+                    "Type": "int",
+                    "Parameters": {
+                        "iceberg.field.current": "false",
+                        "iceberg.field.id": "15",
+                        "iceberg.field.optional": "true"
+                    }
+                }
+            ],
+            "Location": "s3://test-bucket/test_database/test_iceberg_table",
+            "Compressed": false,
+            "NumberOfBuckets": 0,
+            "SortColumns": [],
+            "StoredAsSubDirectories": false
+        },
+        "TableType": "EXTERNAL_TABLE",
+        "Parameters": {
+            "metadata_location": "s3://test-bucket/test_database/test_iceberg_table/metadata/00004-ae76be00-425d-4681-aa0c-5a9548d468be.metadata.json",
+            "previous_metadata_location": "s3://test-bucket/test_database/test_iceberg_table/metadata/00003-86c41a72-af52-4c73-ad3c-9d3a5cbeda4b.metadata.json",
+            "table_type": "ICEBERG"
+        },
+        "CreatedBy": "some_role",
+        "IsRegisteredWithLakeFormation": false,
+        "CatalogId": "000000000000",
+        "VersionId": "4"
+    }
+}

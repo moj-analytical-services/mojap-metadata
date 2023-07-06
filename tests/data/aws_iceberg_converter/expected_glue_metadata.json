@@ -1,0 +1,93 @@
+{
+    "columns": [
+        {
+            "name": "status",
+            "type": "string"
+        },
+        {
+            "name": "pk",
+            "type": "string"
+        },
+        {
+            "name": "fk1",
+            "type": "string"
+        },
+        {
+            "name": "fk2",
+            "type": "string"
+        },
+        {
+            "name": "pk_parent",
+            "type": "string"
+        },
+        {
+            "name": "title",
+            "type": "string"
+        },
+        {
+            "name": "rating",
+            "type": "int32"
+        },
+        {
+            "name": "year_bigint",
+            "type": "int64"
+        },
+        {
+            "name": "votes",
+            "type": "int32"
+        },
+        {
+            "name": "total_votes",
+            "type": "int32"
+        },
+        {
+            "name": "verified",
+            "type": "string"
+        },
+        {
+            "name": "views",
+            "type": "string"
+        },
+        {
+            "name": "comments",
+            "type": "string"
+        },
+        {
+            "name": "comments_date",
+            "type": "date64"
+        },
+        {
+            "name": "category",
+            "type": "string"
+        },
+        {
+            "name": "further_comments",
+            "type": "string"
+        }
+    ],
+    "table_type": "iceberg",
+    "file_format": "parquet",
+    "table_location": "s3://test-bucket/test_database/test_iceberg_table",
+    "noncurrent_columns": [
+        {
+            "name": "additional_information",
+            "type": "string"
+        },
+        {
+            "name": "year",
+            "type": "int32"
+        }
+    ],
+    "partitions": [
+        "status"
+    ],
+    "partition_transforms": [
+        "identity"
+    ],
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.3.0.json",
+    "name": "test_iceberg_table",
+    "database_name": "test_database",
+    "description": "",
+    "sensitive": false,
+    "primary_key": []
+}

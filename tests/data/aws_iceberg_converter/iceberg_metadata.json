@@ -1,0 +1,384 @@
+{
+    "format-version": 1,
+    "table-uuid": "cb4c341c-f68c-4fe0-bff9-87762bd2d670",
+    "location": "s3://test-bucket/test_database/test_iceberg_table",
+    "last-updated-ms": 1684409456384,
+    "last-column-id": 12,
+    "schema": {
+        "type": "struct",
+        "schema-id": 1,
+        "fields": [
+            {
+                "id": 1,
+                "name": "status",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 2,
+                "name": "pk",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 3,
+                "name": "fk1",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 4,
+                "name": "fk2",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 5,
+                "name": "pk_parent",
+                "required": false,
+                "type": "float"
+            },
+            {
+                "id": 6,
+                "name": "title",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 7,
+                "name": "rating",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 8,
+                "name": "votes",
+                "required": false,
+                "type": "int"
+            },
+            {
+                "id": 9,
+                "name": "total_votes",
+                "required": false,
+                "type": "int"
+            },
+            {
+                "id": 11,
+                "name": "verified",
+                "required": false,
+                "type": "date"
+            },
+            {
+                "id": 12,
+                "name": "views",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 13,
+                "name": "comments",
+                "required": false,
+                "type": "string"
+            },
+            {
+                "id": 14,
+                "name": "comments_date",
+                "required": false,
+                "type": "date"
+            },
+            {
+                "id": 15,
+                "name": "year_bigint",
+                "required": false,
+                "type": "bigint"
+            },
+            {
+                "id": 16,
+                "name": "category",
+                "required": false,
+                "type": "string"
+            }
+        ]
+    },
+    "current-schema-id": 0,
+    "schemas": [
+        {
+            "type": "struct",
+            "schema-id": 1,
+            "fields": [
+                {
+                    "id": 1,
+                    "name": "status",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 2,
+                    "name": "pk",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 3,
+                    "name": "fk1",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 4,
+                    "name": "fk2",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 5,
+                    "name": "pk_parent",
+                    "required": false,
+                    "type": "float"
+                },
+                {
+                    "id": 6,
+                    "name": "title",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 7,
+                    "name": "rating",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 8,
+                    "name": "votes",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "name": "total_votes",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 11,
+                    "name": "verified",
+                    "required": false,
+                    "type": "date"
+                },
+                {
+                    "id": 12,
+                    "name": "views",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 13,
+                    "name": "comments",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 14,
+                    "name": "comments_date",
+                    "required": false,
+                    "type": "date"
+                },
+                {
+                    "id": 15,
+                    "name": "year_bigint",
+                    "required": false,
+                    "type": "bigint"
+                },
+                {
+                    "id": 16,
+                    "name": "category",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 17,
+                    "name": "further_comments",
+                    "required": false,
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "type": "struct",
+            "schema-id": 0,
+            "fields": [
+                {
+                    "id": 1,
+                    "name": "status",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 2,
+                    "name": "pk",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 3,
+                    "name": "fk1",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 4,
+                    "name": "fk2",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 5,
+                    "name": "pk_parent",
+                    "required": false,
+                    "type": "float"
+                },
+                {
+                    "id": 6,
+                    "name": "title",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 7,
+                    "name": "rating",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 8,
+                    "name": "votes",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "name": "total_votes",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 10,
+                    "name": "additional_information",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 11,
+                    "name": "verified",
+                    "required": false,
+                    "type": "date"
+                },
+                {
+                    "id": 12,
+                    "name": "views",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 13,
+                    "name": "comments",
+                    "required": false,
+                    "type": "string"
+                },
+                {
+                    "id": 14,
+                    "name": "comments_date",
+                    "required": false,
+                    "type": "date"
+                },
+                {
+                    "id": 15,
+                    "name": "year",
+                    "required": false,
+                    "type": "int"
+                },
+                {
+                    "id": 16,
+                    "name": "category",
+                    "required": false,
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "partition-spec": [
+        {
+            "name": "status",
+            "transform": "identity",
+            "source-id": 6,
+            "field-id": 1
+        }
+    ],
+    "default-spec-id": 0,
+    "partition-specs": [
+        {
+            "spec-id": 0,
+            "fields": [
+                {
+                    "name": "status",
+                    "transform": "identity",
+                    "source-id": 6,
+                    "field-id": 1
+                }
+            ]
+        }
+    ],
+    "last-partition-id": 1000,
+    "default-sort-order-id": 0,
+    "sort-orders": [
+        {
+            "order-id": 0,
+            "fields": []
+        }
+    ],
+    "properties": {
+        "owner": "glue_user"
+    },
+    "current-snapshot-id": 8915277069406728480,
+    "refs": {
+        "main": {
+            "snapshot-id": 8915277069406728480,
+            "type": "branch"
+        }
+    },
+    "snapshots": [
+        {
+            "snapshot-id": 8915277069406728480,
+            "timestamp-ms": 1684409456384,
+            "summary": {
+                "operation": "append",
+                "spark.app.id": "local-1684409435366",
+                "added-data-files": "4",
+                "added-records": "1000",
+                "added-files-size": "86470",
+                "changed-partition-count": "4",
+                "total-records": "1000",
+                "total-files-size": "86470",
+                "total-data-files": "4",
+                "total-delete-files": "0",
+                "total-position-deletes": "0",
+                "total-equality-deletes": "0"
+            },
+            "manifest-list": "s3://test-bucket/test_database/test_iceberg_table/metadata/snap-8915277069406728480-1-022510c7-0920-4192-b1f2-e5272178999d.avro",
+            "schema-id": 0
+        }
+    ],
+    "snapshot-log": [
+        {
+            "timestamp-ms": 1684409456384,
+            "snapshot-id": 8915277069406728480
+        }
+    ],
+    "metadata-log": [
+        {
+            "timestamp-ms": 1684409448469,
+            "metadata-file": "s3://test-bucket/test_database/test_iceberg_table/metadata/00000-8b387d49-b6bb-4002-8c77-45c3f4d706ab.metadata.json"
+        }
+    ]
+}
