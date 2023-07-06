@@ -1,11 +1,15 @@
-import boto3
+import json
 import os
-import pytest
+
+import boto3
 import psycopg2
-from mojap_metadata import Metadata
-from moto import mock_glue
+import pytest
 import testing.postgresql
+from moto import mock_glue
 from sqlalchemy import create_engine
+
+from mojap_metadata import Metadata
+from mojap_metadata.converters.aws_iceberg_converter import AthenaIcebergSqlConverter
 
 
 @pytest.fixture(scope="function")
@@ -45,7 +49,7 @@ def postgres_connection():
         host=info["host"],
         database=info["database"],
         port=info["port"],
-        password="postgres",
+        password="postgres",  # pragma: allowlist secret
     )
     connection.autocommit = True
     engine = create_engine(psql.url())
@@ -96,3 +100,15 @@ def expected_meta_out_upper():
         ]
     )
     return meta
+
+
+@pytest.fixture(scope="module")
+def sql_converter():
+    yield AthenaIcebergSqlConverter()
+
+
+@pytest.fixture(scope="module")
+def iceberg_metadata_dictionary():
+    with open("tests/data/aws_iceberg_converter/metadata.json", "r") as f:
+        meta_dict = json.load(f)
+    yield meta_dict

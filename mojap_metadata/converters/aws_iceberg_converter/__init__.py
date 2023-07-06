@@ -9,16 +9,18 @@ from boto3.session import Session
 from dataengineeringutils3.s3 import read_json_from_s3
 from jinja2 import Template
 
-from ...metadata.metadata import Metadata
-from ..glue_converter import GlueConverter, GlueTable
-from . import specs
-from .exceptions import (
+from mojap_metadata.converters.aws_iceberg_converter import specs
+from mojap_metadata.converters.aws_iceberg_converter.exceptions import (
     GlueIcebergTableExists,
     MalformedIcebergPartition,
     NonIcebergGlueTable,
     UnsupportedIcebergSchemaEvolution,
 )
-from .iceberg_metadata import IcebergMetadata
+from mojap_metadata.converters.aws_iceberg_converter.iceberg_metadata import (
+    IcebergMetadata,
+)
+from mojap_metadata.converters.glue_converter import GlueConverter, GlueTable
+from mojap_metadata.metadata.metadata import Metadata
 
 _supported_changes = [
     (

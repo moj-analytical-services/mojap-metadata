@@ -1,6 +1,6 @@
 import re
 
-from ...metadata.metadata import Metadata, MetadataProperty
+from mojap_metadata.metadata.metadata import Metadata, MetadataProperty
 
 
 class IcebergMetadata(Metadata):

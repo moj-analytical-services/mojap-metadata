@@ -44,18 +44,6 @@ def mock_get_table(*args, **kwargs):
     return resp
 
 
-@pytest.fixture(scope="module")
-def sql_converter():
-    yield AthenaIcebergSqlConverter()
-
-
-@pytest.fixture(scope="module")
-def iceberg_metadata_dictionary():
-    with open("tests/data/aws_iceberg_converter/metadata.json", "r") as f:
-        meta_dict = json.load(f)
-    yield meta_dict
-
-
 def test_iceberg_metadata(iceberg_metadata_dictionary):
     meta = IcebergMetadata.from_dict(iceberg_metadata_dictionary)
     assert meta.partition_transforms == ["identity"]
