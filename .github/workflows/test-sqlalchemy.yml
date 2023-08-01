@@ -14,7 +14,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         sqlalchemy-version: ["1.4.27", "2.0.8"]
         poetry-install: [fresh-install]
 
