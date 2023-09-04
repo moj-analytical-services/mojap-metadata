@@ -95,7 +95,7 @@ def expected_metadata(
 ):
     return {
         "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
-mojap_metadata/v1.3.0.json",
+mojap_metadata/v1.4.0.json",
         "name": table_name,
         "database": schema,
         "description": table_description,
