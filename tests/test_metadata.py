@@ -410,7 +410,7 @@ def test_type_category_mapping():
     expected = {
         "null": r"^null$",
         "integer": r"^u?int(8|16|32|64)$",
-        "float": r"^float(16|32|64)$|^decimal128\(\d+,\d+\)$",
+        "float": r"^float(16|32|64)$|^decimal128\(\d+,\s?\d+\)$",
         "string": r"^string$|^large_string$|^utf8$|^large_utf8$",
         "timestamp": r"^time32\((s|ms)\)$|^time64\((us|ns)\)$|^date(32|64)$|^timestamp\((s|ms|us|ns)\)$",  # noqa
         "binary": r"^binary(\([0-9]+\))?$|^large_binary$",
@@ -439,6 +439,7 @@ def test_type_category_mapping():
         ([{"name": "test", "type": "float32"}], "float"),
         ([{"name": "test", "type": "float64"}], "float"),
         ([{"name": "test", "type": "decimal128(0,38)"}], "float"),
+        ([{"name": "test", "type": "decimal128(0, 38)"}], "float"),
         ([{"name": "test", "type": "time32(s)"}], "timestamp"),
         ([{"name": "test", "type": "time32(ms)"}], "timestamp"),
         ([{"name": "test", "type": "time64(us)"}], "timestamp"),
