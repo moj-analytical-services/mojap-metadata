@@ -148,7 +148,7 @@ def test_meta_data_object(postgres_connection):
             },
         ],
         "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
-mojap_metadata/v1.3.0.json",
+mojap_metadata/v1.4.0.json",
         "description": "",
         "file_format": "",
         "sensitive": False,
