@@ -763,7 +763,7 @@ def test_type_returned_column_names_to_upper_or_lower(
     test_out = func(inplace, meta_input)
 
     assert (
-        type(test_out) == Metadata
+        isinstance(test_out, Metadata)
     ), f"Non Metadata object returned, inplace={inplace}, calling {func.__name__}"
 
 
