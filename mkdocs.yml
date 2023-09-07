@@ -13,8 +13,8 @@ plugins:
 nav:
     - Home: "index.md"
     - Converters:
-        - "converters/sqlalchemy_converter.md"
-        - "converters/postgres_converter.md"
+          - "converters/sqlalchemy_converter.md"
+          - "converters/postgres_converter.md"
 
 markdown_extensions:
     - mdx_include
