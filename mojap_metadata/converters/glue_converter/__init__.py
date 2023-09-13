@@ -267,6 +267,7 @@ class GlueConverter(BaseConverter):
         if coltype.startswith("decimal128"):
             t, is_supported = self._default_type_converter.get("decimal128")
             brackets = coltype.split("(")[1].split(")")[0]
+            brackets = brackets.replace(" ", "")
             t = f"{t}({brackets})"
         elif coltype.startswith("binary"):
             coltype_ = coltype.split("(", 1)[0]
