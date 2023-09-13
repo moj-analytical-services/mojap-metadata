@@ -45,6 +45,7 @@ def test_converter_accepts_type(meta_type):
         ("float32", "float", None),
         ("float64", "double", None),
         ("decimal128(0,38)", "decimal(0,38)", None),
+        ("decimal128(0, 38)", "decimal(0,38)", None),
         ("decimal128(1,2)", "decimal(1,2)", None),
         ("time32(s)", None, "error"),
         ("time32(ms)", None, "error"),
