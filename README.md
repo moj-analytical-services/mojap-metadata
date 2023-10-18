@@ -2,10 +2,10 @@
 
 This python package allows users to read and alter our metadata schemas (using the metadata module) as well as convert our metadata schemas to other schema definitions utilised by other tools (these are defined in the converters module and are defined as Converters).
 
+### Contents
+[Installation](#installation)
 [Metadata](#metadata)
-
 [Converters](#converters)
-
 [Converter Systems](#converter-systems)
 
 ## Installation
@@ -24,7 +24,7 @@ pip install 'mojap-metadata[etl-manager,arrow] @ git+https://github.com/moj-anal
 
 <hr>
 
-# Metadata 
+# Metadata
 
 This module creates a class called `Metadata` which allows you to interact with our agnostic metadata schemas. The `Metadata` class deals with parsing, manipulating and validating metadata json schemas.
 
@@ -277,62 +277,3 @@ pip install 'mojap-metadata[arrow] @ git+https://github.com/moj-analytical-servi
 ```
 
 This means we can continuely add converters (as submodules) and add optional package dependencies ([see pyproject.toml](./pyproject.toml) ) without making the default install any less lightweight. `mojap_metadata` would only error if someone tries to import a converter subclass that with having the additional dependencies dependencies installed.
-
-## Converter systems
-
-### Glue Converter
-
-The `GlueConverter` takes our schemas and converts them to a dictionary that be passed to the glue_client to deploy a schema on AWS Glue.
-
-```python
-import boto3
-from mojap_metadata import Metadata
-from mojap_metadata.converters.glue_converter import GlueConverter
-
-d = {
-    "name": "test",
-    "columns": [
-        {"name": "c1", "type": "int64"},
-        {"name": "c2", "type": "string"},
-        {"name": "c3", "type": "struct<k1: string, k2:list<int64>>"}
-    ],
-    "file_format": "jsonl"
-}
-meta = Metadata.from_dict(d)
-
-gc = GlueConverter()
-boto_dict = gc.generate_from_meta(meta, )
-boto_dict = gc.generate_from_meta(meta, database_name="test_db", table_location="s3://bucket/test_db/test/")
-
-print(boto_dict) 
-
-glue_client = boto3.client("glue")
-glue_client.create_table(**boto_dict) # Would deploy glue schema based on our metadata
-```
-
-included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
-- **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
-    - _metadata:_ the metadata object, dict, or string path that is to be overlaid
-    - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
-    - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
-
-### SQLAlchemy Converter
-
-Uses the [Inspector](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to extract metadata from database dialects supported by [SQLAlchemy](https://docs.sqlalchemy.org/en/20/dialects/index.html#dialects).
-
-See [SQLAlchemy Converter](/mojap_metadata/converters/sqlalchemy_converter/) for more details.
-
-### Postgres Converter
-
-Postgres Converter provides the following functionality
-
-1. Conenction to postgres database
-2. Extract the metadata from the tables
-3. Convert the extracted ouptut into Metadata object 
-
-- **get_object_meta** (function) takes the table name, schema name then the extracts the metadata from postgres database and 
-converts into Metadata object 
-
-- **generate_to_meta:** (function) takes the database connection and returns a list of Metadata object for all the (non-system schemas) schemas and tables from the connection.
-
-NOTE: the sqlalchemy converter is more robust and should be the default method for most databases, but the postgres converter is retained for compatibility

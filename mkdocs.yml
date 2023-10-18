@@ -11,10 +11,14 @@ plugins:
     - material/search
 
 nav:
-    - Home: "index.md"
+    - Home: "README.md"
     - Converters:
-          - "converters/sqlalchemy_converter.md"
+          - "converters/arrow_converter.md"
+          - "converters/aws_iceberg_converter.md"
+          - "converters/etl_manager_converter.md"
+          - "converters/glue_converter.md"
           - "converters/postgres_converter.md"
+          - "converters/sqlalchemy_converter.md"
 
 markdown_extensions:
     - mdx_include
