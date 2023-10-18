@@ -1,0 +1,32 @@
+site_name: Mojap-metadata
+repo_url: https://github.com/moj-analytical-services/mojap-metadata
+repo_name: mojap-metadata
+theme:
+    name: tech_docs_template
+    features:
+        - navigation.tabs
+        - navigation.tabs.sticky
+        - navigation.indexes
+plugins:
+    - material/search
+
+nav:
+    - Home: "README.md"
+    - Converters:
+          - "converters/arrow_converter.md"
+          - "converters/aws_iceberg_converter.md"
+          - "converters/etl_manager_converter.md"
+          - "converters/glue_converter.md"
+          - "converters/postgres_converter.md"
+          - "converters/sqlalchemy_converter.md"
+
+markdown_extensions:
+    - mdx_include
+    - pymdownx.highlight:
+          anchor_linenums: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
+    - pymdownx.arithmatex:
+          generic: true
+    - admonition

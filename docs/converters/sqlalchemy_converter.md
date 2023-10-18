@@ -1,9 +1,9 @@
 # SQLAlchemy Converter
 
-[Functions](#functions)
-[Connection](#connection)
-[Data Types](#data-types)
-[Testing](#testing)
+- [Functions](#functions)
+- [Connection](#connection)
+- [Data Types](#data-types)
+- [Testing](#testing)
 
 Uses the SQLAlchemy [`Inspector`](https://docs.sqlalchemy.org/en/20/core/reflection.html#fine-grained-reflection-with-inspector) class to:
 
