@@ -1,7 +1,9 @@
 [tool]
 [tool.poetry]
 name = "mojap-metadata"
+
 version = "1.14.3"
+
 description = "A python package to manage metadata"
 license = "MIT"
 authors = ["MoJ Data Engineering <dataengineering@digital.justice.gov.uk>"]
