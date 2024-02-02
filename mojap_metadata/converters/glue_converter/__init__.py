@@ -431,6 +431,7 @@ class GlueTable(BaseConverter):
         database_name: str = None,
         table_location: str = None,
         run_msck_repair: bool = False,
+        table_properties: bool = False
     ):
         """
         Creates a glue table from metadata
@@ -442,6 +443,8 @@ class GlueTable(BaseConverter):
             property of the metadata.
             - run_msck_repair (optional): run msck repair table on the created table,
             should be set to True for tables with partitions.
+            - table_properties (optional): option to set table properties in
+            glue.
         Raises:
             - ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
@@ -462,6 +465,17 @@ class GlueTable(BaseConverter):
         boto_dict = self.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
+        
+        # checking additional table properties have been provided
+        # updating the boto_dict 
+        if table_properties:
+            try:
+                additional_table_properties = metadata.to_dict()["additional_table_properties"]
+            except KeyError:
+                warnings.warn("no table properties provided, please check")
+                additional_table_properties = dict()
+            boto_dict["TableInput"]["Parameters"].update(additional_table_properties)
+        
         # create database if it doesn't exist
         _start_query_execution_and_wait(
             database_name, f"CREATE DATABASE IF NOT EXISTS {database_name};"
