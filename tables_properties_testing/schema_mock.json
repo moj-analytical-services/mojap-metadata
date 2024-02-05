@@ -1,0 +1,44 @@
+{
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.4.0.json",
+    "name": "mock_table",
+    "description": "",
+    "file_format": "",
+    "sensitive": false,
+    "columns": [
+        {
+            "name": "column1",
+            "type": "decimal128(6,0)"
+        },
+        {
+            "name": "column2",
+            "type": "string"
+        },
+        {
+            "name": "mis_record_type",
+            "type": "string"
+        },
+        {
+            "name": "mis_load_date",
+            "type": "timestamp(s)"
+        },
+        {
+            "name": "mojap_image_tag",
+            "type": "string",
+            "description": "github image tag"
+        },
+        {
+            "name": "mojap_file_land_timestamp",
+            "type": "int64",
+            "description": "tiemstamp of land file"
+        }
+    ],
+    "primary_key": [],
+    "partitions": [],
+    "additional_table_properties": {
+        "update_type": "value4",
+        "classification": "json",
+        "extraction_timestamp_col": "value2",
+        "primary_key": "value1",
+        "checkpoint_col": "value3"
+    }
+}
