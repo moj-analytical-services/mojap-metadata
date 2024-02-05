@@ -443,11 +443,14 @@ class GlueTable(BaseConverter):
             property of the metadata.
             - run_msck_repair (optional): run msck repair table on the created table,
             should be set to True for tables with partitions.
-            - table_properties (optional): option to set table properties in
-            glue.
         Raises:
             - ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
+            - table_properties (optional): option to set table properties in
+            glue. uses the additional_table_properties parameter if provided in the table schema.
+        Raises:
+            - KeyError if table properties is set to True but no additional table properties have
+            been provided
         """
 
         # set database_name to metadata.database_name if none
@@ -472,7 +475,13 @@ class GlueTable(BaseConverter):
             try:
                 additional_table_properties = metadata.to_dict()["additional_table_properties"]
             except KeyError:
-                warnings.warn("no table properties provided, please check")
+                if not self.options.ignore_warnings:
+                    w = (
+                    "No additional table properties provided, but table properties "
+                    "is set to True. To supress these warnings set this converters "
+                    "options.ignore_warnings = True"
+                    )
+                    warnings.warn(w)
                 additional_table_properties = dict()
             boto_dict["TableInput"]["Parameters"].update(additional_table_properties)
         

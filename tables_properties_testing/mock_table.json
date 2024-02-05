@@ -43,7 +43,7 @@
         }
     ],
     "primary_key": [],
-    "partitions": [],
+    "partitions": ["mojap_file_land_timestamp"],
     "additional_table_properties": {
         "primary_key": "value1",
         "extraction_timestamp_col": "value2", 
