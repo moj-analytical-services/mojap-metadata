@@ -1,15 +1,8 @@
 import pytest
-import json
 
-from tests.helper import assert_meta_col_conversion, valid_types, get_meta
-from moto import mock_glue
+from tests.helper import get_meta
 from mojap_metadata.converters import glue_converter
-from mojap_metadata.converters.glue_converter import (
-    GlueConverter,
-    GlueTable,
-    GlueConverterOptions,
-    _default_type_converter,
-)
+from mojap_metadata.converters.glue_converter import GlueTable
 
 
 # Testing default behavior remains unchanged.
