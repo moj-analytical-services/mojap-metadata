@@ -448,9 +448,6 @@ class GlueTable(BaseConverter):
             options.ignore_warnings is set to False
             - table_properties (optional): option to set table properties in
             glue. uses the additional_table_properties parameter if provided in the table schema.
-        Raises:
-            - KeyError if table properties is set to True but no additional table properties have
-            been provided
         """
 
         # set database_name to metadata.database_name if none
