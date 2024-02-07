@@ -162,7 +162,7 @@ def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
-    assert (meta_dict.get("additional_table_properties")) == None
+    assert (meta_dict.get("additional_table_properties", {})) == {}
 
 
 # Testing behavior when table_properties argument is set to True.

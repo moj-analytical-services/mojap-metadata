@@ -431,7 +431,7 @@ class GlueTable(BaseConverter):
         database_name: str = None,
         table_location: str = None,
         run_msck_repair: bool = False,
-        table_properties: bool = False
+        table_properties: bool = False,
     ):
         """
         Creates a glue table from metadata
@@ -447,7 +447,8 @@ class GlueTable(BaseConverter):
             - ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
             - table_properties (optional): option to set table properties in
-            glue. uses the additional_table_properties parameter if provided in the table schema.
+            glue. uses the additional_table_properties parameter if provided in the
+            table schema.
         """
 
         # set database_name to metadata.database_name if none
@@ -465,26 +466,28 @@ class GlueTable(BaseConverter):
         boto_dict = self.gc.generate_from_meta(
             metadata, database_name=database_name, table_location=table_location
         )
-        
-        # adding additional_table_properties to glue table if table_properties argument is True
-        # checking additional table properties have been provided and are of type dict
-        # updating the boto_dict accordingly
+
+        # adding additional_table_properties to glue table if table_properties argument
+        # is True. checking additional table properties have been provided and are of
+        # type dict. updating the boto_dict accordingly
         if table_properties:
-            additional_table_properties = metadata.to_dict().get("additional_table_properties", {})
-                
-            if not isinstance(additional_table_properties, dict):                      
-                if not self.options.ignore_warnings:   
+            additional_table_properties = metadata.to_dict().get(
+                "additional_table_properties", {}
+            )
+
+            if not isinstance(additional_table_properties, dict):
+                if not self.options.ignore_warnings:
                     w = (
-                    "additional_table_properties have not been provided in type dict. "
-                    "Please check. To supress these warnings set this converters "
-                    "options.ignore_warnings = True"
+                        "additional_table_properties have not been provided in "
+                        "type dict. Please check. To supress these warnings "
+                        "this converters options.ignore_warnings = True"
                     )
                     warnings.warn(w)
 
                 additional_table_properties = dict()
 
             boto_dict["TableInput"]["Parameters"].update(additional_table_properties)
-        
+
         # create database if it doesn't exist
         _start_query_execution_and_wait(
             database_name, f"CREATE DATABASE IF NOT EXISTS {database_name};"
@@ -514,7 +517,9 @@ class GlueTable(BaseConverter):
                 database_name, f"msck repair table {database_name}.{metadata.name}"
             )
 
-    def generate_to_meta(self, database: str, table: str, table_properties: bool = False) -> Metadata:
+    def generate_to_meta(
+        self, database: str, table: str, table_properties: bool = False
+    ) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
         resp = glue_client.get_table(DatabaseName=database, Name=table)
@@ -548,7 +553,7 @@ class GlueTable(BaseConverter):
 
         if ff:
             meta.file_format = ff.lower()
-        
+
         # getting the additional_table_properties if table_properties argument is True
         if table_properties:
             metadata_dict = meta.to_dict()
