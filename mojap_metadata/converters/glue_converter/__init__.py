@@ -431,7 +431,7 @@ class GlueTable(BaseConverter):
         database_name: str = None,
         table_location: str = None,
         run_msck_repair: bool = False,
-        table_properties: bool = False,
+        has_glue_table_properties: bool = False,
     ):
         """
         Creates a glue table from metadata
@@ -446,8 +446,8 @@ class GlueTable(BaseConverter):
         Raises:
             - ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
-            - table_properties (optional): option to set table properties in
-            glue. uses the additional_table_properties parameter if provided in the
+            - has_glue_table_properties (optional): option to set table properties in
+            glue. uses the glue_table_properties parameter if provided in the
             table schema.
         """
 
@@ -467,26 +467,24 @@ class GlueTable(BaseConverter):
             metadata, database_name=database_name, table_location=table_location
         )
 
-        # adding additional_table_properties to glue table if table_properties argument
-        # is True. checking additional table properties have been provided and are of
+        # adding table properties to glue table if has_glue_table_properties argument
+        # is True. checking glue_table_properties have been provided and are of
         # type dict. updating the boto_dict accordingly
-        if table_properties:
-            additional_table_properties = metadata.to_dict().get(
-                "additional_table_properties", {}
-            )
+        if has_glue_table_properties:
+            glue_table_properties = metadata.to_dict().get("glue_table_properties", {})
 
-            if not isinstance(additional_table_properties, dict):
+            if not isinstance(glue_table_properties, dict):
                 if not self.options.ignore_warnings:
                     w = (
-                        "additional_table_properties have not been provided in "
+                        "glue_table_properties have not been provided in "
                         "type dict. Please check. To supress these warnings "
                         "this converters options.ignore_warnings = True"
                     )
                     warnings.warn(w)
 
-                additional_table_properties = dict()
+                glue_table_properties = dict()
 
-            boto_dict["TableInput"]["Parameters"].update(additional_table_properties)
+            boto_dict["TableInput"]["Parameters"].update(glue_table_properties)
 
         # create database if it doesn't exist
         _start_query_execution_and_wait(
@@ -518,7 +516,7 @@ class GlueTable(BaseConverter):
             )
 
     def generate_to_meta(
-        self, database: str, table: str, table_properties: bool = False
+        self, database: str, table: str, has_glue_table_properties: bool = False
     ) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
@@ -554,10 +552,11 @@ class GlueTable(BaseConverter):
         if ff:
             meta.file_format = ff.lower()
 
-        # getting the additional_table_properties if table_properties argument is True
-        if table_properties:
+        # getting the glue table properties if
+        # has_glue_table_properties argument is True
+        if has_glue_table_properties:
             metadata_dict = meta.to_dict()
-            metadata_dict["additional_table_properties"] = resp["Table"]["Parameters"]
+            metadata_dict["glue_table_properties"] = resp["Table"]["Parameters"]
             meta = Metadata.from_dict(metadata_dict)
 
         return meta
