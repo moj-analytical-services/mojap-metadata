@@ -455,7 +455,7 @@ class GlueTable(BaseConverter):
             - TypeError if update_table_properties is True and glue_table_properties
             are not type dict
         """
-        
+
         # set database_name to metadata.database_name if none
         database_name = database_name if database_name else metadata.database_name
         # do the same with table_location
