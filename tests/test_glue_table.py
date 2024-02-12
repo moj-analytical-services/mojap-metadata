@@ -56,7 +56,7 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     gt = GlueTable()
     gt.options.ignore_warnings = True
     # setting has_glue_table_properties to True
-    gt.generate_from_meta(meta, update_glue_table_properties=True)
+    gt.generate_from_meta(meta, update_table_properties=True)
 
     glue_table_properties_expected = {
         "classification": "csv",
@@ -71,21 +71,19 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     assert table["Table"]["Parameters"] == glue_table_properties_expected
 
 
-# Testing that a warning is given if glue_table_properties are not type dict
-def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
+# Testing that a TypeError is given if glue_table_properties are not type dict
+def test_table_properties_error_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
             "database_name": "cool_database",
             "table_location": "s3://buckets/are/cool",
-            "glue_table_properties": [
-                {
-                    "primary_key": "value1",
-                    "extraction_timestamp_col": "value2",
-                    "checkpoint_col": "value3",
-                    "update_type": "value4",
-                }
-            ],
+            "glue_table_properties": [{
+                "primary_key": "value1",
+                "extraction_timestamp_col": "value2",
+                "checkpoint_col": "value3",
+                "update_type": "value4",
+            }],
         },
     )
     monkeypatch.setattr(
@@ -93,11 +91,29 @@ def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
     )
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
-    with pytest.warns(UserWarning):
+    with pytest.raises(TypeError):
         gt.generate_from_meta(
-            meta, run_msck_repair=True, update_glue_table_properties=True
+            meta, run_msck_repair=True, update_table_properties=True
         )
 
+# Testing that a KeyError is given if glue_table_properties are not provided
+def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
+    meta = get_meta(
+        "csv",
+        {
+            "database_name": "cool_database",
+            "table_location": "s3://buckets/are/cool",
+        },
+    )
+    monkeypatch.setattr(
+        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
+    )
+    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
+    gt = GlueTable()
+    with pytest.raises(KeyError):
+        gt.generate_from_meta(
+            meta, run_msck_repair=True, update_table_properties=True
+        )
 
 # Testing that there is no impact on run_msck_repair and partitioning
 def test_parititioning_generate_from_meta(glue_client, monkeypatch):
@@ -121,7 +137,7 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     gt = GlueTable()
-    gt.generate_from_meta(meta, run_msck_repair=True, update_glue_table_properties=True)
+    gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
 
     paritions_expected = [
         {"Name": "my_timestamp", "Type": "timestamp", "Comment": "Partition column"}
@@ -164,7 +180,6 @@ def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
-    assert (meta_dict.get("glue_table_properties", {})) == {}
 
 
 # Testing behavior when has_glue_table_properties argument is set to True.
@@ -184,7 +199,7 @@ def test__table_properties_generate_to_meta(glue_client, monkeypatch):
         gt = GlueTable()
         gt.generate_from_meta(meta)
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", get_glue_table_properties=True
+            "cool_database", "test_table", get_table_properties=True
         )
         meta_dict = meta_generated.to_dict()
 
@@ -220,9 +235,9 @@ def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
         gt = GlueTable()
-        gt.generate_from_meta(meta, update_glue_table_properties=True)
+        gt.generate_from_meta(meta, update_table_properties=True)
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", get_glue_table_properties=True
+            "cool_database", "test_table", get_table_properties=True
         )
         meta_dict = meta_generated.to_dict()
 
