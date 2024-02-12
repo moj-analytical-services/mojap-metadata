@@ -450,12 +450,12 @@ class GlueTable(BaseConverter):
             in glue. uses the glue_table_properties parameter if provided in the
             table schema.
         Raises:
-            - KeyError if update_table_properties is True and glue_table_properties 
+            - KeyError if update_table_properties is True and glue_table_properties
             are not provided in the table schema
             - TypeError if update_table_properties is True and glue_table_properties
             are not type dict
         """
-
+        
         # set database_name to metadata.database_name if none
         database_name = database_name if database_name else metadata.database_name
         # do the same with table_location
