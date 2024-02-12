@@ -78,12 +78,14 @@ def test_table_properties_error_generate_from_meta(glue_client, monkeypatch):
         {
             "database_name": "cool_database",
             "table_location": "s3://buckets/are/cool",
-            "glue_table_properties": [{
-                "primary_key": "value1",
-                "extraction_timestamp_col": "value2",
-                "checkpoint_col": "value3",
-                "update_type": "value4",
-            }],
+            "glue_table_properties": [
+                {
+                    "primary_key": "value1",
+                    "extraction_timestamp_col": "value2",
+                    "checkpoint_col": "value3",
+                    "update_type": "value4",
+                }
+            ],
         },
     )
     monkeypatch.setattr(
@@ -92,9 +94,8 @@ def test_table_properties_error_generate_from_meta(glue_client, monkeypatch):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
     with pytest.raises(TypeError):
-        gt.generate_from_meta(
-            meta, run_msck_repair=True, update_table_properties=True
-        )
+        gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
+
 
 # Testing that a KeyError is given if glue_table_properties are not provided
 def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
@@ -111,9 +112,8 @@ def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
     gt = GlueTable()
     with pytest.raises(KeyError):
-        gt.generate_from_meta(
-            meta, run_msck_repair=True, update_table_properties=True
-        )
+        gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
+
 
 # Testing that there is no impact on run_msck_repair and partitioning
 def test_parititioning_generate_from_meta(glue_client, monkeypatch):
@@ -173,7 +173,6 @@ def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
         gt = GlueTable()
         gt.generate_from_meta(meta)
         meta_generated = gt.generate_to_meta("cool_database", "test_table")
-        meta_dict = meta_generated.to_dict()
 
     # check that all the column types and partitions are correctly generated
     gen_cols_match = meta_generated.columns == meta.columns
