@@ -56,7 +56,7 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     gt = GlueTable()
     gt.options.ignore_warnings = True
     # setting has_glue_table_properties to True
-    gt.generate_from_meta(meta, has_glue_table_properties=True)
+    gt.generate_from_meta(meta, update_glue_table_properties=True)
 
     glue_table_properties_expected = {
         "classification": "csv",
@@ -95,7 +95,7 @@ def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
     gt = GlueTable()
     with pytest.warns(UserWarning):
         gt.generate_from_meta(
-            meta, run_msck_repair=True, has_glue_table_properties=True
+            meta, run_msck_repair=True, update_glue_table_properties=True
         )
 
 
@@ -121,7 +121,7 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     gt = GlueTable()
-    gt.generate_from_meta(meta, run_msck_repair=True, has_glue_table_properties=True)
+    gt.generate_from_meta(meta, run_msck_repair=True, update_glue_table_properties=True)
 
     paritions_expected = [
         {"Name": "my_timestamp", "Type": "timestamp", "Comment": "Partition column"}
@@ -184,7 +184,7 @@ def test__table_properties_generate_to_meta(glue_client, monkeypatch):
         gt = GlueTable()
         gt.generate_from_meta(meta)
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", has_glue_table_properties=True
+            "cool_database", "test_table", get_glue_table_properties=True
         )
         meta_dict = meta_generated.to_dict()
 
@@ -220,9 +220,9 @@ def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
         gt = GlueTable()
-        gt.generate_from_meta(meta, has_glue_table_properties=True)
+        gt.generate_from_meta(meta, update_glue_table_properties=True)
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", has_glue_table_properties=True
+            "cool_database", "test_table", get_glue_table_properties=True
         )
         meta_dict = meta_generated.to_dict()
 
