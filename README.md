@@ -310,11 +310,17 @@ glue_client = boto3.client("glue")
 glue_client.create_table(**boto_dict) # Would deploy glue schema based on our metadata
 ```
 
-included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has one method:
+included alongside `GlueConverter` is `GlueTable` that can overlay a metadata object, dictionary, or path to metadata file. it has two methods:
 - **generate_from_meta:** generates a glue table from the metadata object, dict, or string path, takes the following arguments:
     - _metadata:_ the metadata object, dict, or string path that is to be overlaid
     - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
     - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
+    - _update\_table\_properties:_ (optional) default value is False. If True, will update the table properties in the glue data catalog with the key/values pairs from the glue_table_properties parameter in the table schema
+
+- **generate_to_meta:** generates a Metadata object for a specified table from glue, takes the following arguments:
+    - _database:_ the name of the glue database
+    - _table:_ the name of the glue table from the glue database
+    - _get\_table\_properties:_ (optional) default value is False. if True, will retrieve the table properties from the glue data catalog and populate the glue_table_properties paramater in the table schema with these key/value pairs
 
 ### SQLAlchemy Converter
 
