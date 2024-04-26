@@ -38,11 +38,14 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
         {
             "database_name": "cool_database",
             "table_location": "s3://buckets/are/cool",
+            "primary_key": ["my_timestamp", "my_int"],
             "glue_table_properties": {
-                "primary_key": "value1",
-                "extraction_timestamp_col": "value2",
+                "classification": "json",
+                "primary_key": ["column1"],
+                "extraction_timestamp_col": 10,
                 "checkpoint_col": "value3",
-                "update_type": "value4",
+                "update_type": True,
+                "test_column": ["value1", "value2"],
             },
         },
     )
@@ -56,14 +59,15 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     gt = GlueTable()
     gt.options.ignore_warnings = True
     # setting has_glue_table_properties to True
-    gt.generate_from_meta(meta, update_table_properties=True)
+    gt.generate_from_meta(meta)
 
     glue_table_properties_expected = {
         "classification": "csv",
-        "extraction_timestamp_col": "value2",
-        "primary_key": "value1",
+        "primary_key": "['my_timestamp', 'my_int']",
+        "extraction_timestamp_col": "10",
         "checkpoint_col": "value3",
-        "update_type": "value4",
+        "update_type": "True",
+        "test_column": "['value1', 'value2']",
     }
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
@@ -80,10 +84,12 @@ def test_table_properties_error_generate_from_meta(glue_client, monkeypatch):
             "table_location": "s3://buckets/are/cool",
             "glue_table_properties": [
                 {
-                    "primary_key": "value1",
-                    "extraction_timestamp_col": "value2",
+                    "classification": "json",
+                    "primary_key": ["column1"],
+                    "extraction_timestamp_col": 10,
                     "checkpoint_col": "value3",
-                    "update_type": "value4",
+                    "update_type": True,
+                    "test_column": ["value1", "value2"],
                 }
             ],
         },
@@ -97,24 +103,6 @@ def test_table_properties_error_generate_from_meta(glue_client, monkeypatch):
         gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
 
 
-# Testing that a KeyError is given if glue_table_properties are not provided
-def test_table_properties_warnings_generate_from_meta(glue_client, monkeypatch):
-    meta = get_meta(
-        "csv",
-        {
-            "database_name": "cool_database",
-            "table_location": "s3://buckets/are/cool",
-        },
-    )
-    monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
-    )
-    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-    gt = GlueTable()
-    with pytest.raises(KeyError):
-        gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
-
-
 # Testing that there is no impact on run_msck_repair and partitioning
 def test_parititioning_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
@@ -123,10 +111,10 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
             "database_name": "cool_database",
             "table_location": "s3://buckets/are/cool",
             "glue_table_properties": {
-                "primary_key": "value1",
-                "extraction_timestamp_col": "value2",
+                "extraction_timestamp_col": 10,
                 "checkpoint_col": "value3",
-                "update_type": "value4",
+                "update_type": True,
+                "test_column": ["value1", "value2"],
             },
         },
     )
@@ -137,7 +125,7 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
     glue_client.create_database(DatabaseInput={"Name": meta.database_name})
 
     gt = GlueTable()
-    gt.generate_from_meta(meta, run_msck_repair=True, update_table_properties=True)
+    gt.generate_from_meta(meta, run_msck_repair=True)
 
     paritions_expected = [
         {"Name": "my_timestamp", "Type": "timestamp", "Comment": "Partition column"}
@@ -145,10 +133,10 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
 
     glue_table_properties_expected = {
         "classification": "csv",
-        "extraction_timestamp_col": "value2",
-        "primary_key": "value1",
+        "extraction_timestamp_col": "10",
         "checkpoint_col": "value3",
-        "update_type": "value4",
+        "update_type": "True",
+        "test_column": "['value1', 'value2']",
     }
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
@@ -181,48 +169,21 @@ def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
     assert (True, True) == (gen_cols_match, gen_partitions_match)
 
 
-# Testing behavior when has_glue_table_properties argument is set to True.
-# No glue_table_properties provided in schema.
-def test__table_properties_generate_to_meta(glue_client, monkeypatch):
-    meta = get_meta(
-        "csv",
-        {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
-    )
-
-    monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
-    )
-    # create the mock table and generate the meta from the mock table
-    with mock_glue():
-        glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-        gt = GlueTable()
-        gt.generate_from_meta(meta)
-        meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", get_table_properties=True
-        )
-        meta_dict = meta_generated.to_dict()
-
-    # check that all the column types and partitions are correctly generated
-    gen_cols_match = meta_generated.columns == meta.columns
-    gen_partitions_match = meta_generated.partitions == meta.partitions
-
-    assert (True, True) == (gen_cols_match, gen_partitions_match)
-    assert (meta_dict.get("glue_table_properties")) == {"classification": "csv"}
-
-
-# Testing behavior when has_glue_table_properties argument is set to True.
-# glue_table_properties provided in schema.
+# Testing behavior when table parameters are populated in Glue
 def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
             "database_name": "cool_database",
             "table_location": "s3://buckets/are/cool",
+            "primary_key": ["my_timestamp", "my_int"],
             "glue_table_properties": {
-                "primary_key": "value1",
-                "extraction_timestamp_col": "value2",
+                "classification": "json",
+                "primary_key": ["column1"],
+                "extraction_timestamp_col": 10,
                 "checkpoint_col": "value3",
-                "update_type": "value4",
+                "update_type": True,
+                "test_column": ["value1", "value2"],
             },
         },
     )
@@ -234,10 +195,8 @@ def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
         gt = GlueTable()
-        gt.generate_from_meta(meta, update_table_properties=True)
-        meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", get_table_properties=True
-        )
+        gt.generate_from_meta(meta)
+        meta_generated = gt.generate_to_meta("cool_database", "test_table")
         meta_dict = meta_generated.to_dict()
 
     # check that all the column types and partitions are correctly generated
@@ -245,12 +204,14 @@ def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
     glue_table_properties_expected = {
-        "classification": "csv",
-        "extraction_timestamp_col": "value2",
-        "primary_key": "value1",
+        "extraction_timestamp_col": 10,
         "checkpoint_col": "value3",
-        "update_type": "value4",
+        "update_type": True,
+        "test_column": ["value1", "value2"],
     }
+
+    primary_key_expected = ["my_timestamp", "my_int"]
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
     assert (meta_dict.get("glue_table_properties")) == glue_table_properties_expected
+    assert (meta_dict.get("primary_key")) == primary_key_expected

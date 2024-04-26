@@ -4,10 +4,12 @@ import os
 import re
 import time
 import warnings
+import ast
 
 import importlib.resources as pkg_resources
 
 from dataclasses import dataclass
+
 from mojap_metadata.converters import (
     BaseConverter,
     _flatten_and_convert_complex_data_type,
@@ -431,7 +433,6 @@ class GlueTable(BaseConverter):
         database_name: str = None,
         table_location: str = None,
         run_msck_repair: bool = False,
-        update_table_properties: bool = False,
     ):
         """
         Creates a glue table from metadata
@@ -446,14 +447,8 @@ class GlueTable(BaseConverter):
         Raises:
             - ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
-            - update_table_properties (optional): option to update table properties
-            in glue. uses the glue_table_properties parameter if provided in the
-            table schema.
         Raises:
-            - KeyError if update_table_properties is True and glue_table_properties
-            are not provided in the table schema
-            - TypeError if update_table_properties is True and glue_table_properties
-            are not type dict
+            - TypeError if glue_table_properties are not type dict
         """
 
         # set database_name to metadata.database_name if none
@@ -472,29 +467,58 @@ class GlueTable(BaseConverter):
             metadata, database_name=database_name, table_location=table_location
         )
 
-        # checking if update_table_properties is True
-        if update_table_properties:
-            metadata_dict = metadata.to_dict()
+        # adding primary key to table parameters
+        if metadata.primary_key:
+            primary_key_dict = {"primary_key": str(metadata.primary_key)}
+            boto_dict["TableInput"]["Parameters"].update(primary_key_dict)
 
-            # raises a KeyError if glue_table_properties are not in the schema
-            if "glue_table_properties" not in metadata_dict.keys():
-                error_msg = (
-                    "glue_table_properties have not been provided in "
-                    "the schema. Please check. "
-                )
-                raise KeyError(error_msg)
-            # raises a TypeError if glue_table_properties are not type dict
-            elif not isinstance(metadata_dict.get("glue_table_properties"), dict):
-                error_msg = (
-                    "glue_table_properties have not been provided in "
-                    "type dict. Please check. "
-                )
-                raise TypeError(error_msg)
-            # updates the boto_dict with the glue_table_properties
-            else:
-                boto_dict["TableInput"]["Parameters"].update(
-                    metadata_dict.get("glue_table_properties")
-                )
+        # protected attributes that should not be overwritten
+        protected_glue_table_properties = [
+            "recordCount",
+            "skip.header.line.count",
+            "CrawlerSchemaSerializerVersion",
+            "classification",
+            "CrawlerSchemaDeserializerVersion",
+            "sizeKey",
+            "averageRecordSize",
+            "compressionType",
+            "typeOfData",
+            "objectCount",
+            "aws:RawTableLastAltered",
+            "ViewOriginalText",
+            "ViewExpandedText",
+            "ExternalTable:S3Location",
+            "ExternalTable:FileFormat",
+            "aws:RawType",
+            "aws:RawColumnComment",
+            "aws:RawTableComment",
+            "primary_key",
+        ]
+
+        # updating glue table properties
+        metadata_dict = metadata.to_dict()
+
+        # nothing to do if glue_table_properties are not in the schema
+        if "glue_table_properties" not in metadata_dict.keys():
+            pass
+        # raises a TypeError if glue_table_properties are not type dict
+        elif not isinstance(metadata_dict.get("glue_table_properties"), dict):
+            error_msg = (
+                "glue_table_properties have not been provided in "
+                "type dict. Please check. "
+            )
+            raise TypeError(error_msg)
+        # remove any protected glue table properties from the glue_table_properties
+        # defined by the user in the metadata
+        else:
+            glue_table_properties = {
+                k: str(v)
+                for k, v in metadata_dict.get("glue_table_properties").items()
+                if k not in protected_glue_table_properties
+            }
+
+            # adding glue_table_properties to table parameters
+            boto_dict["TableInput"]["Parameters"].update(glue_table_properties)
 
         # create database if it doesn't exist
         _start_query_execution_and_wait(
@@ -525,9 +549,7 @@ class GlueTable(BaseConverter):
                 database_name, f"msck repair table {database_name}.{metadata.name}"
             )
 
-    def generate_to_meta(
-        self, database: str, table: str, get_table_properties: bool = False
-    ) -> Metadata:
+    def generate_to_meta(self, database: str, table: str) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
         resp = glue_client.get_table(DatabaseName=database, Name=table)
@@ -562,12 +584,49 @@ class GlueTable(BaseConverter):
         if ff:
             meta.file_format = ff.lower()
 
-        # if get_table_properties argument is True
-        # getting the glue table properties
-        if get_table_properties:
-            metadata_dict = meta.to_dict()
-            metadata_dict["glue_table_properties"] = resp["Table"]["Parameters"]
-            meta = Metadata.from_dict(metadata_dict)
+        protected_glue_table_properties = [
+            "recordCount",
+            "skip.header.line.count",
+            "CrawlerSchemaSerializerVersion",
+            "classification",
+            "CrawlerSchemaDeserializerVersion",
+            "sizeKey",
+            "averageRecordSize",
+            "compressionType",
+            "typeOfData",
+            "objectCount",
+            "aws:RawTableLastAltered",
+            "ViewOriginalText",
+            "ViewExpandedText",
+            "ExternalTable:S3Location",
+            "ExternalTable:FileFormat",
+            "aws:RawType",
+            "aws:RawColumnComment",
+            "aws:RawTableComment",
+            "primary_key",
+        ]
+
+        # get metadata dict and table parameters
+        metadata_dict = meta.to_dict()
+        table_parameters = resp["Table"]["Parameters"]
+        glue_table_properties = dict()
+
+        # add primary key to metadata
+        for key, value in table_parameters.items():
+            if key == "primary_key":
+                metadata_dict[key] = ast.literal_eval(value)
+            elif key in protected_glue_table_properties:
+                continue
+            # add glue table properties to metadata
+            else:
+                try:
+                    item = {key: ast.literal_eval(value)}
+                except (ValueError, SyntaxError):
+                    item = {key: value}
+                glue_table_properties.update(item)
+                metadata_dict["glue_table_properties"] = glue_table_properties
+
+        meta = Metadata.from_dict(metadata_dict)
 
         return meta
 
