@@ -127,7 +127,7 @@ class SQLAlchemyConverter(BaseConverter):
         d = {
             "name": table,
             "columns": columns,
-            "primary_key": pk["constrained_columns"],
+            "primary_key": pk["constrained_columns"].lower(),
             "database": schema,
             "description": self._get_table_description(table, schema),
         }
