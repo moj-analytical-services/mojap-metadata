@@ -66,7 +66,7 @@ def create_tables(connectable, schema):
     Table(
         table_name,
         metadata,
-        Column("my_string_10", String(10), primary_key=True, nullable=False),
+        Column("MY_STRING_10", String(10), primary_key=True, nullable=False),
         Column("my_int", Integer(), comment="this is the comment"),
         Column("my_string_255", String(255), default="Active"),
         Column("my_bool", Boolean(), default=False),
