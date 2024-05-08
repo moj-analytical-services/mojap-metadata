@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 import pytest
+import warnings
 
 from mojap_metadata import Metadata
 
@@ -90,14 +91,14 @@ def assert_meta_col_conversion(
         with pytest.warns(UserWarning):
             assert getattr(converter, funname)(in_type) == out_type
 
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings(record=True) as record:
             assert getattr(yolo_converter, funname)(in_type) == out_type
 
         if len(record) != 0:
             fail_info = "Expected no warning as options.ignore_warnings = True."
             pytest.fail(fail_info)
     else:
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings(record=True) as record:
             assert getattr(converter, funname)(in_type) == out_type
             assert getattr(yolo_converter, funname)(in_type) == out_type
 
