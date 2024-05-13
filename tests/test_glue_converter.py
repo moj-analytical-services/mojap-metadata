@@ -1,3 +1,4 @@
+import jsonschema
 import pytest
 import json
 
@@ -141,6 +142,115 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
 
     assert spec == expected_spec
 
+def test_glue_converter_dict_error_generate_from_meta():
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        meta = get_meta(
+        "parquet",
+        {
+            "database_name": "test_db",
+            "table_location": "s3://bucket/test_table",
+            "primary_key": ["my_timestamp", "my_int"],
+            "glue_table_properties_custom": [{
+                "classification": "json",
+                "primary_key": ["column1"],
+                "extraction_timestamp_col": 10,
+                "checkpoint_col": "value3",
+                "update_type": True,
+                "test_column": ["value1", "value2"],
+            }],
+        },
+        )
+        
+        gc = GlueConverter()
+        boto_dict = gc.generate_from_meta(metadata=meta, database_name="test_db", table_location="s3://bucket/test_table")
+        
+        glue_table_properties_custom_expected = {
+            "classification": "parquet",
+            "primary_key": "['my_timestamp', 'my_int']",
+            "extraction_timestamp_col": "10",
+            "checkpoint_col": "value3",
+            "update_type": "True",
+            "test_column": "['value1', 'value2']",
+        }
+        
+        assert boto_dict["TableInput"]["Parameters"] == glue_table_properties_custom_expected
+
+def test_basic_functionality_generate_from_meta():
+    meta = get_meta(
+        "csv",
+        {"database_name": "test_db", "table_location":  "s3://bucket/test_table"}
+    )
+    
+    gc = GlueConverter()
+    boto_dict = gc.generate_from_meta(metadata=meta, database_name="test_db", table_location="s3://bucket/test_table")
+    
+    assert boto_dict["TableInput"]["Parameters"] == {"classification": "csv"}
+
+def test_glue_converter_string_error_generate_from_meta():
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        meta = get_meta(
+        "parquet",
+        {
+            "database_name": "test_db",
+            "table_location": "s3://bucket/test_table",
+            "primary_key": ["my_timestamp", "my_int"],
+            "glue_table_properties_custom": {
+                "classification": "json",
+                "primary_key": ["column1"],
+                "extraction_timestamp_col": 10,
+                "checkpoint_col": "value3, value5",
+                "update_type": True,
+                "test_column": ["value1", "value2"],
+            },
+        },
+        )
+        
+        gc = GlueConverter()
+        boto_dict = gc.generate_from_meta(metadata=meta, database_name="test_db", table_location="s3://bucket/test_table")
+        
+        glue_table_properties_custom_expected = {
+            "classification": "parquet",
+            "primary_key": "['my_timestamp', 'my_int']",
+            "extraction_timestamp_col": "10",
+            "checkpoint_col": "value3",
+            "update_type": "True",
+            "test_column": "['value1', 'value2']",
+        }
+        
+        assert boto_dict["TableInput"]["Parameters"] == glue_table_properties_custom_expected
+
+def test_glue_converter_generate_from_meta():
+    meta = get_meta(
+    "json",
+    {
+        "database_name": "test_db",
+        "table_location": "s3://bucket/test_table",
+        "primary_key": ["my_timestamp", "my_int"],
+        "glue_table_properties_custom": {
+            "classification": "json",
+            "primary_key": ["column1"],
+            "extraction_timestamp_col": 10,
+            "checkpoint_col": "value3",
+            "update_type": True,
+            "test_column": ["value1", "value2"],
+        },
+    },
+    )
+    
+    gc = GlueConverter()
+    boto_dict = gc.generate_from_meta(metadata=meta, database_name="test_db", table_location="s3://bucket/test_table")
+    
+    glue_table_properties_custom_expected = {
+        "classification": "json",
+        "primary_key": "['my_timestamp', 'my_int']",
+        "extraction_timestamp_col": "10",
+        "checkpoint_col": "value3",
+        "update_type": "True",
+        "test_column": "['value1', 'value2']",
+    }
+    
+    assert boto_dict["TableInput"]["Parameters"] == glue_table_properties_custom_expected
+    
 
 @mock_glue
 @pytest.mark.parametrize(
