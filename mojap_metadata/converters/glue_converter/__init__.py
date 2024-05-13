@@ -89,7 +89,7 @@ _glue_to_mojap_type_converter = {
 # The below properties are set by Glue Crawler in the Glue Data Catalog or have special uses in AWS.
 # We do not want to overwrite these table properties.
 # This list should be reviewed agaist https://docs.aws.amazon.com/glue/latest/dg/table-properties-crawler.html
-# and https://docs.aws.amazon.com/athena/latest/ug/alter-table-set-tblproperties.html. 
+# and https://docs.aws.amazon.com/athena/latest/ug/alter-table-set-tblproperties.html.
 _glue_table_properties_aws = [
     "recordCount",
     "skip.header.line.count",
