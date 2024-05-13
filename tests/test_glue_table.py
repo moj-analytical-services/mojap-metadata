@@ -74,7 +74,8 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     assert table["Table"]["Parameters"] == glue_table_properties_custom_expected
 
 
-# Testing that a jsonschema ValidationError is given if glue_table_properties_custom are not type dict
+# Testing that a jsonschema ValidationError is given if
+# glue_table_properties_custom are not type dict
 def test_table_properties_dict_error_generate_from_meta(glue_client, monkeypatch):
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
@@ -105,7 +106,8 @@ def test_table_properties_dict_error_generate_from_meta(glue_client, monkeypatch
         gt.generate_from_meta(meta, run_msck_repair=True)
 
 
-# Testing that a jsonschema ValidationError is given if glue_table_properties_custom contain comma separated strings
+# Testing that a jsonschema ValidationError is given if
+# glue_table_properties_custom contain comma separated strings
 def test_table_properties_string_error_generate_from_meta(glue_client, monkeypatch):
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
@@ -135,7 +137,7 @@ def test_table_properties_string_error_generate_from_meta(glue_client, monkeypat
 
 
 # Testing that populating glue_table_properties_aws has no impact.
-def test_gluetable_generate_from_meta(glue_client, monkeypatch):
+def test_gluetable_aws_properties_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {

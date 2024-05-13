@@ -86,10 +86,11 @@ _glue_to_mojap_type_converter = {
     "struct": ("struct", False),
 }
 
-# The below properties are set by Glue Crawler in the Glue Data Catalog or have special uses in AWS.
-# We do not want to overwrite these table properties.
-# This list should be reviewed agaist https://docs.aws.amazon.com/glue/latest/dg/table-properties-crawler.html
-# and https://docs.aws.amazon.com/athena/latest/ug/alter-table-set-tblproperties.html.
+# The below properties are set by Glue Crawler in the Glue Data Catalog
+# or have special uses in AWS. We do not want to overwrite these table properties.
+# This list should be reviewed agaist:
+# https://docs.aws.amazon.com/glue/latest/dg/table-properties-crawler.html and
+# https://docs.aws.amazon.com/athena/latest/ug/alter-table-set-tblproperties.html.
 _glue_table_properties_aws = [
     "recordCount",
     "skip.header.line.count",
@@ -430,8 +431,8 @@ class GlueConverter(BaseConverter):
         # nothing to do if glue_table_properties_custom are not in the schema
         if "glue_table_properties_custom" not in metadata_dict.keys():
             pass
-        # remove any protected glue table properties from the glue_table_properties_custom
-        # defined by the user in the metadata
+        # remove any protected glue table properties from the
+        # glue_table_properties_custom defined by the user in the metadata
         else:
             glue_table_properties_custom = {
                 k: str(v)
@@ -547,8 +548,8 @@ class GlueTable(BaseConverter):
         # nothing to do if glue_table_properties_custom are not in the schema
         if "glue_table_properties_custom" not in metadata_dict.keys():
             pass
-        # remove any protected glue table properties from the glue_table_properties_custom
-        # defined by the user in the metadata
+        # remove any protected glue table properties from the
+        # glue_table_properties_custom defined by the user in the metadata
         else:
             glue_table_properties_custom = {
                 k: str(v)
@@ -642,9 +643,9 @@ class GlueTable(BaseConverter):
 
 def _get_glue_table_properties(
     metadata: Metadata,
-    table_parameters_resp: dict[str, str],
+    table_parameters_resp: dict,
     include_glue_table_properties_aws: bool = False,
-) -> dict[str, any]:
+) -> dict:
     """
     Processes table parameters and separates them into custom and AWS glue properties.
 
