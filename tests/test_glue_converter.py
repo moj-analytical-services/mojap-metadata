@@ -142,6 +142,7 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
 
     assert spec == expected_spec
 
+
 # Testing default behavior remains unchanged.
 def test_glue_converter_basic_functionality_generate_from_meta():
     meta = get_meta(
@@ -154,6 +155,7 @@ def test_glue_converter_basic_functionality_generate_from_meta():
     )
 
     assert boto_dict["TableInput"]["Parameters"] == {"classification": "csv"}
+
 
 # Testing that the glue table properties are updated in the metadata as expected.
 def test_glue_converter_generate_from_meta():
@@ -174,7 +176,7 @@ def test_glue_converter_generate_from_meta():
             "glue_table_properties_aws": {
                 "write.compression": "True",
                 "objectCount": 43,
-            }
+            },
         },
     )
 
@@ -192,9 +194,8 @@ def test_glue_converter_generate_from_meta():
         "test_column": "['value1', 'value2']",
     }
 
-    assert (
-        boto_dict["TableInput"]["Parameters"] == glue_table_properties_expected
-    )
+    assert boto_dict["TableInput"]["Parameters"] == glue_table_properties_expected
+
 
 # Testing that a jsonschema ValidationError is given if
 # glue_table_properties_custom are not type dict
@@ -216,6 +217,10 @@ def test_glue_converter_string_error_generate_from_meta():
                 },
             },
         )
+
+        gc = GlueConverter()
+        gc.generate_from_meta(meta)
+
 
 # Testing that a jsonschema ValidationError is given if
 # glue_table_properties_custom contain comma separated strings
@@ -239,6 +244,9 @@ def test_glue_converter_dict_error_generate_from_meta():
                 ],
             },
         )
+
+        gc = GlueConverter()
+        gc.generate_from_meta(meta)
 
 
 @mock_glue

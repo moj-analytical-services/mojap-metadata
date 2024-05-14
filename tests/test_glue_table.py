@@ -96,6 +96,9 @@ def test_glue_table_dict_error_generate_from_meta():
             },
         )
 
+        gt = GlueTable()
+        gt.generate_from_meta(meta)
+
 
 # Testing that a jsonschema ValidationError is given if
 # glue_table_properties_custom contain comma separated strings
@@ -116,6 +119,9 @@ def test_glue_table_string_error_generate_from_meta():
                 },
             },
         )
+
+        gt = GlueTable()
+        gt.generate_from_meta(meta)
 
 
 # Testing that populating glue_table_properties_aws has no impact.
