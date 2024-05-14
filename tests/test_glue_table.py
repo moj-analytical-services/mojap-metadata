@@ -8,7 +8,7 @@ from mojap_metadata.converters.glue_converter import GlueTable
 
 
 # Testing default behavior remains unchanged.
-def test_basic_functionality_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_basic_functionality_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
@@ -24,15 +24,15 @@ def test_basic_functionality_generate_from_meta(glue_client, monkeypatch):
     gt.options.ignore_warnings = True
     gt.generate_from_meta(meta)
 
-    glue_table_properties_custom_expected = {"classification": "csv"}
+    glue_table_properties_expected = {"classification": "csv"}
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert table["Table"]["Parameters"] == glue_table_properties_custom_expected
+    assert table["Table"]["Parameters"] == glue_table_properties_expected
 
 
 # Testing that the AWS Glue table created is as expected.
-def test_gluetable_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
@@ -60,7 +60,7 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
     gt.options.ignore_warnings = True
     gt.generate_from_meta(meta)
 
-    glue_table_properties_custom_expected = {
+    glue_table_properties_expected = {
         "classification": "csv",
         "primary_key": "['my_timestamp', 'my_int']",
         "extraction_timestamp_col": "10",
@@ -71,12 +71,12 @@ def test_gluetable_generate_from_meta(glue_client, monkeypatch):
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert table["Table"]["Parameters"] == glue_table_properties_custom_expected
+    assert table["Table"]["Parameters"] == glue_table_properties_expected
 
 
 # Testing that a jsonschema ValidationError is given if
 # glue_table_properties_custom are not type dict
-def test_table_properties_dict_error_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_dict_error_generate_from_meta():
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
             "csv",
@@ -96,19 +96,10 @@ def test_table_properties_dict_error_generate_from_meta(glue_client, monkeypatch
             },
         )
 
-        monkeypatch.setattr(
-            glue_converter,
-            "_start_query_execution_and_wait",
-            lambda *args, **kwargs: None,
-        )
-        glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-        gt = GlueTable()
-        gt.generate_from_meta(meta, run_msck_repair=True)
-
 
 # Testing that a jsonschema ValidationError is given if
 # glue_table_properties_custom contain comma separated strings
-def test_table_properties_string_error_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_string_error_generate_from_meta():
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
             "csv",
@@ -126,18 +117,9 @@ def test_table_properties_string_error_generate_from_meta(glue_client, monkeypat
             },
         )
 
-        monkeypatch.setattr(
-            glue_converter,
-            "_start_query_execution_and_wait",
-            lambda *args, **kwargs: None,
-        )
-        glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-        gt = GlueTable()
-        gt.generate_from_meta(meta, run_msck_repair=True)
-
 
 # Testing that populating glue_table_properties_aws has no impact.
-def test_gluetable_aws_properties_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_aws_properties_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
@@ -170,7 +152,7 @@ def test_gluetable_aws_properties_generate_from_meta(glue_client, monkeypatch):
     gt.options.ignore_warnings = True
     gt.generate_from_meta(meta)
 
-    glue_table_properties_custom_expected = {
+    glue_table_properties_expected = {
         "classification": "csv",
         "primary_key": "['my_timestamp', 'my_int']",
         "extraction_timestamp_col": "10",
@@ -181,11 +163,11 @@ def test_gluetable_aws_properties_generate_from_meta(glue_client, monkeypatch):
 
     table = glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
     assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert table["Table"]["Parameters"] == glue_table_properties_custom_expected
+    assert table["Table"]["Parameters"] == glue_table_properties_expected
 
 
 # Testing that there is no impact on run_msck_repair and partitioning
-def test_parititioning_generate_from_meta(glue_client, monkeypatch):
+def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
@@ -227,7 +209,7 @@ def test_parititioning_generate_from_meta(glue_client, monkeypatch):
 
 
 # Testing default behavior remains unchanged.
-def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
+def test__glue_table_basic_functionality_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {"database_name": "cool_database", "table_location": "s3://buckets/are/cool"},
@@ -254,7 +236,7 @@ def test__basic_functionality_generate_to_meta(glue_client, monkeypatch):
 
 
 # Testing behavior when table parameters are populated in Glue
-def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
+def test__glue_table_custom_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
@@ -305,7 +287,7 @@ def test__glue_table_properties_generate_to_meta(glue_client, monkeypatch):
 
 
 # Testing behavior when table parameters are populated in Glue
-def test__all_glue_table_properties_generate_to_meta(glue_client, monkeypatch):
+def test__glue_table_all_properties_generate_to_meta(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
         {
