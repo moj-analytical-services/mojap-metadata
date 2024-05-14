@@ -377,6 +377,21 @@
             "type": "string",
             "title": "Path to your data can be a folder path, filepath or URL."
         },
+        "glue_table_properties_custom": {
+            "type": "object",
+            "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "additionalProperties": {
+                "not": {
+                    "type": "string",
+                    "pattern": ".*[,].*"
+                }
+            }
+        },
+        "glue_table_properties_aws": {
+            "type": "object"
+        },
         "columns": {
             "type": "array",
             "title": "The columns in the table. An array of objects",
