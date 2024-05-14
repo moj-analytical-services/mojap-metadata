@@ -315,12 +315,11 @@ included alongside `GlueConverter` is `GlueTable` that can overlay a metadata ob
     - _metadata:_ the metadata object, dict, or string path that is to be overlaid
     - _table\_location:_ a kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file
     - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
-    - _update\_table\_properties:_ (optional) default value is False. If True, will update the table properties in the glue data catalog with the key/values pairs from the glue_table_properties parameter in the table schema
 
 - **generate_to_meta:** generates a Metadata object for a specified table from glue, takes the following arguments:
     - _database:_ the name of the glue database
     - _table:_ the name of the glue table from the glue database
-    - _get\_table\_properties:_ (optional) default value is False. if True, will retrieve the table properties from the glue data catalog and populate the glue_table_properties paramater in the table schema with these key/value pairs
+    - _include_glue\_table\_properties\_aws:_ (optional) default value is False. if True, will retrieve the table properties from the glue data catalog that are managed/set by AWS and populates the glue_table_properties_aws paramater in the table schema with these key/value pairs
 
 ### SQLAlchemy Converter
 
