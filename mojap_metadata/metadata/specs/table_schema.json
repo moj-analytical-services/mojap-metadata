@@ -380,13 +380,15 @@
         "glue_table_properties_custom": {
             "type": "object",
             "propertyNames": {
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                "pattern": "^[\u0020-\uD7FF\uE000-\uFFFD\t]*$",
+                "maxLength": 255
             },
             "additionalProperties": {
                 "not": {
                     "type": "string",
                     "pattern": ".*[,].*"
-                }
+                },
+                "maxLength": 512000
             }
         },
         "glue_table_properties_aws": {
