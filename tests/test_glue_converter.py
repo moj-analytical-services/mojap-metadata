@@ -165,17 +165,13 @@ def test_glue_converter_generate_from_meta():
             "database_name": "test_db",
             "table_location": "s3://bucket/test_table",
             "primary_key": ["my_timestamp", "my_int"],
-            "glue_table_properties_custom": {
+            "glue_table_properties": {
                 "classification": "json",
-                "primary_key": ["column1"],
-                "extraction_timestamp_col": 10,
+                "primary_key": "['column1']",
+                "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3",
-                "update_type": True,
-                "test_column": ["value1", "value2"],
-            },
-            "glue_table_properties_aws": {
-                "write.compression": "True",
-                "objectCount": 43,
+                "update_type": "True",
+                "test_column": "['value1', 'value2']",
             },
         },
     )
@@ -198,7 +194,7 @@ def test_glue_converter_generate_from_meta():
 
 
 # Testing that a jsonschema ValidationError is given if
-# glue_table_properties_custom are not type dict
+# glue_table_properties are not type string
 def test_glue_converter_string_error_generate_from_meta():
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
@@ -207,14 +203,14 @@ def test_glue_converter_string_error_generate_from_meta():
                 "database_name": "test_db",
                 "table_location": "s3://bucket/test_table",
                 "primary_key": ["my_timestamp", "my_int"],
-                "glue_table_properties_custom": {
+                "glue_table_properties": [{
                     "classification": "json",
                     "primary_key": ["column1"],
                     "extraction_timestamp_col": 10,
                     "checkpoint_col": "value3, value5",
                     "update_type": True,
                     "test_column": ["value1", "value2"],
-                },
+                }],
             },
         )
 
@@ -223,7 +219,7 @@ def test_glue_converter_string_error_generate_from_meta():
 
 
 # Testing that a jsonschema ValidationError is given if
-# glue_table_properties_custom contain comma separated strings
+# glue_table_properties are not type dict
 def test_glue_converter_dict_error_generate_from_meta():
     with pytest.raises(jsonschema.exceptions.ValidationError):
         meta = get_meta(
@@ -232,14 +228,14 @@ def test_glue_converter_dict_error_generate_from_meta():
                 "database_name": "test_db",
                 "table_location": "s3://bucket/test_table",
                 "primary_key": ["my_timestamp", "my_int"],
-                "glue_table_properties_custom": [
+                "glue_table_properties": [
                     {
                         "classification": "json",
-                        "primary_key": ["column1"],
-                        "extraction_timestamp_col": 10,
+                        "primary_key": "['column1']",
+                        "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3",
-                        "update_type": True,
-                        "test_column": ["value1", "value2"],
+                        "update_type": "True",
+                        "test_column": "['value1', 'value2']",
                     }
                 ],
             },

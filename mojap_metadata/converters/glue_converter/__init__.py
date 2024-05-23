@@ -428,20 +428,20 @@ class GlueConverter(BaseConverter):
         # updating glue table properties
         metadata_dict = metadata.to_dict()
 
-        # nothing to do if glue_table_properties_custom are not in the schema
-        if "glue_table_properties_custom" not in metadata_dict.keys():
+        # nothing to do if glue_table_properties are not in the schema
+        if "glue_table_properties" not in metadata_dict.keys():
             pass
         # remove any protected glue table properties from the
-        # glue_table_properties_custom defined by the user in the metadata
+        # glue_table_properties defined by the user in the metadata
         else:
-            glue_table_properties_custom = {
-                k: str(v)
-                for k, v in metadata_dict.get("glue_table_properties_custom").items()
+            glue_table_properties = {
+                k: v
+                for k, v in metadata_dict.get("glue_table_properties").items()
                 if k not in table_properties_protected
             }
 
             # adding glue_table_properties_custom to table parameters
-            spec["TableInput"]["Parameters"].update(glue_table_properties_custom)
+            spec["TableInput"]["Parameters"].update(glue_table_properties)
 
         return spec
 
@@ -545,20 +545,20 @@ class GlueTable(BaseConverter):
         # updating glue table properties
         metadata_dict = metadata.to_dict()
 
-        # nothing to do if glue_table_properties_custom are not in the schema
-        if "glue_table_properties_custom" not in metadata_dict.keys():
+        # nothing to do if glue_table_properties are not in the schema
+        if "glue_table_properties" not in metadata_dict.keys():
             pass
         # remove any protected glue table properties from the
-        # glue_table_properties_custom defined by the user in the metadata
+        # glue_table_properties defined by the user in the metadata
         else:
-            glue_table_properties_custom = {
-                k: str(v)
-                for k, v in metadata_dict.get("glue_table_properties_custom").items()
+            glue_table_properties = {
+                k: v
+                for k, v in metadata_dict.get("glue_table_properties").items()
                 if k not in table_properties_protected
             }
 
             # adding glue_table_properties_custom to table parameters
-            boto_dict["TableInput"]["Parameters"].update(glue_table_properties_custom)
+            boto_dict["TableInput"]["Parameters"].update(glue_table_properties)
 
         # create database if it doesn't exist
         _start_query_execution_and_wait(
@@ -593,7 +593,7 @@ class GlueTable(BaseConverter):
         self,
         database: str,
         table: str,
-        include_glue_table_properties_aws: bool = False,
+        glue_table_properties_to_get: list[str] = None,
     ) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
@@ -633,7 +633,7 @@ class GlueTable(BaseConverter):
         metadata_dict = _get_glue_table_properties(
             metadata=meta,
             table_parameters_resp=resp["Table"]["Parameters"],
-            include_glue_table_properties_aws=include_glue_table_properties_aws,
+            glue_table_properties_to_get=glue_table_properties_to_get,
         )
 
         meta = Metadata.from_dict(metadata_dict)
@@ -644,15 +644,16 @@ class GlueTable(BaseConverter):
 def _get_glue_table_properties(
     metadata: Metadata,
     table_parameters_resp: dict,
-    include_glue_table_properties_aws: bool = False,
+    glue_table_properties_to_get: list[str] = None,
 ) -> dict:
     """
-    Processes table parameters and separates them into custom and AWS glue properties.
+    Given a list of glue_table_properties_to_get, processes table parameters and
+    adds these properties to the metadata dictionary.
 
     Args:
         metadata (Metadata): Metadata object.
         table_parameters_resp (dict): dictionary containing the table properties.
-        include_glue_table_properties_aws (bool): flag to include AWS glue properties.
+        glue_table_properties (list): list of glue table properties to extract.
 
     Raises:
         TypeError: if primary key in glue catalog is not of type list.
@@ -661,33 +662,25 @@ def _get_glue_table_properties(
         dict: updated metadata dictionary with separated custom and AWS glue properties.
     """
     metadata_dict = metadata.to_dict()
-    glue_table_properties_custom = {}
-    glue_table_properties_aws = {}
 
-    for key, value in table_parameters_resp.items():
-        try:
-            value = ast.literal_eval(value)
-        except (ValueError, SyntaxError):
-            pass
+    if glue_table_properties_to_get:
+        glue_table_properties = {}
+    
+        for key, value in table_parameters_resp.items():
+            # add primary_key to metadata dict
+            if key == "primary_key":
+                value = ast.literal_eval(value)
+                if not isinstance(value, list):
+                    err_msg = (
+                        f"primary_key must be of type list " f"but got type {type(value)}."
+                    )
+                    raise TypeError(err_msg)
+                metadata_dict[key] = value
+            # add property to glue_table_properties in metadata dict
+            elif glue_table_properties_to_get==["*"] or key in glue_table_properties_to_get:
+                glue_table_properties[key] = value
 
-        # check primary_key
-        if key == "primary_key":
-            if not isinstance(value, list):
-                err_msg = (
-                    f"primary_key must be of type list " f"but got type {type(value)}."
-                )
-                raise TypeError(err_msg)
-            metadata_dict[key] = value
-        # check if aws glue table property
-        elif key in _glue_table_properties_aws:
-            if include_glue_table_properties_aws:
-                glue_table_properties_aws[key] = value
-        # add custom glue table properties to metadata
-        else:
-            glue_table_properties_custom[key] = value
-
-    metadata_dict["glue_table_properties_custom"] = glue_table_properties_custom
-    metadata_dict["glue_table_properties_aws"] = glue_table_properties_aws
+        metadata_dict["glue_table_properties"] = glue_table_properties
 
     return metadata_dict
 

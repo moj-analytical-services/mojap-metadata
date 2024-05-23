@@ -377,22 +377,16 @@
             "type": "string",
             "title": "Path to your data can be a folder path, filepath or URL."
         },
-        "glue_table_properties_custom": {
+        "glue_table_properties": {
             "type": "object",
             "propertyNames": {
                 "pattern": "^[\u0020-\uD7FF\uE000-\uFFFD\t]*$",
                 "maxLength": 255
             },
             "additionalProperties": {
-                "not": {
-                    "type": "string",
-                    "pattern": ".*[,].*"
-                },
+                "type": "string",
                 "maxLength": 512000
             }
-        },
-        "glue_table_properties_aws": {
-            "type": "object"
         },
         "columns": {
             "type": "array",
