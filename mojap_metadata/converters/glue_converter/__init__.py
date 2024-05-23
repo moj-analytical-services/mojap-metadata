@@ -593,7 +593,7 @@ class GlueTable(BaseConverter):
         self,
         database: str,
         table: str,
-        glue_table_properties_to_get: list[str] = None,
+        glue_table_properties_to_get: List[str] = None,
     ) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
@@ -644,7 +644,7 @@ class GlueTable(BaseConverter):
 def _get_glue_table_properties(
     metadata: Metadata,
     table_parameters_resp: dict,
-    glue_table_properties_to_get: list[str] = None,
+    glue_table_properties_to_get: List[str] = None,
 ) -> dict:
     """
     Given a list of glue_table_properties_to_get, processes table parameters and
@@ -665,19 +665,23 @@ def _get_glue_table_properties(
 
     if glue_table_properties_to_get:
         glue_table_properties = {}
-    
+
         for key, value in table_parameters_resp.items():
             # add primary_key to metadata dict
             if key == "primary_key":
                 value = ast.literal_eval(value)
                 if not isinstance(value, list):
                     err_msg = (
-                        f"primary_key must be of type list " f"but got type {type(value)}."
+                        f"primary_key must be of type list "
+                        f"but got type {type(value)}."
                     )
                     raise TypeError(err_msg)
                 metadata_dict[key] = value
             # add property to glue_table_properties in metadata dict
-            elif glue_table_properties_to_get==["*"] or key in glue_table_properties_to_get:
+            elif (
+                glue_table_properties_to_get == ["*"]
+                or key in glue_table_properties_to_get
+            ):
                 glue_table_properties[key] = value
 
         metadata_dict["glue_table_properties"] = glue_table_properties

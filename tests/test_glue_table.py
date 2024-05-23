@@ -46,7 +46,7 @@ def test_glue_table_generate_from_meta(glue_client, monkeypatch):
                 "checkpoint_col": "value3, value4",
                 "update_type": "True",
                 "test_column": "['value1', 'value2']",
-                "projection.*": "False"
+                "projection.*": "False",
             },
         },
     )
@@ -189,11 +189,11 @@ def test__glue_table_basic_functionality_generate_to_meta(glue_client, monkeypat
     gen_cols_match = meta_generated.columns == meta.columns
     gen_partitions_match = meta_generated.partitions == meta.partitions
 
-    assert (meta_dict.get("glue_table_properties")) == None
+    assert (meta_dict.get("glue_table_properties")) is None
     assert (True, True) == (gen_cols_match, gen_partitions_match)
 
 
-# Testing behavior when glue_properties_to_get are provided 
+# Testing behavior when glue_properties_to_get are provided
 def test__glue_table_generate_to_meta_properties_provided(glue_client, monkeypatch):
     meta = get_meta(
         "csv",
@@ -225,7 +225,9 @@ def test__glue_table_generate_to_meta_properties_provided(glue_client, monkeypat
             "checkpoint_col",
         ]
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", glue_table_properties_to_get=glue_table_properties_to_get
+            "cool_database",
+            "test_table",
+            glue_table_properties_to_get=glue_table_properties_to_get,
         )
         meta_dict = meta_generated.to_dict()
 
@@ -241,9 +243,7 @@ def test__glue_table_generate_to_meta_properties_provided(glue_client, monkeypat
     primary_key_expected = ["my_timestamp", "my_int"]
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
-    assert (
-        meta_dict.get("glue_table_properties")
-    ) == glue_table_properties_expected
+    assert (meta_dict.get("glue_table_properties")) == glue_table_properties_expected
     assert (meta_dict.get("primary_key")) == primary_key_expected
 
 
@@ -261,7 +261,7 @@ def test__glue_table_all_properties_generate_to_meta(glue_client, monkeypatch):
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3, value4",
                 "update_type": "True",
-                "test_column": "['value1', 'value2']"
+                "test_column": "['value1', 'value2']",
             },
         },
     )
@@ -276,7 +276,9 @@ def test__glue_table_all_properties_generate_to_meta(glue_client, monkeypatch):
         gt.generate_from_meta(meta)
         glue_table_properties_to_get = ["*"]
         meta_generated = gt.generate_to_meta(
-            "cool_database", "test_table", glue_table_properties_to_get=glue_table_properties_to_get
+            "cool_database",
+            "test_table",
+            glue_table_properties_to_get=glue_table_properties_to_get,
         )
         meta_dict = meta_generated.to_dict()
 
@@ -289,13 +291,11 @@ def test__glue_table_all_properties_generate_to_meta(glue_client, monkeypatch):
         "extraction_timestamp_col": "10",
         "checkpoint_col": "value3, value4",
         "update_type": "True",
-        "test_column": "['value1', 'value2']"
+        "test_column": "['value1', 'value2']",
     }
 
     primary_key_expected = ["my_timestamp", "my_int"]
 
     assert (True, True) == (gen_cols_match, gen_partitions_match)
-    assert (
-        meta_dict.get("glue_table_properties")
-    ) == glue_table_properties_expected
+    assert (meta_dict.get("glue_table_properties")) == glue_table_properties_expected
     assert (meta_dict.get("primary_key")) == primary_key_expected

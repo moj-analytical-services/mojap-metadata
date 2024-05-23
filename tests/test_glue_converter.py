@@ -203,14 +203,16 @@ def test_glue_converter_string_error_generate_from_meta():
                 "database_name": "test_db",
                 "table_location": "s3://bucket/test_table",
                 "primary_key": ["my_timestamp", "my_int"],
-                "glue_table_properties": [{
-                    "classification": "json",
-                    "primary_key": ["column1"],
-                    "extraction_timestamp_col": 10,
-                    "checkpoint_col": "value3, value5",
-                    "update_type": True,
-                    "test_column": ["value1", "value2"],
-                }],
+                "glue_table_properties": [
+                    {
+                        "classification": "json",
+                        "primary_key": ["column1"],
+                        "extraction_timestamp_col": 10,
+                        "checkpoint_col": "value3, value5",
+                        "update_type": True,
+                        "test_column": ["value1", "value2"],
+                    }
+                ],
             },
         )
 
