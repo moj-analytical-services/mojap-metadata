@@ -143,103 +143,96 @@ def test_generate_from_meta(spec_name, serde_name, expected_file_name):
     assert spec == expected_spec
 
 
-# Testing default behavior remains unchanged.
-def test_glue_converter_basic_functionality_generate_from_meta():
-    meta = get_meta(
-        "csv", {"database_name": "test_db", "table_location": "s3://bucket/test_table"}
-    )
-
+def setup_glue_converter_and_return_boto_dict(meta):
     gc = GlueConverter()
     boto_dict = gc.generate_from_meta(
         metadata=meta, database_name="test_db", table_location="s3://bucket/test_table"
     )
 
-    assert boto_dict["TableInput"]["Parameters"] == {"classification": "csv"}
+    return boto_dict
 
 
-# Testing that the glue table properties are updated in the metadata as expected.
-def test_glue_converter_generate_from_meta():
-    meta = get_meta(
-        "json",
-        {
-            "database_name": "test_db",
-            "table_location": "s3://bucket/test_table",
-            "primary_key": ["my_timestamp", "my_int"],
-            "glue_table_properties": {
-                "classification": "json",
-                "primary_key": "['column1']",
-                "extraction_timestamp_col": "10",
-                "checkpoint_col": "value3",
-                "update_type": "True",
-                "test_column": "['value1', 'value2']",
-            },
-        },
-    )
-
-    gc = GlueConverter()
-    boto_dict = gc.generate_from_meta(
-        metadata=meta, database_name="test_db", table_location="s3://bucket/test_table"
-    )
-
-    glue_table_properties_expected = {
-        "classification": "json",
-        "primary_key": "['my_timestamp', 'my_int']",
-        "extraction_timestamp_col": "10",
-        "checkpoint_col": "value3",
-        "update_type": "True",
-        "test_column": "['value1', 'value2']",
-    }
-
-    assert boto_dict["TableInput"]["Parameters"] == glue_table_properties_expected
-
-
-# Testing that a jsonschema ValidationError is given if
-# glue_table_properties are not type string
-def test_glue_converter_string_error_generate_from_meta():
-    with pytest.raises(jsonschema.exceptions.ValidationError):
-        meta = get_meta(
-            "parquet",
-            {
-                "database_name": "test_db",
-                "table_location": "s3://bucket/test_table",
-                "primary_key": ["my_timestamp", "my_int"],
-                "glue_table_properties": [
-                    {
-                        "classification": "json",
-                        "primary_key": ["column1"],
-                        "extraction_timestamp_col": 10,
-                        "checkpoint_col": "value3, value5",
-                        "update_type": True,
-                        "test_column": ["value1", "value2"],
-                    }
-                ],
-            },
-        )
-
-        gc = GlueConverter()
-        gc.generate_from_meta(meta)
-
-
-# Testing that a jsonschema ValidationError is given if
-# glue_table_properties are not type dict
-def test_glue_converter_dict_error_generate_from_meta():
-    with pytest.raises(jsonschema.exceptions.ValidationError):
-        meta = get_meta(
-            "parquet",
-            {
-                "database_name": "test_db",
-                "table_location": "s3://bucket/test_table",
-                "primary_key": ["my_timestamp", "my_int"],
-                "glue_table_properties": [
-                    {
+# Testing generate_from_meta behaviour
+@pytest.mark.parametrize(
+    "meta, expected_properties",
+    [
+        (
+            get_meta(
+                "csv",
+                {
+                    "database_name": "test_db",
+                    "table_location": "s3://bucket/test_table",
+                },
+            ),
+            {"classification": "csv"},
+        ),
+        (
+            get_meta(
+                "json",
+                {
+                    "database_name": "test_db",
+                    "table_location": "s3://bucket/test_table",
+                    "primary_key": ["my_timestamp", "my_int"],
+                    "glue_table_properties": {
                         "classification": "json",
                         "primary_key": "['column1']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3",
                         "update_type": "True",
                         "test_column": "['value1', 'value2']",
-                    }
-                ],
+                    },
+                },
+            ),
+            {
+                "classification": "json",
+                "primary_key": "['my_timestamp', 'my_int']",
+                "extraction_timestamp_col": "10",
+                "checkpoint_col": "value3",
+                "update_type": "True",
+                "test_column": "['value1', 'value2']",
+            },
+        ),
+    ],
+)
+def test_glue_converter_generate_from_meta(meta, expected_properties):
+    boto_dict = setup_glue_converter_and_return_boto_dict(meta)
+
+    assert boto_dict["TableInput"]["Parameters"] == expected_properties
+
+
+# Testing that a jsonschema ValidationError is returned
+@pytest.mark.parametrize(
+    "glue_table_properties",
+    [
+        {
+            "classification": "json",
+            "primary_key": ["column1"],
+            "extraction_timestamp_col": 10,
+            "checkpoint_col": "value3, value5",
+            "update_type": True,
+            "test_column": ["value1", "value2"],
+        },
+        [
+            {
+                "classification": "json",
+                "primary_key": "['column1']",
+                "extraction_timestamp_col": "10",
+                "checkpoint_col": "value3",
+                "update_type": "True",
+                "test_column": "['value1', 'value2']",
+            }
+        ],
+    ],
+)
+def test_glue_converter_json_validation_error_generate_from_meta(glue_table_properties):
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        meta = get_meta(
+            "parquet",
+            {
+                "database_name": "test_db",
+                "table_location": "s3://bucket/test_table",
+                "primary_key": ["my_timestamp", "my_int"],
+                "glue_table_properties": glue_table_properties,
             },
         )
 

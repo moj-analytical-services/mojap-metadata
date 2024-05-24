@@ -20,7 +20,7 @@ from mojap_metadata.metadata.metadata import (
     _metadata_complex_dtype_names,
 )
 from mojap_metadata.converters.glue_converter import specs
-from typing import Tuple, List, Union
+from typing import Optional, Tuple, List, Union
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -419,10 +419,10 @@ class GlueConverter(BaseConverter):
             spec["TableInput"]["Parameters"].update(primary_key_dict)
 
         # protected attributes that should not be overwritten
-        additional_glue_table_properties = ["primary_key"]
+        other_protected_glue_table_properties = ["primary_key"]
 
         table_properties_protected = (
-            _glue_table_properties_aws + additional_glue_table_properties
+            _glue_table_properties_aws + other_protected_glue_table_properties
         )
 
         # updating glue table properties
@@ -536,10 +536,10 @@ class GlueTable(BaseConverter):
             boto_dict["TableInput"]["Parameters"].update(primary_key_dict)
 
         # protected attributes that should not be overwritten
-        additional_glue_table_properties = ["primary_key"]
+        other_protected_glue_table_properties = ["primary_key"]
 
         table_properties_protected = (
-            _glue_table_properties_aws + additional_glue_table_properties
+            _glue_table_properties_aws + other_protected_glue_table_properties
         )
 
         # updating glue table properties
@@ -593,7 +593,7 @@ class GlueTable(BaseConverter):
         self,
         database: str,
         table: str,
-        glue_table_properties_to_get: List[str] = None,
+        glue_table_properties_to_get: Optional[List[str]] = [],
     ) -> Metadata:
         # get the table information
         glue_client = boto3.client("glue")
@@ -644,7 +644,7 @@ class GlueTable(BaseConverter):
 def _get_glue_table_properties(
     metadata: Metadata,
     table_parameters_resp: dict,
-    glue_table_properties_to_get: List[str] = None,
+    glue_table_properties_to_get: Optional[List[str]] = [],
 ) -> dict:
     """
     Given a list of glue_table_properties_to_get, processes table parameters and
@@ -659,31 +659,36 @@ def _get_glue_table_properties(
         TypeError: if primary key in glue catalog is not of type list.
 
     Returns:
-        dict: updated metadata dictionary with separated custom and AWS glue properties.
+        dict: updated metadata dictionary with glue table properties and primary key.
     """
     metadata_dict = metadata.to_dict()
+    glue_table_properties = {}
 
-    if glue_table_properties_to_get:
-        glue_table_properties = {}
+    if "*" in glue_table_properties_to_get:
+        glue_table_properties_to_get = list(table_parameters_resp.keys())
 
-        for key, value in table_parameters_resp.items():
-            # add primary_key to metadata dict
-            if key == "primary_key":
-                value = ast.literal_eval(value)
-                if not isinstance(value, list):
-                    err_msg = (
-                        f"primary_key must be of type list "
-                        f"but got type {type(value)}."
-                    )
-                    raise TypeError(err_msg)
-                metadata_dict[key] = value
-            # add property to glue_table_properties in metadata dict
-            elif (
-                glue_table_properties_to_get == ["*"]
-                or key in glue_table_properties_to_get
-            ):
-                glue_table_properties[key] = value
+    for key in glue_table_properties_to_get:
+        if key not in table_parameters_resp:
+            warnings.warn(
+                f"Property:{key} was not found under the table "
+                "properties in the Glue Catalog",
+                UserWarning,
+            )
+            continue
 
+        value = table_parameters_resp[key]
+        if key == "primary_key":
+            value = ast.literal_eval(value)
+            if not isinstance(value, list):
+                err_msg = (
+                    f"Primary_key must be of type list but got type {type(value)}."
+                )
+                raise TypeError(err_msg)
+            metadata_dict[key] = value
+        else:
+            glue_table_properties[key] = value
+
+    if glue_table_properties:
         metadata_dict["glue_table_properties"] = glue_table_properties
 
     return metadata_dict
@@ -822,27 +827,27 @@ def generate_spec_from_template(
 
         if spec_opts.sep:
             param_name = csv_param_lu["sep"][serde_name]
-            (
-                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]
-            ) = spec_opts.sep
+            (base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]) = (
+                spec_opts.sep
+            )
 
         if spec_opts.quote_char and serde_name != "lazy":
-            (
-                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["quoteChar"]
-            ) = spec_opts.quote_char
+            (base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["quoteChar"]) = (
+                spec_opts.quote_char
+            )
 
         if spec_opts.escape_char:
             param_name = csv_param_lu["escape_char"][serde_name]
-            (
-                base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]
-            ) = spec_opts.escape_char
+            (base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"][param_name]) = (
+                spec_opts.escape_char
+            )
 
     # Do JSON options
     if spec_name == "json":
         json_col_paths = ",".join([c["Name"] for c in columns])
-        (
-            base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["paths"]
-        ) = json_col_paths
+        (base_spec["StorageDescriptor"]["SerdeInfo"]["Parameters"]["paths"]) = (
+            json_col_paths
+        )
 
     out_dict = {"DatabaseName": database_name, "TableInput": base_spec}
     return out_dict
