@@ -289,7 +289,7 @@ The `GlueConverter` takes our schemas and converts them to a dictionary that be 
     - _table\_location:_ (optional) database name needed for table DDL
     - _database\_name:_ (optional) S3 location of where table is stored needed for table DDL
     
-    If primary_key or/and glue_table_properties are populated in the table schema/metadata, _generate\_from\_meta_ will update the metadata dictionary with these items. The key-value pairs in glue_table_properties must be of type string.
+    If primary_key or/and glue_table_properties are populated in the table schema/metadata, _generate\_from\_meta_ will update the metadata dictionary with these items. The key-value pairs in glue_table_properties must be of type string. Any properties that have special uses in AWS will not be updated (_glue_table_properties_aws variable in glue_converter). 
 
 ```python
 import boto3
@@ -324,7 +324,7 @@ Included alongside `GlueConverter` is `GlueTable` that can overlay a metadata ob
     - _database\_name:_ a kwarg, the name of the glue database to put the table. This can also be a property of the metadata object, dict, or file
     
     If primary_key or/and glue_table_properties are populated in the table schema/metadata, _generate\_from\_meta_ will update the table parameters in the
-    Glue Catalog with these key-value pairs. The key-value pairs in glue_table_properties must be of type string.
+    Glue Catalog with these key-value pairs. The key-value pairs in glue_table_properties must be of type string. Any properties that have special uses in AWS will not be updated (_glue_table_properties_aws variable in glue_converter).
 
 - **generate_to_meta:** generates a Metadata object for a specified table from glue, takes the following arguments:
     - _database:_ the name of the glue database
