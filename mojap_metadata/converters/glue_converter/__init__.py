@@ -20,7 +20,7 @@ from mojap_metadata.metadata.metadata import (
     _metadata_complex_dtype_names,
 )
 from mojap_metadata.converters.glue_converter import specs
-from typing import Optional, Tuple, List, Union
+from typing import Tuple, List, Union
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -593,8 +593,21 @@ class GlueTable(BaseConverter):
         self,
         database: str,
         table: str,
-        glue_table_properties_to_get: Optional[List[str]] = [],
+        glue_table_properties_to_get: List[str] = [],
     ) -> Metadata:
+        """
+        Generates a Metadata object for a specified table from glue.
+
+        Args:
+            database (str): name of the glue database
+            table (str): name of the table from the glue database
+            glue_table_properties_to_get (List[str], optional): List of glue
+            table properties to retrieve. Include "*" to retrieve all glue
+            table properties. Defaults to [].
+
+        Returns:
+            Metadata: _description_
+        """
         # get the table information
         glue_client = boto3.client("glue")
         resp = glue_client.get_table(DatabaseName=database, Name=table)
@@ -644,7 +657,7 @@ class GlueTable(BaseConverter):
 def _get_glue_table_properties(
     metadata: Metadata,
     table_parameters_resp: dict,
-    glue_table_properties_to_get: Optional[List[str]] = [],
+    glue_table_properties_to_get: List[str] = [],
 ) -> dict:
     """
     Given a list of glue_table_properties_to_get, processes table parameters and
@@ -653,7 +666,9 @@ def _get_glue_table_properties(
     Args:
         metadata (Metadata): Metadata object.
         table_parameters_resp (dict): dictionary containing the table properties.
-        glue_table_properties (list): list of glue table properties to extract.
+        glue_table_properties_to_get (List[str], optional): List of glue
+        table properties to retrieve. Include "*" to retrieve all glue
+        table properties. Defaults to [].
 
     Raises:
         TypeError: if primary key in glue catalog is not of type list.
