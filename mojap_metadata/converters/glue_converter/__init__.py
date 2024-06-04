@@ -20,7 +20,7 @@ from mojap_metadata.metadata.metadata import (
     _metadata_complex_dtype_names,
 )
 from mojap_metadata.converters.glue_converter import specs
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 
 
 # Format generictype: (glue_type, is_fully_supported)
@@ -337,21 +337,24 @@ class GlueConverter(BaseConverter):
         metadata: Metadata,
         database_name: str = None,
         table_location: str = None,
+        primary_key_property: str = "primary_key",
     ) -> dict:
         """Generates the Hive DDL from our metadata
 
         Args:
             metadata (Metadata): metadata object from the Metadata class
             database_name (str, optional): database name needed for table DDL.
-              If `None` this function will look to the options.default_database_name
-              attribute to find a name. Defaults to None.
+            If `None` this function will look to the options.default_database_name
+            attribute to find a name. Defaults to None.
             table_location (str, optional): S3 location of where table is stored
-              needed for table DDL. If `None` this function will look to the
-              options.default_database_name attribute to find a name. Defaults
-              to None.
+            needed for table DDL. If `None` this function will look to the
+            options.default_database_name attribute to find a name. Defaults
+            to None.
+            primary_key_property (str, optional): The name of the key to write the
+            primary_key value to in the table_parameters. Defaults to "primary_key".
         Raises:
             ValueError: If database_name and table_location are not set (and there
-              are no default options set)
+            are no default options set)
 
         Returns:
             dict: for Glue API
@@ -413,37 +416,13 @@ class GlueConverter(BaseConverter):
             partitions=partition_cols,
         )
 
-        # adding primary key to table parameters
-        if metadata.primary_key:
-            primary_key_dict = {"primary_key": str(metadata.primary_key)}
-            spec["TableInput"]["Parameters"].update(primary_key_dict)
-
-        # protected attributes that should not be overwritten
-        other_protected_glue_table_properties = ["primary_key"]
-
-        table_properties_protected = (
-            _glue_table_properties_aws + other_protected_glue_table_properties
+        updated_spec = _update_table_parameters(
+            metadata=metadata,
+            table_input=spec,
+            primary_key_property=primary_key_property,
         )
 
-        # updating glue table properties
-        metadata_dict = metadata.to_dict()
-
-        # nothing to do if glue_table_properties are not in the schema
-        if "glue_table_properties" not in metadata_dict.keys():
-            pass
-        # remove any protected glue table properties from the
-        # glue_table_properties defined by the user in the metadata
-        else:
-            glue_table_properties = {
-                k: v
-                for k, v in metadata_dict.get("glue_table_properties").items()
-                if k not in table_properties_protected
-            }
-
-            # adding glue_table_properties_custom to table parameters
-            spec["TableInput"]["Parameters"].update(glue_table_properties)
-
-        return spec
+        return updated_spec
 
 
 class GlueTable(BaseConverter):
@@ -498,19 +477,22 @@ class GlueTable(BaseConverter):
         database_name: str = None,
         table_location: str = None,
         run_msck_repair: bool = False,
+        primary_key_property: str = "primary_key",
     ):
         """
         Creates a glue table from metadata
         arguments:
-            - metadata: Metadata object, string path, or dictionary metadata.
-            - database_name (optional): name of the glue database the table is to be
+            metadata: Metadata object, string path, or dictionary metadata.
+            database_name (optional): name of the glue database the table is to be
             created in. can also be a property of the metadata.
-            - table_location (optional): the s3 location of the table. can also be a
+            table_location (optional): the s3 location of the table. can also be a
             property of the metadata.
-            - run_msck_repair (optional): run msck repair table on the created table,
+            run_msck_repair (optional): run msck repair table on the created table,
             should be set to True for tables with partitions.
+            primary_key_property (str, optional): The name of the key to write the
+            primary_key value to in the table_parameters. Defaults to "primary_key".
         Raises:
-            - ValueError if run_msck_repair table is False, metadata has partitions, and
+            ValueError if run_msck_repair table is False, metadata has partitions, and
             options.ignore_warnings is set to False
         """
 
@@ -527,38 +509,11 @@ class GlueTable(BaseConverter):
         )
         metadata = Metadata.from_infer(metadata)
         boto_dict = self.gc.generate_from_meta(
-            metadata, database_name=database_name, table_location=table_location
+            metadata,
+            database_name=database_name,
+            table_location=table_location,
+            primary_key_property=primary_key_property,
         )
-
-        # adding primary key to table parameters
-        if metadata.primary_key:
-            primary_key_dict = {"primary_key": str(metadata.primary_key)}
-            boto_dict["TableInput"]["Parameters"].update(primary_key_dict)
-
-        # protected attributes that should not be overwritten
-        other_protected_glue_table_properties = ["primary_key"]
-
-        table_properties_protected = (
-            _glue_table_properties_aws + other_protected_glue_table_properties
-        )
-
-        # updating glue table properties
-        metadata_dict = metadata.to_dict()
-
-        # nothing to do if glue_table_properties are not in the schema
-        if "glue_table_properties" not in metadata_dict.keys():
-            pass
-        # remove any protected glue table properties from the
-        # glue_table_properties defined by the user in the metadata
-        else:
-            glue_table_properties = {
-                k: v
-                for k, v in metadata_dict.get("glue_table_properties").items()
-                if k not in table_properties_protected
-            }
-
-            # adding glue_table_properties_custom to table parameters
-            boto_dict["TableInput"]["Parameters"].update(glue_table_properties)
 
         # create database if it doesn't exist
         _start_query_execution_and_wait(
@@ -593,7 +548,8 @@ class GlueTable(BaseConverter):
         self,
         database: str,
         table: str,
-        glue_table_properties_to_get: List[str] = [],
+        glue_table_properties: List[str] = None,
+        primary_key_property: str = "primary_key",
     ) -> Metadata:
         """
         Generates a Metadata object for a specified table from glue.
@@ -601,12 +557,14 @@ class GlueTable(BaseConverter):
         Args:
             database (str): name of the glue database
             table (str): name of the table from the glue database
-            glue_table_properties_to_get (List[str], optional): List of glue
-            table properties to retrieve. Include "*" to retrieve all glue
+            glue_table_properties (List[str], optional): List of glue
+            table properties to retrieve. Set to "*" to retrieve all glue
             table properties. Defaults to [].
+            primary_key_property (str, optional): The name of the key to write the
+            primary_key value to in the metadata dictionary. Defaults to "primary_key".
 
         Returns:
-            Metadata: _description_
+            Metadata: The Metadata object for the Glue Table.
         """
         # get the table information
         glue_client = boto3.client("glue")
@@ -643,10 +601,11 @@ class GlueTable(BaseConverter):
             meta.file_format = ff.lower()
 
         # update metadata dict with glue table properties from table parameters
-        metadata_dict = _get_glue_table_properties(
+        metadata_dict = _get_table_parameters(
             metadata=meta,
             table_parameters_resp=resp["Table"]["Parameters"],
-            glue_table_properties_to_get=glue_table_properties_to_get,
+            glue_table_properties=glue_table_properties,
+            primary_key_property=primary_key_property,
         )
 
         meta = Metadata.from_dict(metadata_dict)
@@ -654,57 +613,123 @@ class GlueTable(BaseConverter):
         return meta
 
 
-def _get_glue_table_properties(
+def _update_table_parameters(
     metadata: Metadata,
-    table_parameters_resp: dict,
-    glue_table_properties_to_get: List[str] = [],
+    table_input: dict,
+    primary_key_property: str = "primary_key",
 ) -> dict:
-    """
-    Given a list of glue_table_properties_to_get, processes table parameters and
-    adds these properties to the metadata dictionary.
+    """Adds the key, value pairs for primary_key and glue_table_properties from the
+    metadata to the parameters parameter in the table input. Will not overwrite any
+    protected properties defined in _glue_table_properties_aws. Can specify the name
+    of the key to write the primary_key value to, defaults to "primary_key".
 
     Args:
         metadata (Metadata): Metadata object.
-        table_parameters_resp (dict): dictionary containing the table properties.
-        glue_table_properties_to_get (List[str], optional): List of glue
-        table properties to retrieve. Include "*" to retrieve all glue
-        table properties. Defaults to [].
-
-    Raises:
-        TypeError: if primary key in glue catalog is not of type list.
+        table_input (dict): A dictionary defining the table metadata.
+        primary_key_property (str, optional): The name of the key to write the
+        primary_key value to in the table_parameters. Defaults to "primary_key".
 
     Returns:
-        dict: updated metadata dictionary with glue table properties and primary key.
+        dict: Updated table input with key, value pairs for primary_key and
+        glue_table_properties.
     """
     metadata_dict = metadata.to_dict()
-    glue_table_properties = {}
+    glue_table_properties = metadata_dict.get("glue_table_properties", {})
+    table_parameters = table_input["TableInput"]["Parameters"]
 
-    if "*" in glue_table_properties_to_get:
-        glue_table_properties_to_get = list(table_parameters_resp.keys())
+    if metadata.primary_key:
+        primary_key_dict = {primary_key_property: str(metadata.primary_key)}
+        table_parameters.update(primary_key_dict)
 
-    for key in glue_table_properties_to_get:
-        if key not in table_parameters_resp:
-            warnings.warn(
-                f"Property:{key} was not found under the table "
-                "properties in the Glue Catalog",
-                UserWarning,
-            )
-            continue
+    other_protected_glue_table_properties = [primary_key_property, "primary_key"]
+    table_properties_protected = (
+        _glue_table_properties_aws + other_protected_glue_table_properties
+    )
 
-        value = table_parameters_resp[key]
-        if key == "primary_key":
+    protected_properties = set(glue_table_properties.keys()) & set(
+        table_properties_protected
+    )
+    if protected_properties:
+        warnings.warn(
+            f"The following properties {protected_properties} are protected and "
+            "will not be overwritten by the values from glue_table_properties.",
+        )
+
+    filtered_glue_table_properties = {
+        k: v for k, v in glue_table_properties.items() if k not in protected_properties
+    }
+
+    table_parameters.update(filtered_glue_table_properties)
+
+    return table_input
+
+
+def _get_table_parameters(
+    metadata: Metadata,
+    table_parameters_resp: dict,
+    glue_table_properties: List[str] = None,
+    primary_key_property: str = "primary_key",
+) -> dict:
+    """
+    Updates the metadata dictionary with the primary key and speicifed table properties
+    from the Glue Data Catalog. Set glue_table_properties to  to "*" to retrieve all
+    table properties. Can specify the name of the key to write the primary_key value
+    to, defaults to "primary_key".
+
+    Args:
+        metadata (Metadata): Metadata object.
+        table_parameters_resp (dict): A dictionary defining the table properties in the
+        Glue Data Catalog.
+        glue_table_properties (List[str], optional): List of table properties to
+        get from Glue Data Catalog. Set to "*" to retrieve all table properties.
+        Defaults to None.
+        primary_key_property (str, optional): The name of the key to write the
+        primary_key value to in the metadata dictionary. Defaults to "primary_key".
+
+    Raises:
+        TypeError: If primary key value is not of type list in the Glue Data Catalog.
+
+    Returns:
+        dict: Updated metadata dictionary with glue table properties and primary key
+        from the GLue Data Catalog.
+    """
+    metadata_dict = metadata.to_dict()
+    glue_table_properties_dict = {}
+
+    if primary_key_property in table_parameters_resp.keys():
+        value = table_parameters_resp[primary_key_property]
+        try:
             value = ast.literal_eval(value)
             if not isinstance(value, list):
-                err_msg = (
-                    f"Primary_key must be of type list but got type {type(value)}."
-                )
-                raise TypeError(err_msg)
-            metadata_dict[key] = value
-        else:
-            glue_table_properties[key] = value
+                raise TypeError
+            metadata_dict["primary_key"] = value
+        except (ValueError, TypeError):
+            err_msg = (
+                f"primary_key_property: {primary_key_property} must be of type list."
+            )
+            raise TypeError(err_msg)
 
-    if glue_table_properties:
-        metadata_dict["glue_table_properties"] = glue_table_properties
+    if glue_table_properties == "*":
+        glue_table_properties = list(table_parameters_resp.keys())
+    elif glue_table_properties is None:
+        glue_table_properties = []
+
+    for key in glue_table_properties:
+        value = table_parameters_resp.get(key)
+
+        if key == primary_key_property:
+            continue
+        elif value is None:
+            warnings.warn(
+                f"Property:{key} was not found under the table "
+                "properties in the Glue Catalog"
+            )
+            continue
+        else:
+            glue_table_properties_dict[key] = value
+
+    if glue_table_properties_dict:
+        metadata_dict["glue_table_properties"] = glue_table_properties_dict
 
     return metadata_dict
 
