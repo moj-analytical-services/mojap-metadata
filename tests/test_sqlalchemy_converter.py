@@ -60,7 +60,8 @@ def create_sqlachemy_engine(dialect):
         )
     elif dialect == "sqlserver":
         engine = create_engine(
-            f"mssql+pyodbc://{user}:{password}@127.0.0.1:1433/test_mojap_metadata?driver=ODBC+Driver+17+for+SQL+Server"
+            f"mssql+pyodbc://{user}:{password}@127.0.0.1:1433/ \
+            test_mojap_metadata?driver=ODBC+Driver+17+for+SQL+Server"
         )
     return engine
 
