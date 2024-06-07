@@ -36,6 +36,7 @@ password = os.getenv("DB_PASSWORD")
 # The following dialects are skipped by default, tested if value is set to 'True'
 test_oracle = os.getenv("TEST_ORACLE", "False") == "True"
 test_postgres = os.getenv("TEST_POSTGRES", "False") == "True"
+test_sqlserver = os.getenv("TEST_SQLSERVER", "False") == "True"
 
 
 # Create engines
@@ -56,6 +57,10 @@ def create_sqlachemy_engine(dialect):
     elif dialect == "postgres":
         engine = create_engine(
             f"postgresql://postgres:{password}@localhost:5432/postgres"
+        )
+    elif dialect == "sqlserver":
+        engine = create_engine(
+            f"mssql+pyodbc://{user}:{password}@127.0.0.1:1433/test_mojap_metadata?driver=ODBC+Driver+17+for+SQL+Server"
         )
     return engine
 
@@ -194,6 +199,19 @@ mojap_metadata/v1.4.0.json",
             ["my_string_10"],
             "int32",
             marks=(pytest.mark.skipif(test_oracle is False, reason="skip oracle test")),
+        ),
+        pytest.param(
+            "sqlserver",
+            "dbo",
+            "this is my table",
+            "this is the comment",
+            ["my_string_10"],
+            "bool",
+            marks=(
+                pytest.mark.skipif(
+                    test_sqlserver is False, reason="skip sqlserver test"
+                )
+            ),
         ),
     ],
 )
