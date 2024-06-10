@@ -16,23 +16,13 @@ def setup_glue_table(glue_client, monkeypatch, meta):
     gt = GlueTable()
     gt.options.ignore_warnings = True
     gt.generate_from_meta(meta)
-    
+
     return glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
 
-def setup_glue_table_with_primary_key_property(glue_client, monkeypatch, meta, primary_key_property_name):
-    monkeypatch.setattr(
-        glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
-    )
-    glue_client.create_database(DatabaseInput={"Name": meta.database_name})
-
-    gt = GlueTable()
-    gt.options.ignore_warnings = True
-    gt.generate_from_meta(metadata=meta, primary_key_property=primary_key_property_name)
-    
-    return glue_client.get_table(DatabaseName=meta.database_name, Name=meta.name)
 
 def setup_glue_table_and_generate_meta(
-    glue_client, monkeypatch, meta, primary_key_property_name="primary_key", properties_to_get=None):
+    glue_client, monkeypatch, meta, properties_to_get=None, update_primary_key=False
+):
     monkeypatch.setattr(
         glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
     )
@@ -40,13 +30,14 @@ def setup_glue_table_and_generate_meta(
     with mock_glue():
         glue_client.create_database(DatabaseInput={"Name": meta.database_name})
         gt = GlueTable()
-        gt.generate_from_meta(metadata=meta, primary_key_property=primary_key_property_name)
+        gt.generate_from_meta(meta)
         return gt.generate_to_meta(
             "cool_database",
             "test_table",
-            primary_key_property = primary_key_property_name,
-            glue_table_properties=properties_to_get
+            glue_table_properties=properties_to_get,
+            update_primary_key=update_primary_key,
         )
+
 
 # Testing generate_from_meta behaviour
 @pytest.mark.parametrize(
@@ -70,13 +61,10 @@ def setup_glue_table_and_generate_meta(
                     "table_location": "s3://buckets/are/cool",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3, value4",
                         "update_type": "True",
                         "test_column": "['value1', 'value2']",
-                        "projection.*": "False",
                     },
                 },
             ),
@@ -100,87 +88,40 @@ def test_glue_table_generate_from_meta(
     assert table["Table"]["Parameters"] == expected_properties
 
 
-# Testing generate_from_meta behaviour with primary_key_property
-@pytest.mark.parametrize(
-    "meta, primary_key_property_name, expected_properties",
-    [
-        (
-            get_meta(
-                "csv",
-                {
-                    "database_name": "cool_database",
-                    "table_location": "s3://buckets/are/cool",
-                },
-            ),
-            "primary_key",
-            {"classification": "csv"},
-        ),
-        (
-            get_meta(
-                "csv",
-                {
-                    "database_name": "cool_database",
-                    "table_location": "s3://buckets/are/cool",
-                    "primary_key": ["my_timestamp", "my_int"],
-                    "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
-                        "extraction_timestamp_col": "10",
-                        "checkpoint_col": "value3, value4",
-                        "update_type": "True",
-                        "test_column": "['value1', 'value2']",
-                        "projection.*": "False",
-                    },
-                },
-            ),
-            "banana",
-            {
-                "classification": "csv",
-                "banana": "['my_timestamp', 'my_int']",
+# Testing a warning is raised
+def test_glue_table_raise_warning_generate_from_meta(glue_client, monkeypatch):
+    meta = get_meta(
+        "parquet",
+        {
+            "database_name": "cool_database",
+            "table_location": "s3://buckets/are/cool",
+            "primary_key": ["my_timestamp", "my_int"],
+            "glue_table_properties": {
+                "primary_key": "this_should_be_excluded",
+                "classification": "this should be excluded",
+                "projection.*": "['this should be excluded']",
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3, value4",
                 "update_type": "True",
                 "test_column": "['value1', 'value2']",
             },
-        ),
-        (
-            get_meta(
-                "csv",
-                {
-                    "database_name": "cool_database",
-                    "table_location": "s3://buckets/are/cool",
-                    "primary_key": ["my_timestamp", "my_int"],
-                    "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "source_primary_key": "['should_be_excluded']",
-                        "primary_key": "['should_be_excluded']",
-                        "extraction_timestamp_col": "10",
-                        "checkpoint_col": "value3, value4",
-                        "update_type": "True",
-                        "test_column": "['value1', 'value2']",
-                        "projection.*": "False",
-                    },
-                },
-            ),
-            "source_primary_key",
-            {
-                "classification": "csv",
-                "source_primary_key": "['my_timestamp', 'my_int']",
-                "extraction_timestamp_col": "10",
-                "checkpoint_col": "value3, value4",
-                "update_type": "True",
-                "test_column": "['value1', 'value2']",
-            },
-        ),
-    ],
-)
-def test_glue_table_generate_from_meta_with_primary_key_property(
-    glue_client, monkeypatch, meta, primary_key_property_name, expected_properties
-):
+        },
+    )
 
-    table = setup_glue_table_with_primary_key_property(glue_client, monkeypatch, meta, primary_key_property_name)
-    assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert table["Table"]["Parameters"] == expected_properties
+    expected_properties = {
+        "classification": "parquet",
+        "primary_key": "['my_timestamp', 'my_int']",
+        "extraction_timestamp_col": "10",
+        "checkpoint_col": "value3, value4",
+        "update_type": "True",
+        "test_column": "['value1', 'value2']",
+    }
+
+    with pytest.warns(UserWarning):
+        table = setup_glue_table(glue_client, monkeypatch, meta)
+
+        assert table["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert table["Table"]["Parameters"] == expected_properties
 
 
 # Testing that a jsonschema ValidationError is returned
@@ -190,8 +131,6 @@ def test_glue_table_generate_from_meta_with_primary_key_property(
         (
             [
                 {
-                    "classification": "should_be_excluded",
-                    "primary_key": "['should_be_excluded']",
                     "extraction_timestamp_col": "10",
                     "checkpoint_col": "value3, value4",
                     "update_type": "True",
@@ -201,8 +140,6 @@ def test_glue_table_generate_from_meta_with_primary_key_property(
         ),
         (
             {
-                "classification": "should_be_excluded",
-                "primary_key": ["should_be_excluded"],
                 "extraction_timestamp_col": 10,
                 "checkpoint_col": "value3, value4",
                 "update_type": True,
@@ -269,7 +206,8 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
 
 # Testing generate_to_meta behaviour
 @pytest.mark.parametrize(
-    "meta, primary_key_property_name, properties_to_get, expected_properties, expected_primary_key",
+    "meta, properties_to_get, update_primary_key, "
+    "expected_properties, expected_primary_key",
     [
         (
             get_meta(
@@ -279,8 +217,8 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     "table_location": "s3://buckets/are/cool",
                 },
             ),
-            "primary_key",
             [],
+            False,
             None,
             [],
         ),
@@ -292,8 +230,6 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     "table_location": "s3://buckets/are/cool",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3, value4",
                         "update_type": "True",
@@ -301,13 +237,13 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     },
                 },
             ),
-            "source_primary_key",
             ["extraction_timestamp_col", "checkpoint_col"],
+            False,
             {
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3, value4",
             },
-            ["my_timestamp", "my_int"]
+            [],
         ),
         (
             get_meta(
@@ -317,8 +253,6 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     "table_location": "s3://buckets/are/cool",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3, value4",
                         "update_type": "True",
@@ -326,14 +260,15 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     },
                 },
             ),
-            "primary_key",
             "*",
+            True,
             {
                 "classification": "csv",
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3, value4",
                 "update_type": "True",
                 "test_column": "['value1', 'value2']",
+                "primary_key": "['my_timestamp', 'my_int']",
             },
             ["my_timestamp", "my_int"],
         ),
@@ -345,8 +280,6 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     "table_location": "s3://buckets/are/cool",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3, value4",
                         "update_type": "True",
@@ -354,9 +287,9 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     },
                 },
             ),
-            "primary_key",
             ["primary_key"],
-            None,
+            "True",
+            {"primary_key": "['my_timestamp', 'my_int']"},
             ["my_timestamp", "my_int"],
         ),
         (
@@ -367,8 +300,6 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     "table_location": "s3://buckets/are/cool",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3, value4",
                         "update_type": "True",
@@ -376,13 +307,14 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
                     },
                 },
             ),
-            "primary_key",
             ["extraction_timestamp_col", "checkpoint_col", "primary_key"],
+            False,
             {
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3, value4",
+                "primary_key": "['my_timestamp', 'my_int']",
             },
-            ["my_timestamp", "my_int"],
+            [],
         ),
     ],
 )
@@ -390,13 +322,14 @@ def test_glue_table_generate_to_meta(
     glue_client,
     monkeypatch,
     meta,
-    primary_key_property_name,
     properties_to_get,
+    update_primary_key,
     expected_properties,
     expected_primary_key,
 ):
     meta_generated = setup_glue_table_and_generate_meta(
-        glue_client, monkeypatch, meta, primary_key_property_name, properties_to_get)
+        glue_client, monkeypatch, meta, properties_to_get, update_primary_key
+    )
     meta_dict = meta_generated.to_dict()
 
     assert meta_generated.columns == meta.columns
@@ -420,13 +353,16 @@ def test__glue_table_warning_generate_to_meta(glue_client, monkeypatch):
         },
     )
     properties_to_get = ["key_which_does_not_exist", "primary_key", "classification"]
-    primary_key_property_name = "source_primary_key"
-    expected_properties = {"classification": "csv"}
+    expected_properties = {
+        "classification": "csv",
+        "primary_key": "['my_timestamp', 'my_int']",
+    }
     expected_primary_key = ["my_timestamp", "my_int"]
 
-    with pytest.warns(Warning):
+    with pytest.warns(UserWarning):
         meta_generated = setup_glue_table_and_generate_meta(
-            glue_client, monkeypatch, meta, primary_key_property_name, properties_to_get)
+            glue_client, monkeypatch, meta, properties_to_get, update_primary_key=True
+        )
         meta_dict = meta_generated.to_dict()
 
         assert meta_generated.columns == meta.columns

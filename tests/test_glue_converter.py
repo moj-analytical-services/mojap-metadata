@@ -151,14 +151,6 @@ def setup_glue_converter_and_return_boto_dict(meta):
 
     return boto_dict
 
-def setup_glue_converter_with_primary_key_property_and_return_boto_dict(meta, primary_key_property_name):
-    gc = GlueConverter()
-    boto_dict = gc.generate_from_meta(
-        metadata=meta, database_name="test_db", table_location="s3://bucket/test_table", primary_key_property=primary_key_property_name
-    )
-
-    return boto_dict
-
 
 # Testing generate_from_meta behaviour
 @pytest.mark.parametrize(
@@ -182,8 +174,6 @@ def setup_glue_converter_with_primary_key_property_and_return_boto_dict(meta, pr
                     "table_location": "s3://bucket/test_table",
                     "primary_key": ["my_timestamp", "my_int"],
                     "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
                         "extraction_timestamp_col": "10",
                         "checkpoint_col": "value3",
                         "update_type": "True",
@@ -202,69 +192,52 @@ def setup_glue_converter_with_primary_key_property_and_return_boto_dict(meta, pr
         ),
     ],
 )
-def test_glue_converter_generate_from_meta_default(meta, expected_properties):
+def test_glue_converter_generate_from_meta(meta, expected_properties):
     boto_dict = setup_glue_converter_and_return_boto_dict(meta)
 
     assert boto_dict["TableInput"]["Parameters"] == expected_properties
 
 
-# Testing generate_from_meta behaviour
-@pytest.mark.parametrize(
-    "meta, primary_key_property_name, expected_properties",
-    [
-        (
-            get_meta(
-                "csv",
-                {
-                    "database_name": "test_db",
-                    "table_location": "s3://bucket/test_table",
-                },
-            ),
-            "source_primary_key",
-            {"classification": "csv"},
-        ),
-        (
-            get_meta(
-                "json",
-                {
-                    "database_name": "test_db",
-                    "table_location": "s3://bucket/test_table",
-                    "primary_key": ["my_timestamp", "my_int"],
-                    "glue_table_properties": {
-                        "classification": "should_be_excluded",
-                        "primary_key": "['should_be_excluded']",
-                        "source_primary_key": "['should_be_excluded']",
-                        "extraction_timestamp_col": "10",
-                        "checkpoint_col": "value3",
-                        "update_type": "True",
-                        "test_column": "['value1', 'value2']",
-                    },
-                },
-            ),
-            "source_primary_key",
-            {
-                "classification": "json",
-                "source_primary_key": "['my_timestamp', 'my_int']",
+# Testing a warning is raised
+def test_glue_table_raise_warning_generate_from_meta():
+    meta = get_meta(
+        "parquet",
+        {
+            "database_name": "cool_database",
+            "table_location": "s3://buckets/are/cool",
+            "primary_key": ["my_timestamp", "my_int"],
+            "glue_table_properties": {
+                "primary_key": "this_should_be_excluded",
+                "classification": "this should be excluded",
+                "projection.*": "['this should be excluded']",
                 "extraction_timestamp_col": "10",
-                "checkpoint_col": "value3",
+                "checkpoint_col": "value3, value4",
                 "update_type": "True",
                 "test_column": "['value1', 'value2']",
             },
-        ),
-    ],
-)
-def test_glue_converter_generate_from_meta(meta, primary_key_property_name, expected_properties):
-    boto_dict = setup_glue_converter_with_primary_key_property_and_return_boto_dict(meta=meta, primary_key_property_name=primary_key_property_name)
+        },
+    )
 
-    assert boto_dict["TableInput"]["Parameters"] == expected_properties
+    expected_properties = {
+        "classification": "parquet",
+        "primary_key": "['my_timestamp', 'my_int']",
+        "extraction_timestamp_col": "10",
+        "checkpoint_col": "value3, value4",
+        "update_type": "True",
+        "test_column": "['value1', 'value2']",
+    }
+
+    with pytest.warns(UserWarning):
+        boto_dict = setup_glue_converter_and_return_boto_dict(meta)
+
+        assert boto_dict["TableInput"]["Parameters"] == expected_properties
+
 
 # Testing that a jsonschema ValidationError is returned
 @pytest.mark.parametrize(
     "glue_table_properties",
     [
         {
-            "classification": "json",
-            "primary_key": ["column1"],
             "extraction_timestamp_col": 10,
             "checkpoint_col": "value3, value5",
             "update_type": True,
@@ -272,8 +245,6 @@ def test_glue_converter_generate_from_meta(meta, primary_key_property_name, expe
         },
         [
             {
-                "classification": "json",
-                "primary_key": "['column1']",
                 "extraction_timestamp_col": "10",
                 "checkpoint_col": "value3",
                 "update_type": "True",
