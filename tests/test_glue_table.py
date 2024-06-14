@@ -21,7 +21,7 @@ def setup_glue_table(glue_client, monkeypatch, meta):
 
 
 def setup_glue_table_and_generate_meta(
-    glue_client, monkeypatch, meta, properties_to_get=None, update_primary_key=False
+    glue_client, monkeypatch, meta, properties_to_get=None, get_primary_key=False
 ):
     monkeypatch.setattr(
         glue_converter, "_start_query_execution_and_wait", lambda *args, **kwargs: None
@@ -35,7 +35,7 @@ def setup_glue_table_and_generate_meta(
             "cool_database",
             "test_table",
             glue_table_properties=properties_to_get,
-            update_primary_key=update_primary_key,
+            get_primary_key=get_primary_key,
         )
 
 
@@ -206,7 +206,7 @@ def test_glue_table_parititioning_generate_from_meta(glue_client, monkeypatch):
 
 # Testing generate_to_meta behaviour
 @pytest.mark.parametrize(
-    "meta, properties_to_get, update_primary_key, "
+    "meta, properties_to_get, get_primary_key, "
     "expected_properties, expected_primary_key",
     [
         (
@@ -323,12 +323,12 @@ def test_glue_table_generate_to_meta(
     monkeypatch,
     meta,
     properties_to_get,
-    update_primary_key,
+    get_primary_key,
     expected_properties,
     expected_primary_key,
 ):
     meta_generated = setup_glue_table_and_generate_meta(
-        glue_client, monkeypatch, meta, properties_to_get, update_primary_key
+        glue_client, monkeypatch, meta, properties_to_get, get_primary_key
     )
     meta_dict = meta_generated.to_dict()
 
@@ -361,7 +361,7 @@ def test__glue_table_warning_generate_to_meta(glue_client, monkeypatch):
 
     with pytest.warns(UserWarning):
         meta_generated = setup_glue_table_and_generate_meta(
-            glue_client, monkeypatch, meta, properties_to_get, update_primary_key=True
+            glue_client, monkeypatch, meta, properties_to_get, get_primary_key=True
         )
         meta_dict = meta_generated.to_dict()
 

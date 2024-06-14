@@ -282,7 +282,7 @@ This means we can continuely add converters (as submodules) and add optional pac
 
 ### Glue Converter
 
-The `GlueConverter` takes our schemas and converts them to a dictionary that can be passed to the glue_client to deploy a schema on AWS Glue. Included alongside `GlueConverter` is `GlueTable` which can generate a Glue Table from a schema, and also generate a Metadata object from a Glue Table. 
+The `GlueConverter` takes our schemas and converts them to a dictionary that can be passed to an [AWS boto glue client](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html) to create a table in the [AWS Glue Data Catalogue](https://docs.aws.amazon.com/glue/latest/dg/catalog-and-crawler.html). Included alongside `GlueConverter` is `GlueTable` which can generate a Glue Table directly from a schema, and also generate a Metadata object from a Glue Table. 
 
 See [Glue Converter](/mojap_metadata/converters/glue_converter/) for more details.
 
