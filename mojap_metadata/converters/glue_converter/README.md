@@ -7,7 +7,7 @@ The `GlueConverter` takes our schemas and converts them to a dictionary that can
 - _database\_name:_ (optional) The database to create the table in. Can also be a property of the metadata.
 - _table\_location:_ (optional) The S3 location where the table is stored. Needed for table DDL. Can also be a property of the metadata.
     
-If `primary_key` or `glue_table_properties` are included in the table schema, the `_generate_from_meta_` method will update the dictionary with these values. Note the following details:
+If `primary_key` or `glue_table_properties` are included in the table schema, the `generate_from_meta_` method will update the dictionary with these values. Note the following details:
 - The key-value pairs in `glue_table_properties` must be strings e.g. `"key1":"3"`, `"key2":"True"`, `"key3":"column1"`, `"key4":"['column1','column2']"`.
 - Properties that have specific uses in AWS (defined in `_glue_table_properties_aws`) will not be updated in the dictionary by this method. Raises a warning if these properties are defined in `glue_table_properties`.
 - The primary key value will be taken from the `primary_key` parameter in the schema, not from `glue_table_properties`. 
@@ -54,7 +54,7 @@ Included alongside `GlueConverter` is `GlueTable` which can generate a Glue Tabl
 - _database\_name:_ (optional) A kwarg, the name of the Glue database to store the table. This can also be a property of the metadata object, dict, or file.
 - _table\_location:_ (optional) A kwarg, the location of the table data. This can also be a property of the metadata object, dict, or file.
 
-If `primary_key` or `glue_table_properties` are included in the table schema, the `_generate_from_meta_` method will update the Glue table with these values. Note the following details:
+If `primary_key` or `glue_table_properties` are included in the table schema, the `generate_from_meta_` method will update the Glue table with these values. Note the following details:
 - The key-value pairs in `glue_table_properties` must be strings e.g. `"key1":"3"`, `"key2":"True"`, `"key3":"column1"`, `"key4":"['column1','column2']"`.
 - Properties that have specific uses in AWS (defined in `_glue_table_properties_aws`) will not be updated in the Glue table by this method. Raises a warning if these properties are defined in `glue_table_properties`.
 - The primary key value will be taken from the `primary_key` parameter in the schema, not from `glue_table_properties`. 
