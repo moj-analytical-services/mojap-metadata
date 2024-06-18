@@ -90,7 +90,7 @@ gt.generate_from_meta(meta, database_name="test_db", table_location="s3://bucket
 - _database:_ The name of the Glue database.
 - _table:_ The name of the Glue table.
 - _glue\_table\_properties:_ (optional) The table properties to get from the Glue Catalog. Default value is `None`. Set to `"*"` to get all Glue table properties.
-- _update_\primary\_key:_ (optional) Default value is `False`. Set to `True` to update the `primary_key` value in the metadata with the `primary_key` table property from Glue Data Catalog if it exists. 
+- _update\_primary\_key:_ (optional) Default value is `False`. Set to `True` to update the `primary_key` value in the metadata with the `primary_key` table property from Glue Data Catalog if it exists. 
 
 Note the following details:
 - Possible `glue_table_properties` values are:
