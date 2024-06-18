@@ -14,7 +14,7 @@ from collections.abc import MutableMapping
 
 
 _table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
-_schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.4.0.json"  # noqa
+_schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.5.0.json"  # noqa
 
 _metadata_struct_dtype_names = ("struct",)
 _metadata_struct_dtype_names_bracket = tuple(

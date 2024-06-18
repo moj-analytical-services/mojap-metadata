@@ -67,9 +67,9 @@ def create_tables(connectable, schema):
         table_name,
         metadata,
         Column("MY_STRING_10", String(10), primary_key=True, nullable=False),
-        Column("my_int", Integer(), comment="this is the comment"),
+        Column("my_int", Integer, comment="this is the comment"),
         Column("my_string_255", String(255), default="Active"),
-        Column("my_bool", Boolean(), default=False),
+        Column("my_bool", Boolean, default=False),
         Column("my_decimal", DECIMAL(precision=38, scale=0, asdecimal=True)),
         Column("my_numeric", NUMERIC(precision=15, scale=2)),
         Column("my_binary", LargeBinary()),
@@ -95,7 +95,7 @@ def expected_metadata(
 ):
     return {
         "$schema": "https://moj-analytical-services.github.io/metadata_schema/\
-mojap_metadata/v1.4.0.json",
+mojap_metadata/v1.5.0.json",
         "name": table_name,
         "database": schema,
         "description": table_description,
