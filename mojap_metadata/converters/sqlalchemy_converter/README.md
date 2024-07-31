@@ -79,6 +79,9 @@ SQLAlchemy v1.4 does appear to handle this. Where the 'asdecimal' flag triggers 
 ### Default type
 In the event the data-type received back from SQL-Alchemy is not found, the default return value from the private method `_approx_dtype` is 'string'.
 
+## Cases
+When converting the SQLAlchemy inherited metadata to mojap-metadata, we have made the choice to (by default) convert all letters to lower case. This is because [Athena is case insensitive](https://docs.aws.amazon.com/athena/latest/ug/tables-databases-columns-names.html). However, many SQL databases use camel/pascal case and so [the safest option to convert to is to snake case](https://dlthub.com/docs/general-usage/naming-convention#use-default-naming-convention-snake_case). For this we have created an option in the SQL converter called `convert_to_snake`, which is False by default, but if set to true will convert camel and pascal case column names in the metadata to snake case.
+
 ## Testing
 
 The `SQLAlchemyConverter` is tested against the following database dialects in [`test_sqlachemy_converter.py`](/tests/test_sqlalchemy_converter.py):
