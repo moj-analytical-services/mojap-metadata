@@ -19,6 +19,7 @@ from sqlalchemy.types import (
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters import BaseConverter
+from utils import make_snake
 
 _sqlalchemy_type_map = {
     SmallInteger: "int16",
@@ -38,6 +39,7 @@ _sqlalchemy_type_map = {
 class SQLAlchemyConverterOptions:
     default_decimal_precision: int = 38
     default_decimal_scale: int = 10
+    convert_to_snake: bool = False
 
 
 class SQLAlchemyConverter(BaseConverter):
@@ -117,7 +119,11 @@ class SQLAlchemyConverter(BaseConverter):
         for col in rows:
             columns.append(
                 {
-                    "name": col["name"].lower(),
+                    "name": (
+                        make_snake(col["name"])
+                        if self.options.convert_to_snake
+                        else col["name"].lower()
+                    ),
                     "type": self.convert_to_mojap_type(col["type"]),
                     "description": col.get("comment") or "",
                     "nullable": col.get("nullable"),
@@ -127,7 +133,10 @@ class SQLAlchemyConverter(BaseConverter):
         d = {
             "name": table,
             "columns": columns,
-            "primary_key": [col.lower() for col in pk["constrained_columns"]],
+            "primary_key": [
+                make_snake(col) if self.options.convert_to_snake else col.lower()
+                for col in pk["constrained_columns"]
+            ],
             "database": schema,
             "description": self._get_table_description(table, schema),
         }
