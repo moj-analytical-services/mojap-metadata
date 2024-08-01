@@ -19,7 +19,7 @@ from sqlalchemy.types import (
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters import BaseConverter
-from utils import make_snake
+from .utils import make_snake
 
 _sqlalchemy_type_map = {
     SmallInteger: "int16",
