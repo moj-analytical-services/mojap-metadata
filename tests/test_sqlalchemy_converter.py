@@ -12,7 +12,10 @@ from sqlalchemy.types import (
     LargeBinary,
     DateTime,
 )
-from mojap_metadata.converters.sqlalchemy_converter import SQLAlchemyConverter
+from mojap_metadata.converters.sqlalchemy_converter import (
+    SQLAlchemyConverter,
+    SQLAlchemyConverterOptions,
+)
 
 
 """
@@ -74,6 +77,7 @@ def create_tables(connectable, schema):
         Column("my_numeric", NUMERIC(precision=15, scale=2)),
         Column("my_binary", LargeBinary()),
         Column("my_date_time", DateTime()),
+        Column("TestColumnMapping", String(10)),
         comment="this is my table",
         schema=schema,
     )
@@ -152,6 +156,12 @@ mojap_metadata/v1.5.0.json",
                 "description": "",
                 "nullable": True,
             },
+            {
+                "name": "test_column_mapping",
+                "type": "string",
+                "description": "",
+                "nullable": True,
+            },
         ],
     }
 
@@ -208,8 +218,8 @@ def test_generate_to_meta(
 
     connectable = create_sqlachemy_engine(dialect)
     create_tables(connectable, schema)
-
-    sqlc = SQLAlchemyConverter(connectable)
+    opt = SQLAlchemyConverterOptions(convert_to_snake=True)
+    sqlc = SQLAlchemyConverter(connectable, opt)
     metadata = sqlc.generate_to_meta(table=table_name, schema=schema)
     assert metadata.to_dict() == expected_metadata(
         schema=schema,
