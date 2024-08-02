@@ -19,7 +19,7 @@ from sqlalchemy.types import (
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters import BaseConverter
-from .utils import make_snake
+from .utils import _make_snake
 
 _sqlalchemy_type_map = {
     SmallInteger: "int16",
@@ -120,7 +120,7 @@ class SQLAlchemyConverter(BaseConverter):
             columns.append(
                 {
                     "name": (
-                        make_snake(col["name"])
+                        _make_snake(col["name"])
                         if self.options.convert_to_snake
                         else col["name"].lower()
                     ),
@@ -134,7 +134,7 @@ class SQLAlchemyConverter(BaseConverter):
             "name": table,
             "columns": columns,
             "primary_key": [
-                make_snake(col) if self.options.convert_to_snake else col.lower()
+                _make_snake(col) if self.options.convert_to_snake else col.lower()
                 for col in pk["constrained_columns"]
             ],
             "database": schema,

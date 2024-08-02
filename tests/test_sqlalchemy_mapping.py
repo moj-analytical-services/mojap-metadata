@@ -20,6 +20,7 @@ from sqlalchemy.types import (
     VARBINARY,
     JSON,
 )
+from sqlalchemy import Column, Table, MetaData, create_engine
 from mojap_metadata.converters.sqlalchemy_converter import (
     SQLAlchemyConverter,
     SQLAlchemyConverterOptions,
@@ -77,4 +78,32 @@ def test_convert_to_mojap_type_decimal_default(inputtype: type, expected: str):
     )
     pc = SQLAlchemyConverter(engine, options=opt)
     actual = pc.convert_to_mojap_type(inputtype)
+    assert actual == expected
+
+table_name = "camel_table"
+
+class TestColumnNameChange:
+    @parameterize_cases(
+        Case(
+            (Table(
+                "camel_table",
+                MetaData(),
+                Column("camelCaseColumn", String(10)),
+                Column("PascalCaseColumn", String(10)),
+                Column("snake_case", String(10)),
+                Column("snamel_SnakeAndCamel_Case", String(10))
+            ))
+        ),
+        Case(),
+        Case()
+    )
+        def test_expected(
+        self,
+        input,
+        expected,
+    ):
+        engine = create_engine("sqlite:///:memory:")
+    opt = SQLAlchemyConverterOptions(convert_to_snake=True)
+    pc = SQLAlchemyConverter(engine, options=opt)
+    actual = pc.generate_to_meta_list()
     assert actual == expected

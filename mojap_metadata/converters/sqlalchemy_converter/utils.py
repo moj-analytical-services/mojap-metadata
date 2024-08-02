@@ -1,4 +1,4 @@
-def camel_to_snake(camel_case: str) -> str:
+def _camel_to_snake(camel_case: str) -> str:
     """Convert a CamelCase string to snake_case.
 
     Parameters
@@ -18,7 +18,7 @@ def camel_to_snake(camel_case: str) -> str:
 
     Example
     -------
-    >>> snake_string = camel_to_snake('CamelCase')
+    >>> snake_string = _camel_to_snake('CamelCase')
     >>> print(snake_string)
     'camel_case'
     """
@@ -60,19 +60,19 @@ def camel_to_snake(camel_case: str) -> str:
     return snake_case
 
 
-def make_snake(string: str) -> str:
+def _make_snake(string: str) -> str:
     """Convert given string to snake_case.
 
     This will attempt to convert in order:
     1. if string already contains `_` then just ensure all characters are lower
        case and then return it
     2. if the string is all upper case, convert to lower and return
-    3. otherwise pass through to the camel_to_snake function.
+    3. otherwise pass through to the _camel_to_snake function.
     """
     if "_" in string:
         string_elements = string.split("_")
-        return "_".join([make_snake(element) for element in string_elements])
+        return "_".join([_make_snake(element) for element in string_elements])
     elif string.isupper():
         return string.lower()
     else:
-        return camel_to_snake(string)
+        return _camel_to_snake(string)

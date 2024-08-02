@@ -4,7 +4,7 @@ import mojap_metadata.converters.sqlalchemy_converter.utils as su
 
 
 class TestCamelToSnake:
-    """Tests for the camel_to_snake function."""
+    """Tests for the _camel_to_snake function."""
 
     @parametrize_cases(
         Case(
@@ -52,7 +52,7 @@ class TestCamelToSnake:
         expected,
     ):
         """Test the expected functionality."""
-        actual = su.camel_to_snake(input_string)
+        actual = su._camel_to_snake(input_string)
 
         assert actual == expected
 
@@ -63,11 +63,11 @@ class TestCamelToSnake:
             ValueError,
             match=f"{input_string} is all upper case. Cannot convert to snake case.",
         ):
-            su.camel_to_snake(input_string)
+            su._camel_to_snake(input_string)
 
 
 class TestMakeSnake:
-    """Tests for the make_snake function."""
+    """Tests for the _make_snake function."""
 
     @parametrize_cases(
         Case(
@@ -115,6 +115,6 @@ class TestMakeSnake:
         expected,
     ):
         """Test the expected functionality."""
-        actual = su.make_snake(input_string)
+        actual = su._make_snake(input_string)
 
         assert actual == expected
