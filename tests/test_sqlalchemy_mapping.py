@@ -20,7 +20,6 @@ from sqlalchemy.types import (
     VARBINARY,
     JSON,
 )
-from sqlalchemy import Column, Table, MetaData, create_engine
 from mojap_metadata.converters.sqlalchemy_converter import (
     SQLAlchemyConverter,
     SQLAlchemyConverterOptions,
