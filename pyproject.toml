@@ -10,7 +10,7 @@ authors = ["MoJ Data Engineering <dataengineering@digital.justice.gov.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = ">=3.9,<4"
 jsonschema = ">=3.0.0"
 parameterized = "0.7.*"
 PyYAML = "^6.0"
