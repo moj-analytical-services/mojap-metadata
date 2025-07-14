@@ -4,7 +4,6 @@ import re
 import warnings
 import yaml
 
-import importlib.resources as pkg_resources
 from importlib_resources import files
 from copy import deepcopy
 from dataengineeringutils3.s3 import read_json_from_s3, read_yaml_from_s3
