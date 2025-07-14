@@ -1,5 +1,6 @@
 from typing import Union
 from dataclasses import dataclass
+import logging
 
 from sqlalchemy import inspect
 from sqlalchemy.engine import Engine, Connection
@@ -85,8 +86,8 @@ class SQLAlchemyConverter(BaseConverter):
             description = (
                 self.inspector.get_table_comment(table, schema=schema)["text"] or ""
             )
-        except NotImplementedError:
-            pass
+        except Exception as e:
+            logging.error(f"Error getting table description for {table}: {e}")
         return description
 
     def convert_to_mojap_type(self, col_type) -> str:

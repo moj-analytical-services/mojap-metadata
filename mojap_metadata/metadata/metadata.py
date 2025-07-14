@@ -4,8 +4,7 @@ import re
 import warnings
 import yaml
 
-import importlib.resources as pkg_resources
-
+from importlib.resources import files
 from copy import deepcopy
 from dataengineeringutils3.s3 import read_json_from_s3, read_yaml_from_s3
 from mojap_metadata.metadata import specs
@@ -13,7 +12,8 @@ from typing import Union, List, Callable, Iterator
 from collections.abc import MutableMapping
 
 
-_table_schema = json.load(pkg_resources.open_text(specs, "table_schema.json"))
+_text = files(specs).joinpath("table_schema.json").read_text()
+_table_schema = json.loads(_text)
 _schema_url = "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.5.0.json"  # noqa
 
 _metadata_struct_dtype_names = ("struct",)
