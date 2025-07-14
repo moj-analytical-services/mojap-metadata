@@ -4,7 +4,7 @@ import re
 import warnings
 import yaml
 
-from importlib_resources import files
+from importlib.resources import files
 from copy import deepcopy
 from dataengineeringutils3.s3 import read_json_from_s3, read_yaml_from_s3
 from mojap_metadata.metadata import specs
